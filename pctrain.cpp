@@ -5,6 +5,28 @@
 #include <pdal/PointTable.hpp>
 #include <pdal/StageFactory.hpp>
 
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/Classification.h>
+#include <CGAL/Point_set_3.h>
+
+typedef CGAL::Simple_cartesian<double> Kernel;
+typedef Kernel::Point_3 Point;
+typedef CGAL::Point_set_3<Point> Point_set;
+typedef std::array<uint8_t, 3> Color;
+
+typedef Point_set::Point_map Pmap;
+// typedef Point_set::Property_map<int> Imap;
+// typedef Point_set::Property_map<uint8_t> UCmap;
+typedef Point_set::Property_map<Color> Color_map;
+
+namespace Classification = CGAL::Classification;
+typedef Classification::Label_handle Label_handle;
+typedef Classification::Feature_handle Feature_handle;
+typedef Classification::Label_set Label_set;
+typedef Classification::Feature_set Feature_set;
+typedef Classification::ETHZ::Random_forest_classifier Classifier;
+
+
 cmdLineParameter< char* >
     Input( "input" ) ,
     Output( "output" );
@@ -25,8 +47,8 @@ int main(int argc, char **argv){
     cmdLineParse( argc-1 , &argv[1] , params );
     if( !Input.set || !Output.set ) help(argv[0]);
 
-    // Read points
     try {
+        // Read points
         std::string filename = Input.value;
         std::string labelDimension = "";
 
@@ -72,15 +94,32 @@ int main(int argc, char **argv){
         }
 
         // pdal::Dimension::IdList dims = pView->dims();
+        Point_set pts;
+        Color_map color = pts.add_property_map<Color> ("color").first;
+
+        pts.reserve (pView->size()); 
+
+        pdal::Dimension::Id labelId;
+        for (const auto &dim : pView->dims()){
+            
+        }
 
         for (pdal::PointId idx = 0; idx < pView->size(); ++idx) {
             auto p = pView->point(idx);
             auto x = p.getFieldAs<double>(pdal::Dimension::Id::X);
             auto y = p.getFieldAs<double>(pdal::Dimension::Id::Y);
             auto z = p.getFieldAs<double>(pdal::Dimension::Id::Z);
+            auto it = pts.insert(Point(x, y, z));
 
-            std::cout << x << " " << y << " " << z << std::endl;
-            exit(0);
+            auto r = p.getFieldAs<uint8_t>(pdal::Dimension::Id::Red);
+            auto g = p.getFieldAs<uint8_t>(pdal::Dimension::Id::Green);
+            auto b = p.getFieldAs<uint8_t>(pdal::Dimension::Id::Blue);
+            
+            // std::cout << x << " " << y << " " << z << std::endl;
+            // exit(0);
+            
+            Color c = {{ r, g, b }};
+            color[*it] = c;
         }
 
     } catch(pdal::pdal_error& e) {
