@@ -27,7 +27,7 @@ Any format supported by [PDAL](https://pdal.io) is also accepted as input.
 
 Training classes are assumed to follow the [ASPRS 1.4 Classification](https://www.asprs.org/wp-content/uploads/2019/03/LAS_1_4_r14.pdf) and to be stored in either a `label`, `class` or `classification` property.
 
-You can re-map classification codes by creating a `<FILE>.json` in the same directory as `<TRAINING>.ply`:
+You can re-map classification codes by creating a `<FILE>.json` in the same directory as `<FILE>.ply`:
 
 ```
 {
