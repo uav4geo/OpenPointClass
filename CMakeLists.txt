@@ -17,19 +17,19 @@ find_package(PDAL REQUIRED)
 find_package(TBB REQUIRED)
 find_package(Boost COMPONENTS system serialization)
 
+add_definitions(-DCGAL_LINKED_WITH_TBB=1)
+
 include_directories(${PDAL_INCLUDE_DIR})
 include_directories(${PDAL_INCLUDE_DIR}/pdal)
 include_directories(vendor/CGAL)
 include_directories(vendor/json)
 
-set(LINK_LIBRARIES ${PDAL_LIBRARIES} ${TBB_LIBRARIES} Boost::system Boost::serialization)
+set(LINK_LIBRARIES ${PDAL_LIBRARIES} TBB::tbb Boost::system Boost::serialization)
 add_executable(pctrain pctrain.cpp)
+add_executable(pcclassify pcclassify.cpp)
 
 target_link_libraries(pctrain ${LINK_LIBRARIES})
-
-# if(OpenMP_CXX_FOUND)
-#     target_link_libraries(FPCFilter PUBLIC OpenMP::OpenMP_CXX)
-# endif()
-
+target_link_libraries(pcclassify ${LINK_LIBRARIES})
 
 install(TARGETS pctrain RUNTIME DESTINATION bin)
+install(TARGETS pcclassify RUNTIME DESTINATION bin)
