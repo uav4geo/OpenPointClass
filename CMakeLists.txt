@@ -12,15 +12,17 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-#find_package(OpenMP REQUIRED)
-find_package(CGAL REQUIRED)
+# find_package(CGAL REQUIRED)
 find_package(PDAL REQUIRED)
+find_package(TBB REQUIRED)
 find_package(Boost COMPONENTS system serialization)
 
 include_directories(${PDAL_INCLUDE_DIR})
 include_directories(${PDAL_INCLUDE_DIR}/pdal)
+include_directories(vendor/CGAL)
+include_directories(vendor/json)
 
-set(LINK_LIBRARIES CGAL::CGAL ${PDAL_LIBRARIES} Boost::system Boost::serialization)
+set(LINK_LIBRARIES ${PDAL_LIBRARIES} ${TBB_LIBRARIES} Boost::system Boost::serialization)
 add_executable(pctrain pctrain.cpp)
 
 target_link_libraries(pctrain ${LINK_LIBRARIES})

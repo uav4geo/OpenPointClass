@@ -1,5 +1,9 @@
 #include <iostream>
 #include <string>
+#include <unordered_map>
+
+#include <json.hpp>
+
 #include "CmdLineParser.h"
 #include <pdal/Options.hpp>
 #include <pdal/PointTable.hpp>
@@ -15,7 +19,7 @@ typedef CGAL::Point_set_3<Point> Point_set;
 typedef std::array<uint8_t, 3> Color;
 
 typedef Point_set::Point_map Pmap;
-// typedef Point_set::Property_map<int> Imap;
+typedef Point_set::Property_map<int> Imap;
 // typedef Point_set::Property_map<uint8_t> UCmap;
 typedef Point_set::Property_map<Color> Color_map;
 
@@ -25,7 +29,9 @@ typedef Classification::Feature_handle Feature_handle;
 typedef Classification::Label_set Label_set;
 typedef Classification::Feature_set Feature_set;
 typedef Classification::ETHZ::Random_forest_classifier Classifier;
+typedef Classification::Point_set_feature_generator<Kernel, Point_set, Pmap>    Feature_generator;
 
+using json = nlohmann::json;
 
 cmdLineParameter< char* >
     Input( "input" ) ,
@@ -43,6 +49,28 @@ void help(char *ex){
     exit(EXIT_FAILURE);
 }
 
+std::unordered_map<int, std::string> getClassMappings(const std::string &filename){
+    std::string jsonFile = filename.substr(0, filename.length() - 4) + ".json";
+    std::ifstream fin(jsonFile);
+    std::unordered_map<int, std::string> res;
+
+    if (fin.good()){
+        std::cout << "Reading classification information: " << jsonFile << std::endl;
+        json data = json::parse(fin);
+        if (data.contains("classification")){
+            auto c = data["classification"];
+            for (json::iterator it = c.begin(); it != c.end(); ++it) {
+                res[std::stoi(it.key())] = it.value().get<std::string>();
+                std::cout << it.key() << ": " << it.value().get<std::string>() << std::endl;
+            }
+        }else{
+            std::cout << "Error: Invalid JSON (no mapping will be applied)" << std::endl;
+        }
+    }
+
+    return res;
+}
+
 int main(int argc, char **argv){
     cmdLineParse( argc-1 , &argv[1] , params );
     if( !Input.set || !Output.set ) help(argv[0]);
@@ -51,6 +79,40 @@ int main(int argc, char **argv){
         // Read points
         std::string filename = Input.value;
         std::string labelDimension = "";
+
+        std::unordered_map<std::string, int> trainingCodes = {
+            {"unassigned", 0},
+            {"ground", 0},
+            {"low_vegetation", 1},
+            {"medium_vegetation", 2},
+            {"high_vegetation", 3},
+            {"building", 4},
+            {"water", 5},
+            {"road_surface", 6},
+        };
+
+        std::unordered_map<std::string, int> asprsCodes = {
+            {"unassigned", 2},
+            {"ground", 2},
+            {"low_vegetation", 3},
+            {"medium_vegetation", 4},
+            {"high_vegetation", 5},
+            {"building", 6},
+            {"noise", 7},
+            {"reserved", 8},
+            {"water", 9},
+            {"rail", 10},
+            {"road_surface", 11},
+            {"reserved_2", 12},
+            {"wire_guard", 13},
+            {"wire_conductor", 14},
+            {"transmission_tower", 15},
+            {"wire_connect", 16},
+            {"bridge_deck", 17},
+            {"high_noise", 18}
+        };
+        auto mappings = getClassMappings(filename);
+        bool hasMappings = !mappings.empty();
 
         pdal::StageFactory factory;
         std::string driver = pdal::StageFactory::inferReaderDriver(filename);
@@ -78,13 +140,14 @@ int main(int argc, char **argv){
             }
         }
 
-        // if (labelDimension.empty()) throw std::runtime_error("Cannot find a classification dimension in the input point cloud (should be either \"Classification\" or \"Label\")");
+        if (labelDimension.empty()) throw std::runtime_error("Cannot find a classification dimension in the input point cloud (should be either \"Classification\" or \"Label\")");
 
         std::cout << "Label dimension: " << labelDimension << std::endl;
 
         pdal::PointTable table;
         pdal::PointViewSet pvSet;
 
+        std::cout << "Reading points..." << std::endl;
         s->prepare(table);
         pvSet = s->execute(table);
         pdal::PointViewPtr pView = *pvSet.begin();
@@ -93,16 +156,14 @@ int main(int argc, char **argv){
             throw std::runtime_error("No points could be fetched from cloud");
         }
 
-        // pdal::Dimension::IdList dims = pView->dims();
         Point_set pts;
-        Color_map color = pts.add_property_map<Color> ("color").first;
+        pts.reserve (pView->size());
+    
+        Color_map color_map = pts.add_property_map<Color> ("color").first;
+        Imap label_map = pts.add_property_map<int>("label").first;
 
-        pts.reserve (pView->size()); 
-
-        pdal::Dimension::Id labelId;
-        for (const auto &dim : pView->dims()){
-            
-        }
+        pdal::PointLayoutPtr layout(table.layout());
+        pdal::Dimension::Id labelId = layout->findDim(labelDimension);
 
         for (pdal::PointId idx = 0; idx < pView->size(); ++idx) {
             auto p = pView->point(idx);
@@ -115,12 +176,61 @@ int main(int argc, char **argv){
             auto g = p.getFieldAs<uint8_t>(pdal::Dimension::Id::Green);
             auto b = p.getFieldAs<uint8_t>(pdal::Dimension::Id::Blue);
             
-            // std::cout << x << " " << y << " " << z << std::endl;
-            // exit(0);
-            
             Color c = {{ r, g, b }};
-            color[*it] = c;
+            color_map[*it] = c;
+
+            int label = p.getFieldAs<int>(labelId);
+
+            if (hasMappings){
+                if (mappings.find(label) != mappings.end()){
+                    label = trainingCodes[mappings[label]];
+                }else{
+                    label = trainingCodes["unassigned"];
+                }
+            }
+
+            label_map[*it] = label;
         }
+
+        std::cout << "Generating features..." << std::endl;
+
+        Feature_set features;
+
+        Feature_generator generator (pts, pts.point_map(),
+                               5);  // using 5 scales TODO: change
+        features.begin_parallel_additions();
+
+        // TODO: add your custom features here
+        generator.generate_point_based_features (features);
+
+        features.end_parallel_additions();
+
+        // Add labels
+        Label_set labels;
+        Label_handle ground = labels.add ("ground");
+        Label_handle low_vegetation = labels.add ("low_vegetation");
+        Label_handle medium_vegetation = labels.add ("medium_vegetation");
+        Label_handle high_vegetation = labels.add ("high_vegetation");
+        Label_handle building = labels.add ("building");
+        Label_handle water = labels.add ("water");
+        Label_handle road = labels.add ("road");
+
+        std::cout << labels.size() << std::endl;
+
+        // std::vector<int> ground_truth;
+        // ground_truth.reserve (pts.size());
+        // std::copy (pts.range(label_map).begin(), pts.range(label_map).end(), std::back_inserter (ground_truth));
+
+        // Check if ground truth is valid for this label set
+        if (!labels.is_valid_ground_truth (pts.range(label_map), true))
+            throw std::runtime_error("Invalid ground truth labels; check that the training data has all the required labels.");
+
+        std::vector<int> label_indices(pts.size(), -1);
+        std::cout << "Using ETHZ Random Forest Classifier" << std::endl;
+        Classification::ETHZ::Random_forest_classifier classifier (labels, features);
+        std::cout << "Training..." << std::endl;
+        classifier.train (pts.range(label_map));
+        std::cout << "Done" << std::endl;
 
     } catch(pdal::pdal_error& e) {
         std::cerr << "PDAL Error: " << e.what() << std::endl;
