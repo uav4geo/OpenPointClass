@@ -178,8 +178,8 @@ std::unique_ptr<Point_set> readPointSet(const std::string &filename, bool traini
     return pts;
 }
 
-std::unique_ptr<Feature_generator> getGenerator(const Point_set &pts){
-    std::unique_ptr<Feature_generator> generator = std::make_unique<Feature_generator>(pts, pts.point_map(), 5); // TODO: scale change
+std::unique_ptr<Feature_generator> getGenerator(const Point_set &pts, int numScales = 9, float resolution = -1.0f){
+    std::unique_ptr<Feature_generator> generator = std::make_unique<Feature_generator>(pts, pts.point_map(), numScales, resolution);
     return generator;
 }
 
@@ -200,13 +200,14 @@ std::unique_ptr<Feature_set> getFeatures(Feature_generator &generator){
 
 std::unique_ptr<Label_set> getLabels(){
     std::unique_ptr<Label_set> labels = std::make_unique<Label_set>();
+
     labels->add ("ground");
     labels->add ("low_vegetation");
     labels->add ("medium_vegetation");
     labels->add ("high_vegetation");
     labels->add ("building");
     labels->add ("water");
-    labels->add ("road");
+    labels->add ("road_surface");
 
     return labels;
 }

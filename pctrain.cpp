@@ -17,7 +17,9 @@ int main(int argc, char **argv){
         Color_map colorMap;
         Imap labelMap;
         auto pts = readPointSet(filename, true, &labelMap);
-        auto generator = getGenerator(*pts);
+
+        // TODO: -1.0f should be set to ~4xGSD of largest input dataset (currently it's auto-computed)
+        auto generator = getGenerator(*pts, 9, -1.0f);
         auto features = getFeatures(*generator);
 
         // Add labels

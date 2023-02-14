@@ -146,7 +146,7 @@ private:
 
       eigen = std::make_unique<Local_eigen_analysis>
         (Local_eigen_analysis::create_from_point_set
-         (input, point_map, neighborhood->k_neighbor_query(12), ConcurrencyTag(), DiagonalizeTraits()));
+         (input, point_map, neighborhood->k_neighbor_query(10), ConcurrencyTag(), DiagonalizeTraits()));
 
       float range = eigen->mean_range();
       if (this->voxel_size < 0)
