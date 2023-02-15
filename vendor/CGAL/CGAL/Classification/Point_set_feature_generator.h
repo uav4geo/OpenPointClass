@@ -303,8 +303,8 @@ public:
    */
   void generate_elevation_features (Feature_set& features)
   {
-    for (std::size_t i = 0; i < m_scales.size(); ++ i)
-      features.add_with_scale_id<Elevation> (i, m_input, m_point_map, grid(i), radius_dtm(i));
+//    for (std::size_t i = 0; i < m_scales.size(); ++ i)
+//      features.add_with_scale_id<Elevation> (i, m_input, m_point_map, grid(i), radius_dtm(i));
     for (std::size_t i = 0; i < m_scales.size(); ++ i)
       features.add_with_scale_id<Height_below> (i, m_input, m_point_map, grid(i));
     for (std::size_t i = 0; i < m_scales.size(); ++ i)

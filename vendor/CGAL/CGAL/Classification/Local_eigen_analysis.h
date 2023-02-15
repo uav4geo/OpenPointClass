@@ -59,6 +59,8 @@ class Local_eigen_analysis
 public:
   using Eigenvalues = std::array<float, 3>; ///< Eigenvalues (sorted in ascending order)
 
+  template <typename V>
+  using Eigenvectors = std::array<V, 3>;
 private:
 
 #ifdef CGAL_LINKED_WITH_TBB
@@ -191,6 +193,7 @@ private:
 
   };
 
+  using float9 = std::array<float, 9>;
   using float3 = std::array<float, 3>;
   using float2 = std::array<float, 2>;
   using cfloat2 = std::array<compressed_float, 2>;
@@ -199,6 +202,7 @@ private:
   {
     std::vector<cfloat2> eigenvalues;
     std::vector<float3> centroids;
+    std::vector<float9> eigenvectors;
     std::vector<float2> smallest_eigenvectors;
     float mean_range;
   };
@@ -260,6 +264,7 @@ public:
     out.m_content = std::make_shared<Content>();
     out.m_content->eigenvalues.resize (input.size());
     out.m_content->centroids.resize (input.size());
+    out.m_content->eigenvectors.resize (input.size());
     out.m_content->smallest_eigenvectors.resize (input.size());
 
     out.m_content->mean_range = 0.;
@@ -348,6 +353,7 @@ public:
 
     out.m_content->eigenvalues.resize (range.size());
     out.m_content->centroids.resize (range.size());
+    out.m_content->eigenvectors.resize (range.size());
     out.m_content->smallest_eigenvectors.resize (range.size());
 
     out.m_content->mean_range = 0.;
@@ -422,6 +428,7 @@ public:
 
     out.m_content->eigenvalues.resize (input.size());
     out.m_content->centroids.resize (input.size());
+    out.m_content->eigenvectors.resize (input.size());
     out.m_content->smallest_eigenvectors.resize (input.size());
 
     out.m_content->mean_range = 0.;
@@ -492,6 +499,15 @@ public:
     out[0] = 1.f - (out[1] + out[2]);
     return out;
   }
+  
+  template <typename V>
+  Eigenvectors<V> eigenvectors (std::size_t index) const
+  {
+    const float9& c = m_content->eigenvectors[index];
+    Eigenvectors<V> out;
+    // TODO!!!
+    return out;
+  }
 
   /// @}
 
@@ -526,6 +542,9 @@ private:
     {
       m_content->eigenvalues[index] = make_array (compressed_float(0), compressed_float(0));
       m_content->centroids[index] = make_array(float(query.x()), float(query.y()), float(query.z()) );
+      m_content->eigenvectors[index] = make_array( 0.f, 0.f, 0.f,
+                                                   0.f, 0.f, 0.f,
+                                                   0.f, 0.f, 0.f );
       m_content->smallest_eigenvectors[index] = make_array( 0.f, 0.f );
       return;
     }
@@ -563,10 +582,15 @@ private:
     m_content->eigenvalues[index] = make_array(compress_float (evalues[1]),
                                                compress_float (evalues[2]));
 
+    m_content->eigenvectors[index] = make_array( evectors[0], evectors[1], evectors[2],
+                                                 evectors[3], evectors[4], evectors[5],
+                                                 evectors[6], evectors[7], evectors[8]);
+
     sum = evectors[0] + evectors[1] + evectors[2];
     if (sum > 0.f)
       for (std::size_t i = 0; i < 3; ++ i)
         evectors[i] = evectors[i] / sum;
+
     m_content->smallest_eigenvectors[index] = make_array( float(evectors[0]), float(evectors[1]) );
   }
 
