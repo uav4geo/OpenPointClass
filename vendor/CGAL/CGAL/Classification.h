@@ -49,4 +49,8 @@
 #include <CGAL/Classification/Feature/Vertical_dispersion.h>
 #include <CGAL/Classification/Feature/Verticality.h>
 
+#include <CGAL/Classification/Feature/Covariance.h>
+#include <CGAL/Classification/Feature/Moments.h>
+
+
 #endif // CGAL_CLASSIFICATION_H

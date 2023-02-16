@@ -30,6 +30,9 @@
 #include <CGAL/Classification/Feature/Height_above.h>
 #include <CGAL/Classification/Feature/Vertical_range.h>
 
+#include <CGAL/Classification/Feature/Covariance.h>
+#include <CGAL/Classification/Feature/Moments.h>
+
 #include <CGAL/Classification/internal/verbosity.h>
 #include <CGAL/Classification/Feature_set.h>
 #include <CGAL/bounding_box.h>
@@ -110,6 +113,14 @@ public:
   using Dispersion = Classification::Feature::Vertical_dispersion<GeomTraits, PointRange, PointMap>;
   using Verticality = Classification::Feature::Verticality<GeomTraits>;
   using Eigenvalue = Classification::Feature::Eigenvalue;
+  using SurfaceVariation = Classification::Feature::SurfaceVariation;
+  using Omnivariance = Classification::Feature::Omnivariance;
+  using Eigenentropy = Classification::Feature::Eigenentropy;
+  using Anisotropy = Classification::Feature::Anisotropy;
+  using Planarity = Classification::Feature::Planarity;
+  using Linearity = Classification::Feature::Linearity;
+  using Scatter = Classification::Feature::Scatter;
+
   using Neighbor_query = typename Neighborhood::K_neighbor_query;
   /// \endcond
 
@@ -271,6 +282,20 @@ public:
         features.add_with_scale_id<Eigenvalue> (i, m_input, eigen(i), (unsigned int)(j));
   }
 
+  void generate_covariance_features (Feature_set& features){
+    for (std::size_t i = 0; i < m_scales.size(); ++ i){
+        features.add_with_scale_id<Omnivariance> (i, eigen(i));
+        features.add_with_scale_id<Eigenentropy> (i, eigen(i));
+        features.add_with_scale_id<Anisotropy> (i, eigen(i));
+        features.add_with_scale_id<Planarity> (i, eigen(i));
+        features.add_with_scale_id<Linearity> (i, eigen(i));
+        features.add_with_scale_id<SurfaceVariation> (i, eigen(i));
+        features.add_with_scale_id<Scatter> (i, eigen(i));
+        features.add_with_scale_id<Verticality> (i, m_input, eigen(i));
+        
+    }
+  }
+
   /*!
     \brief generates geometric features based on local dispersion information.
 
@@ -312,7 +337,6 @@ public:
     for (std::size_t i = 0; i < m_scales.size(); ++ i)
       features.add_with_scale_id<Vertical_range> (i, m_input, m_point_map, grid(i));
   }
-
 
   /*!
     \brief generates geometric features based on normal analysis information.
@@ -409,7 +433,7 @@ public:
     \brief returns the local eigen analysis structure at scale `scale`.
   */
   const Local_eigen_analysis& eigen(std::size_t scale = 0) const { return *(m_scales[scale]->eigen); }
-
+  
   /// @}
 
   /// \name Parameters

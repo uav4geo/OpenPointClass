@@ -59,8 +59,6 @@ class Local_eigen_analysis
 public:
   using Eigenvalues = std::array<float, 3>; ///< Eigenvalues (sorted in ascending order)
 
-  template <typename V>
-  using Eigenvectors = std::array<V, 3>;
 private:
 
 #ifdef CGAL_LINKED_WITH_TBB
@@ -203,7 +201,6 @@ private:
     std::vector<cfloat2> eigenvalues;
     std::vector<float3> centroids;
     std::vector<float9> eigenvectors;
-    std::vector<float2> smallest_eigenvectors;
     float mean_range;
   };
 
@@ -265,7 +262,6 @@ public:
     out.m_content->eigenvalues.resize (input.size());
     out.m_content->centroids.resize (input.size());
     out.m_content->eigenvectors.resize (input.size());
-    out.m_content->smallest_eigenvectors.resize (input.size());
 
     out.m_content->mean_range = 0.;
 
@@ -354,7 +350,6 @@ public:
     out.m_content->eigenvalues.resize (range.size());
     out.m_content->centroids.resize (range.size());
     out.m_content->eigenvectors.resize (range.size());
-    out.m_content->smallest_eigenvectors.resize (range.size());
 
     out.m_content->mean_range = 0.;
 
@@ -429,7 +424,6 @@ public:
     out.m_content->eigenvalues.resize (input.size());
     out.m_content->centroids.resize (input.size());
     out.m_content->eigenvectors.resize (input.size());
-    out.m_content->smallest_eigenvectors.resize (input.size());
 
     out.m_content->mean_range = 0.;
 
@@ -467,10 +461,9 @@ public:
   template <typename GeomTraits>
   typename GeomTraits::Vector_3 normal_vector (std::size_t index) const
   {
-    return typename GeomTraits::Vector_3(double(m_content->smallest_eigenvectors[index][0]),
-                                         double(m_content->smallest_eigenvectors[index][1]),
-                                         double(1. - (m_content->smallest_eigenvectors[index][0] +
-                                                      m_content->smallest_eigenvectors[index][1])));
+    return typename GeomTraits::Vector_3(double(m_content->eigenvectors[index][0]),
+                                         double(m_content->eigenvectors[index][1]),
+                                         double(m_content->eigenvectors[index][2]));
   }
 
   /*!
@@ -499,15 +492,23 @@ public:
     out[0] = 1.f - (out[1] + out[2]);
     return out;
   }
-  
-  template <typename V>
-  Eigenvectors<V> eigenvectors (std::size_t index) const
+
+  template <typename GeomTraits>
+  typename GeomTraits::Vector_3 eigenvector (std::size_t index, std::size_t i) const
   {
-    const float9& c = m_content->eigenvectors[index];
-    Eigenvectors<V> out;
-    // TODO!!!
-    return out;
+    return typename GeomTraits::Vector_3(double(m_content->eigenvectors[index][3 * i + 0]),
+                                         double(m_content->eigenvectors[index][3 * i + 1]),
+                                         double(m_content->eigenvectors[index][3 * i + 2]));
   }
+
+  template <typename GeomTraits>
+  typename GeomTraits::Vector_3 centroid (std::size_t index) const
+  {
+    return typename GeomTraits::Vector_3(double(m_content->centroids[index]),
+                                         double(m_content->centroids[index]),
+                                         double(m_content->centroids[index]));
+  }
+  
 
   /// @}
 
@@ -545,7 +546,6 @@ private:
       m_content->eigenvectors[index] = make_array( 0.f, 0.f, 0.f,
                                                    0.f, 0.f, 0.f,
                                                    0.f, 0.f, 0.f );
-      m_content->smallest_eigenvectors[index] = make_array( 0.f, 0.f );
       return;
     }
 
@@ -578,20 +578,13 @@ private:
     if (sum > 0.f)
       for (std::size_t i = 0; i < 3; ++ i)
         evalues[i] = evalues[i] / sum;
-
+      
     m_content->eigenvalues[index] = make_array(compress_float (evalues[1]),
                                                compress_float (evalues[2]));
 
     m_content->eigenvectors[index] = make_array( evectors[0], evectors[1], evectors[2],
                                                  evectors[3], evectors[4], evectors[5],
                                                  evectors[6], evectors[7], evectors[8]);
-
-    sum = evectors[0] + evectors[1] + evectors[2];
-    if (sum > 0.f)
-      for (std::size_t i = 0; i < 3; ++ i)
-        evectors[i] = evectors[i] / sum;
-
-    m_content->smallest_eigenvectors[index] = make_array( float(evectors[0]), float(evectors[1]) );
   }
 
   template <typename FaceListGraph, typename DiagonalizeTraits>
@@ -619,8 +612,10 @@ private:
                                tr.end(), Kernel(), CGAL::Dimension_tag<2>());
 
       m_content->centroids[get(get(CGAL::face_index,g), query)] = {{ float(c.x()), float(c.y()), float(c.z()) }};
-
-      m_content->smallest_eigenvectors[get(get(CGAL::face_index,g), query)] = {{ 0.f, 0.f }};
+      
+      std::cerr << "Not implemented" << std::endl;
+      exit(1);
+      // m_content->smallest_eigenvectors[get(get(CGAL::face_index,g), query)] = {{ 0.f, 0.f }};
       return;
     }
 
@@ -665,11 +660,14 @@ private:
       = make_array(compress_float (evalues[1]),
                    compress_float (evalues[2]));
 
-    sum = evectors[0] + evectors[1] + evectors[2];
-    if (sum > 0.f)
-      for (std::size_t i = 0; i < 3; ++ i)
-        evectors[i] = evectors[i] / sum;
-    m_content->smallest_eigenvectors[get(get(CGAL::face_index,g), query)] = {{ float(evectors[0]), float(evectors[1]), }};
+    std::cerr << "Not implemented" << std::endl;
+    exit(1);
+    // sum = evectors[0] + evectors[1] + evectors[2];
+    // if (sum > 0.f)
+    //   for (std::size_t i = 0; i < 3; ++ i)
+    //     evectors[i] = evectors[i] / sum;
+
+    // m_content->smallest_eigenvectors[get(get(CGAL::face_index,g), query)] = {{ float(evectors[0]), float(evectors[1]), }};
   }
 
 };

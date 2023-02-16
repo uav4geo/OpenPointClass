@@ -8,27 +8,7 @@
 #include <pdal/PointTable.hpp>
 #include <pdal/StageFactory.hpp>
 
-#include <CGAL/Simple_cartesian.h>
-#include <CGAL/Classification.h>
-#include <CGAL/Point_set_3.h>
-
-typedef CGAL::Simple_cartesian<double> Kernel;
-typedef Kernel::Point_3 Point;
-typedef CGAL::Point_set_3<Point> Point_set;
-typedef std::array<uint8_t, 3> Color;
-
-typedef Point_set::Point_map Pmap;
-typedef Point_set::Property_map<int> Imap;
-typedef Point_set::Property_map<uint8_t> UCmap;
-typedef Point_set::Property_map<Color> Color_map;
-
-namespace Classification = CGAL::Classification;
-typedef Classification::Label_handle Label_handle;
-typedef Classification::Feature_handle Feature_handle;
-typedef Classification::Label_set Label_set;
-typedef Classification::Feature_set Feature_set;
-typedef Classification::ETHZ::Random_forest_classifier Classifier;
-typedef Classification::Point_set_feature_generator<Kernel, Point_set, Pmap>    Feature_generator;
+#include "cgal.hpp"
 
 using json = nlohmann::json;
 
@@ -193,7 +173,8 @@ std::unique_ptr<Feature_set> getFeatures(Feature_generator &generator){
 
     // TODO: add your custom features here
     generator.generate_elevation_features(*features);
-    generator.generate_eigen_features(*features);
+    generator.generate_covariance_features(*features);
+    
     if (false){ // TODO REMOVE
         generator.generate_point_based_features (*features);
     }
