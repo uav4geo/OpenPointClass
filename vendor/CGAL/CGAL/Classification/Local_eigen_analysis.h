@@ -502,11 +502,11 @@ public:
   }
 
   template <typename GeomTraits>
-  typename GeomTraits::Vector_3 centroid (std::size_t index) const
+  typename GeomTraits::Point_3 centroid (std::size_t index) const
   {
-    return typename GeomTraits::Vector_3(double(m_content->centroids[index]),
-                                         double(m_content->centroids[index]),
-                                         double(m_content->centroids[index]));
+    return typename GeomTraits::Point_3(double(m_content->centroids[index][0]),
+                                         double(m_content->centroids[index][1]),
+                                         double(m_content->centroids[index][2]));
   }
   
 

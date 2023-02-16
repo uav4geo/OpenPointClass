@@ -120,6 +120,7 @@ public:
   using Planarity = Classification::Feature::Planarity;
   using Linearity = Classification::Feature::Linearity;
   using Scatter = Classification::Feature::Scatter;
+  using OrderAxis = Classification::Feature::OrderAxis<GeomTraits, PointRange, PointMap>;
 
   using Neighbor_query = typename Neighborhood::K_neighbor_query;
   /// \endcond
@@ -292,7 +293,15 @@ public:
         features.add_with_scale_id<SurfaceVariation> (i, eigen(i));
         features.add_with_scale_id<Scatter> (i, eigen(i));
         features.add_with_scale_id<Verticality> (i, m_input, eigen(i));
-        
+    }
+  }
+
+  void generate_moments_features (Feature_set& features){
+    for (std::size_t i = 0; i < m_scales.size(); ++ i){
+        // features.add_with_scale_id<OrderAxis> (i, 1, 1, m_input, m_point_map, grid(i), eigen(i));
+        // features.add_with_scale_id<OrderAxis> (i, 1, 2, m_input, m_point_map, grid(i), eigen(i));
+        // features.add_with_scale_id<OrderAxis> (i, 2, 1, m_input, m_point_map, grid(i), eigen(i));
+        // features.add_with_scale_id<OrderAxis> (i, 2, 2, m_input, m_point_map, grid(i), eigen(i));
     }
   }
 

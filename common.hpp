@@ -169,17 +169,18 @@ std::unique_ptr<Feature_set> getFeatures(Feature_generator &generator){
 
     std::unique_ptr<Feature_set> features = std::make_unique<Feature_set>();
 
-    //features->begin_parallel_additions();
+    features->begin_parallel_additions();
 
     // TODO: add your custom features here
-    generator.generate_elevation_features(*features);
     generator.generate_covariance_features(*features);
+    generator.generate_moments_features(*features);
+    generator.generate_elevation_features(*features);
     
     if (false){ // TODO REMOVE
         generator.generate_point_based_features (*features);
     }
 
-    //features->end_parallel_additions();
+    features->end_parallel_additions();
 
     return features;
 }
