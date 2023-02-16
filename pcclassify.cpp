@@ -42,19 +42,7 @@ int main(int argc, char **argv){
               (*pts, pts->point_map(), *labels, classifier,
                 generator->neighborhood().sphere_neighbor_query(0.6),
                 label_indices);
-/*
-        Classification::Evaluation evaluation (labels, pts->range(label_map), label_indices);
-        for (Label_handle l : labels){
-            std::cout << " * " << l->name() << ": "
-                      << evaluation.precision(l) << " ; "
-                      << evaluation.recall(l) << " ; "
-                      << evaluation.f1_score(l) << " ; "
-                      << evaluation.intersection_over_union(l) << std::endl;
-        }
-        std::cout << "Accuracy = " << evaluation.accuracy() << std::endl
-                  << "Mean F1 score = " << evaluation.mean_f1_score() << std::endl
-                  << "Mean IoU = " << evaluation.mean_intersection_over_union() << std::endl;
-*/
+
         // TODO: write using PDAL
 
         UCmap red = pts->add_property_map<unsigned char>("red", 0).first;

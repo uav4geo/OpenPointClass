@@ -44,8 +44,36 @@ static std::unordered_map<std::string, int> asprsCodes = {
     {"high_noise", 18}
 };
 
+std::unique_ptr<Label_set> getLabels(){
+    std::unique_ptr<Label_set> labels = std::make_unique<Label_set>();
+
+    labels->add ("ground");
+    labels->add ("low_vegetation");
+    labels->add ("medium_vegetation");
+    labels->add ("high_vegetation");
+    labels->add ("building");
+    labels->add ("water");
+    labels->add ("road_surface");
+
+    return labels;
+}
+
+bool fileExists(const std::string &path){
+    std::ifstream fin(path);
+    bool e = fin.good();
+    fin.close();
+    return e;
+}
+
 std::unordered_map<int, std::string> getClassMappings(const std::string &filename){
     std::string jsonFile = filename.substr(0, filename.length() - 4) + ".json";
+    
+    // Need to drop _eval filename suffix?
+    if (filename.substr(filename.length() - 5 - 4, 5) == "_eval" &&
+            !fileExists(jsonFile)){
+        jsonFile = filename.substr(0, filename.length() - 5 - 4) + ".json";
+    }
+
     std::ifstream fin(jsonFile);
     std::unordered_map<int, std::string> res;
 
@@ -176,25 +204,12 @@ std::unique_ptr<Feature_set> getFeatures(Feature_generator &generator){
     generator.generate_moments_features(*features);
     generator.generate_elevation_features(*features);
     
-    if (false){ // TODO REMOVE
-        generator.generate_point_based_features (*features);
-    }
+    // if (false){ // TODO REMOVE
+        //generator.generate_point_based_features (*features);
+    // }
 
     features->end_parallel_additions();
 
     return features;
 }
 
-std::unique_ptr<Label_set> getLabels(){
-    std::unique_ptr<Label_set> labels = std::make_unique<Label_set>();
-
-    labels->add ("ground");
-    labels->add ("low_vegetation");
-    labels->add ("medium_vegetation");
-    labels->add ("high_vegetation");
-    labels->add ("building");
-    labels->add ("water");
-    labels->add ("road_surface");
-
-    return labels;
-}
