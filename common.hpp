@@ -13,7 +13,7 @@
 using json = nlohmann::json;
 
 static std::unordered_map<std::string, int> trainingCodes = {
-    {"unassigned", 0},
+    {"unassigned", -1},
     {"ground", 0},
     {"low_vegetation", 1},
     {"medium_vegetation", 2},
@@ -21,10 +21,11 @@ static std::unordered_map<std::string, int> trainingCodes = {
     {"building", 4},
     {"water", 5},
     {"road_surface", 6},
+    {"vehicle", 7},
 };
 
 static std::unordered_map<std::string, int> asprsCodes = {
-    {"unassigned", 2},
+    {"unassigned", 1},
     {"ground", 2},
     {"low_vegetation", 3},
     {"medium_vegetation", 4},
@@ -41,7 +42,9 @@ static std::unordered_map<std::string, int> asprsCodes = {
     {"transmission_tower", 15},
     {"wire_connect", 16},
     {"bridge_deck", 17},
-    {"high_noise", 18}
+    {"high_noise", 18},
+    {"vehicle", 64},
+    
 };
 
 std::unique_ptr<Label_set> getLabels(){
@@ -54,6 +57,8 @@ std::unique_ptr<Label_set> getLabels(){
     labels->add ("building");
     labels->add ("water");
     labels->add ("road_surface");
+    labels->add ("vehicle", Color(255, 0, 0));
+    
 
     return labels;
 }

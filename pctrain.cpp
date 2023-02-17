@@ -33,6 +33,13 @@ int main(int argc, char **argv){
         std::cout << "Training..." << std::endl;
         classifier.train (pts->range(labelMap), true, 100, 30);
 
+        std::cout << std::endl << "Feature usage:" << std::endl << "==============" << std::endl;
+        std::vector<std::size_t> count;
+        classifier.get_feature_usage(count);
+        for (int i = 0; i < count.size(); i++){
+            std::cout << " * " << ((*features)[i])->name() << ": " << count[i] << std::endl;
+        }
+
         std::string outputFile = std::string(argv[2]);
         std::ofstream out(outputFile, std::ios::binary);
         std::cout << "Saving model to " << outputFile << std::endl;
@@ -51,26 +58,21 @@ int main(int argc, char **argv){
             auto evalPts = readPointSet(evalFilename, &evalLabelMap, &evalColorMap);
             auto evalGenerator = getGenerator(*evalPts);
             auto evalFeatures = getFeatures(*generator, evalColorMap);
-            auto evalLabels = getLabels();
 
             if (!labels->is_valid_ground_truth (evalPts->range(evalLabelMap), true))
                 throw std::runtime_error("Invalid ground truth labels; check that the evaluation data has all the required labels.");
-
-            Classification::ETHZ::Random_forest_classifier evalClassifier(*labels, *evalFeatures);
-            std::ifstream fin(outputFile, std::ios::binary);
-            evalClassifier.load_configuration(fin);
 
             std::vector<int> label_indices(evalPts->size(), -1);
 
             std::cout << "Evaluating..." << std::endl;
             Classification::classify_with_local_smoothing<CGAL::Parallel_if_available_tag>
-                (*evalPts, evalPts->point_map(), *evalLabels, evalClassifier,
+                (*evalPts, evalPts->point_map(), *labels, classifier,
                     evalGenerator->neighborhood().sphere_neighbor_query(0.6),
                     label_indices);
 
             std::cout << std::endl << "Evaluation results" << std::endl << "==================" << std::endl;
-            Classification::Evaluation evaluation (*evalLabels, evalPts->range(evalLabelMap), label_indices);
-            for (Label_handle l : *evalLabels){
+            Classification::Evaluation evaluation (*labels, evalPts->range(evalLabelMap), label_indices);
+            for (Label_handle l : *labels){
                 std::cout << " * " << l->name() << ": "
                         << evaluation.precision(l) << " ; "
                         << evaluation.recall(l) << " ; "
