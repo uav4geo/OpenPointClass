@@ -43,6 +43,18 @@ You can re-map classification codes by creating a `<FILE>.json` in the same dire
 }
 ```
 
+## Evaluation
+
+You can automatically evaluate model accuracy by placing a `<FILE>_eval.ply` (a matching filename with `_eval` suffix). For example:
+
+`./pctrain ./training.ply ./model.bin`
+
+Will evaluate the model on `training_eval.ply` if it's available.
+
+You can use PDAL to conveniently split a dataset into two (one for training, one for evaluation):
+
+`pdal split [--capacity numpoints] input.ply input_split.ply` 
+
 ## License
 
 AGPLv3
