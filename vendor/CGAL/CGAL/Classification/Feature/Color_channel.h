@@ -139,22 +139,28 @@ public:
     if (channel == HUE) this->set_name ("color_hue_neighborhood");
     else if (channel == SATURATION) this->set_name ("color_saturation_neighborhood");
     else if (channel == VALUE) this->set_name ("color_value_neighborhood");
+
+    for (std::size_t i = 0; i < input.size(); i++){
+      std::vector<std::size_t> neighbors;
+      neighbor_query (get(point_map, *(input.begin()+i)), std::back_inserter (neighbors));
+
+      if (neighbors.size() == 0){
+        values.push_back(0.f);
+        continue;
+      }
+
+      float sum = 0.f;
+      for (std::size_t j = 0; j < neighbors.size(); ++ j){
+        std::array<double, 3> c = get(color_map, *(input.begin()+neighbors[j])).to_hsv();
+        sum += c[std::size_t(m_channel)];
+      }
+      values.push_back(sum / static_cast<float>(neighbors.size()));
+    }
   }
 
   virtual float value (std::size_t pt_index)
   {
-    std::vector<std::size_t> neighbors;
-    neighbor_query (get(point_map, *(input.begin()+pt_index)), std::back_inserter (neighbors));
-
-    if (neighbors.size() == 0) return 0.f;
-
-    float avg = 0.f;
-    for (std::size_t j = 0; j < neighbors.size(); ++ j){
-      std::array<double, 3> c = get(color_map, *(input.begin()+neighbors[j])).to_hsv();
-      avg += c[std::size_t(m_channel)];
-    }
-    avg /= static_cast<float>(neighbors.size());
-    return avg;
+    return values[pt_index];
   }
 };
 

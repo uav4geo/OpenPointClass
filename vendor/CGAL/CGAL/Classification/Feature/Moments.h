@@ -65,25 +65,6 @@ public:
 
           dtm(i,j) = sum;
         }
-
-    // for (std::size_t i = 0; i < input.size(); i++){
-    //   float sum = 0.f;
-    //   typename GeomTraits::Point_3 centroid = eigen.centroid<GeomTraits>(i);
-    //   typename GeomTraits::Vector_3 e = eigen.eigenvector<GeomTraits>(i, (2 - (axis - 1)));
-
-    //   std::size_t I = grid.x(i);
-    //   std::size_t J = grid.y(i);
-    //   typename Grid::iterator end = grid.indices_end(I,J);
-
-    //   for (typename Grid::iterator it = grid.indices_begin(I,J); it != end; ++ it){
-    //     typename GeomTraits::Point_3 p = get(point_map, *(input.begin()+(*it)));
-    //     float v = (p - centroid) * e;
-    //     for (int k = 1; k < order; k++) v *= v;
-        
-    //     sum += v;
-    //   }
-
-    //}
   }
   virtual float value (std::size_t pt_index){
     //return values[pt_index];

@@ -61,6 +61,8 @@ int main(int argc, char **argv){
             evalClassifier.load_configuration(fin);
 
             std::vector<int> label_indices(evalPts->size(), -1);
+
+            std::cout << "Evaluating..." << std::endl;
             Classification::classify_with_local_smoothing<CGAL::Parallel_if_available_tag>
                 (*evalPts, evalPts->point_map(), *evalLabels, evalClassifier,
                     evalGenerator->neighborhood().sphere_neighbor_query(0.6),
