@@ -105,6 +105,59 @@ public:
   /// \endcond
 };
 
+template <typename GeomTraits, typename PointRange, typename PointMap, typename ColorMap, typename NeighborQuery>
+class Color_channel_neighborhood : public Feature_base
+{
+public:
+
+  /// Selected channel.
+  enum Channel
+  {
+    HUE = 0, ///< 0
+    SATURATION = 1, ///< 1
+    VALUE = 2 ///< 2
+  };
+
+private:
+
+  const PointRange& input;
+  PointMap point_map;
+  ColorMap color_map;
+  Channel m_channel;
+  NeighborQuery neighbor_query;
+
+  std::vector<float> values;
+public:
+
+  Color_channel_neighborhood (const PointRange& input,
+                 PointMap point_map,
+                 ColorMap color_map,
+                 Channel channel,
+                 const NeighborQuery& neighbor_query)
+    : input(input), point_map(point_map), color_map(color_map), m_channel (channel), neighbor_query (neighbor_query)
+  {
+    if (channel == HUE) this->set_name ("color_hue_neighborhood");
+    else if (channel == SATURATION) this->set_name ("color_saturation_neighborhood");
+    else if (channel == VALUE) this->set_name ("color_value_neighborhood");
+  }
+
+  virtual float value (std::size_t pt_index)
+  {
+    std::vector<std::size_t> neighbors;
+    neighbor_query (get(point_map, *(input.begin()+pt_index)), std::back_inserter (neighbors));
+
+    if (neighbors.size() == 0) return 0.f;
+
+    float avg = 0.f;
+    for (std::size_t j = 0; j < neighbors.size(); ++ j){
+      std::array<double, 3> c = get(color_map, *(input.begin()+neighbors[j])).to_hsv();
+      avg += c[std::size_t(m_channel)];
+    }
+    avg /= static_cast<float>(neighbors.size());
+    return avg;
+  }
+};
+
 } // namespace Feature
 
 } // namespace Classification

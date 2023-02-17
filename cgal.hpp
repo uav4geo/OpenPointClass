@@ -4,12 +4,13 @@
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Classification.h>
 #include <CGAL/Point_set_3.h>
+#include <CGAL/IO/Color.h>
 
 typedef CGAL::Simple_cartesian<double> Kernel;
 typedef Kernel::Point_3 Point;
 typedef std::vector<Point> Point_range;
 typedef CGAL::Point_set_3<Point> Point_set;
-typedef std::array<uint8_t, 3> Color;
+typedef CGAL::IO::Color Color;
 
 typedef Point_set::Point_map Pmap;
 typedef Point_set::Property_map<int> Imap;

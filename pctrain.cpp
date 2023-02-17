@@ -14,13 +14,13 @@ int main(int argc, char **argv){
         // Read points
         std::string filename = std::string(argv[1]);
         
-        Color_map colorMap;
         Imap labelMap;
-        auto pts = readPointSet(filename, true, &labelMap);
+        Color_map colorMap;
+        auto pts = readPointSet(filename, &labelMap, &colorMap);
 
         // TODO: -1.0f should be set to ~4xGSD (/3?) of largest input dataset (currently it's auto-computed)
         auto generator = getGenerator(*pts);
-        auto features = getFeatures(*generator);
+        auto features = getFeatures(*generator, colorMap);
 
         // Add labels
         auto labels = getLabels();
@@ -29,10 +29,9 @@ int main(int argc, char **argv){
         if (!labels->is_valid_ground_truth (pts->range(labelMap), true))
             throw std::runtime_error("Invalid ground truth labels; check that the training data has all the required labels.");
 
-        std::cout << "Using ETHZ Random Forest Classifier" << std::endl;
         Classification::ETHZ::Random_forest_classifier classifier(*labels, *features);
         std::cout << "Training..." << std::endl;
-        classifier.train (pts->range(labelMap));
+        classifier.train (pts->range(labelMap), true, 100, 30);
 
         std::string outputFile = std::string(argv[2]);
         std::ofstream out(outputFile, std::ios::binary);
@@ -48,20 +47,26 @@ int main(int argc, char **argv){
             std::cout << "Evaluating on " << evalFilename << " ..." << std::endl;
 
             Imap evalLabelMap;
-            auto evalPts = readPointSet(evalFilename, true, &evalLabelMap);
+            Color_map evalColorMap;
+            auto evalPts = readPointSet(evalFilename, &evalLabelMap, &evalColorMap);
             auto evalGenerator = getGenerator(*evalPts);
+            auto evalFeatures = getFeatures(*generator, evalColorMap);
             auto evalLabels = getLabels();
 
             if (!labels->is_valid_ground_truth (evalPts->range(evalLabelMap), true))
                 throw std::runtime_error("Invalid ground truth labels; check that the evaluation data has all the required labels.");
 
+            Classification::ETHZ::Random_forest_classifier evalClassifier(*labels, *evalFeatures);
+            std::ifstream fin(outputFile, std::ios::binary);
+            evalClassifier.load_configuration(fin);
+
             std::vector<int> label_indices(evalPts->size(), -1);
             Classification::classify_with_local_smoothing<CGAL::Parallel_if_available_tag>
-                (*evalPts, evalPts->point_map(), *evalLabels, classifier,
+                (*evalPts, evalPts->point_map(), *evalLabels, evalClassifier,
                     evalGenerator->neighborhood().sphere_neighbor_query(0.6),
                     label_indices);
 
-            std::cout << std::endl << "Evaluation results" << std::endl << "=============" << std::endl;
+            std::cout << std::endl << "Evaluation results" << std::endl << "==================" << std::endl;
             Classification::Evaluation evaluation (*evalLabels, evalPts->range(evalLabelMap), label_indices);
             for (Label_handle l : *evalLabels){
                 std::cout << " * " << l->name() << ": "

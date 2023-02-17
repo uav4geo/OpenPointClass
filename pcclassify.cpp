@@ -17,14 +17,14 @@ int main(int argc, char **argv){
         std::string modelFile = std::string(argv[2]);
         std::string outputFile = std::string(argv[3]);
 
-        auto pts = readPointSet(inputFile, false);
+        Color_map colorMap;
+        auto pts = readPointSet(inputFile, nullptr, &colorMap);
         auto generator = getGenerator(*pts);
-        auto features = getFeatures(*generator);
+        auto features = getFeatures(*generator, colorMap);
 
         // Add labels
         auto labels = getLabels();
 
-        std::cout << "Using ETHZ Random Forest Classifier" << std::endl;
         Classification::ETHZ::Random_forest_classifier classifier(*labels, *features);
         std::cout << "Loading " << modelFile << std::endl;
         std::ifstream fin(modelFile, std::ios::binary);
@@ -33,11 +33,7 @@ int main(int argc, char **argv){
         // TODO: test invalid model
         std::vector<int> label_indices(pts->size(), -1);
 
-        std::cout << "Classifying... this might take a bit" << std::endl;
-        // Classification::classify_with_graphcut<CGAL::Parallel_tag>
-        //    (*pts, pts->point_map(), *labels, classifier,
-        //     generator->neighborhood().k_neighbor_query(10),
-        //     0.2f, 1, label_indices);
+        std::cout << "Classifying..." << std::endl;
         Classification::classify_with_local_smoothing<CGAL::Parallel_if_available_tag>
               (*pts, pts->point_map(), *labels, classifier,
                 generator->neighborhood().sphere_neighbor_query(0.6),

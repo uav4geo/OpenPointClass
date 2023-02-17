@@ -123,6 +123,7 @@ public:
   using OrderAxis = Classification::Feature::OrderAxis<GeomTraits, PointRange, PointMap>;
 
   using Neighbor_query = typename Neighborhood::K_neighbor_query;
+  using Sphere_neighbor_query = typename Neighborhood::Sphere_neighbor_query;
   /// \endcond
 
 private:
@@ -397,8 +398,12 @@ public:
   void generate_color_based_features(Feature_set& features, const ColorMap& color_map)
   {
     typedef Feature::Color_channel<GeomTraits, PointRange, ColorMap> Color_channel;
-    for (std::size_t i = 0; i < 3; ++ i)
+    typedef Feature::Color_channel_neighborhood<GeomTraits, PointRange, PointMap, ColorMap, Sphere_neighbor_query> Color_channel_neighborhood;
+
+    for (std::size_t i = 0; i < 3; ++ i){
       features.add<Color_channel> (m_input, color_map, typename Color_channel::Channel(i));
+      features.add<Color_channel_neighborhood> (m_input, m_point_map, color_map, typename Color_channel_neighborhood::Channel(i), neighborhood(0).sphere_neighbor_query(0.6));
+    }
   }
 
   /*!

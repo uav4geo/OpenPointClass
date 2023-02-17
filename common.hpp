@@ -94,10 +94,10 @@ std::unordered_map<int, std::string> getClassMappings(const std::string &filenam
     return res;
 }
 
-std::unique_ptr<Point_set> readPointSet(const std::string &filename, bool training, Imap *pLabelMap = nullptr){
+std::unique_ptr<Point_set> readPointSet(const std::string &filename, Imap *pLabelMap = nullptr, Color_map *pColorMap = nullptr){
     std::string labelDimension = "";
 
-    auto mappings = training ? getClassMappings(filename) : std::unordered_map<int, std::string>();
+    auto mappings = pLabelMap != nullptr ? getClassMappings(filename) : std::unordered_map<int, std::string>();
     bool hasMappings = !mappings.empty();
 
     pdal::StageFactory factory;
@@ -125,7 +125,7 @@ std::unique_ptr<Point_set> readPointSet(const std::string &filename, bool traini
 
     std::cout << "Number of points: " << pView->size() << std::endl;
 
-    if (training){
+    if (pLabelMap != nullptr){
         for (auto &d : pView->dims()){
             std::string dim = pView->dimName(d);
             if (dim == "Label" || dim == "label" ||
@@ -142,15 +142,18 @@ std::unique_ptr<Point_set> readPointSet(const std::string &filename, bool traini
     std::unique_ptr<Point_set> pts = std::make_unique<Point_set>();
     pts->reserve (pView->size());
 
-    Color_map colorMap = pts->add_property_map<Color> ("color").first;
+    Color_map cMap;
+    if (pColorMap == nullptr) pColorMap = &cMap;
 
-    if (training){
+    *pColorMap = pts->add_property_map<Color> ("color").first;
+
+    if (pLabelMap != nullptr){
        *pLabelMap = pts->add_property_map<int>("label").first;
     }
 
     pdal::PointLayoutPtr layout(table.layout());
     pdal::Dimension::Id labelId;
-    if (training){
+    if (pLabelMap != nullptr){
         labelId = layout->findDim(labelDimension);
     }
 
@@ -165,10 +168,10 @@ std::unique_ptr<Point_set> readPointSet(const std::string &filename, bool traini
         auto g = p.getFieldAs<uint8_t>(pdal::Dimension::Id::Green);
         auto b = p.getFieldAs<uint8_t>(pdal::Dimension::Id::Blue);
         
-        Color c = {{ r, g, b }};
-        colorMap[*it] = c;
+        Color c(r, g, b);
+        (*pColorMap)[*it] = c;
 
-        if (training){
+        if (pLabelMap != nullptr){
             int label = p.getFieldAs<int>(labelId);
 
             if (hasMappings){
@@ -187,12 +190,12 @@ std::unique_ptr<Point_set> readPointSet(const std::string &filename, bool traini
 }
 
 std::unique_ptr<Feature_generator> getGenerator(const Point_set &pts, int numScales = 9, float resolution = -1.0f){
-    std::cout << "Setting up generator" << std::endl;
+    std::cout << "Setting up generator (" << numScales << " scales)... this might take a bit" << std::endl;
     std::unique_ptr<Feature_generator> generator = std::make_unique<Feature_generator>(pts, pts.point_map(), numScales, resolution);
     return generator;
 }
 
-std::unique_ptr<Feature_set> getFeatures(Feature_generator &generator){
+std::unique_ptr<Feature_set> getFeatures(Feature_generator &generator, const Color_map &colorMap){
     std::cout << "Generating features..." << std::endl;
 
     std::unique_ptr<Feature_set> features = std::make_unique<Feature_set>();
@@ -203,6 +206,7 @@ std::unique_ptr<Feature_set> getFeatures(Feature_generator &generator){
     generator.generate_covariance_features(*features);
     generator.generate_moments_features(*features);
     generator.generate_elevation_features(*features);
+    generator.generate_color_based_features(*features, colorMap);
     
     // if (false){ // TODO REMOVE
         //generator.generate_point_based_features (*features);
