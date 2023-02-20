@@ -1,14 +1,14 @@
 #include <iostream>
 #include <string>
 #include <unordered_map>
+#include <random>
 
 #include <json.hpp>
 
 #include <pdal/Options.hpp>
 #include <pdal/PointTable.hpp>
 #include <pdal/StageFactory.hpp>
-
-#include "cgal.hpp"
+#include <pdal/KDIndex.hpp>
 
 using json = nlohmann::json;
 
@@ -47,21 +47,21 @@ static std::unordered_map<std::string, int> asprsCodes = {
     
 };
 
-std::unique_ptr<Label_set> getLabels(){
-    std::unique_ptr<Label_set> labels = std::make_unique<Label_set>();
+// std::unique_ptr<Label_set> getLabels(){
+//     std::unique_ptr<Label_set> labels = std::make_unique<Label_set>();
 
-    labels->add ("ground");
-    labels->add ("low_vegetation");
-    labels->add ("medium_vegetation");
-    labels->add ("high_vegetation");
-    labels->add ("building");
-    labels->add ("water");
-    labels->add ("road_surface");
-    labels->add ("vehicle", Color(255, 0, 0));
+//     labels->add ("ground");
+//     labels->add ("low_vegetation");
+//     labels->add ("medium_vegetation");
+//     labels->add ("high_vegetation");
+//     labels->add ("building");
+//     labels->add ("water");
+//     labels->add ("road_surface");
+//     labels->add ("vehicle", Color(255, 0, 0));
     
 
-    return labels;
-}
+//     return labels;
+// }
 
 bool fileExists(const std::string &path){
     std::ifstream fin(path);
@@ -99,10 +99,10 @@ std::unordered_map<int, std::string> getClassMappings(const std::string &filenam
     return res;
 }
 
-std::unique_ptr<Point_set> readPointSet(const std::string &filename, Imap *pLabelMap = nullptr, Color_map *pColorMap = nullptr){
+pdal::PointViewPtr readPointSet(const std::string &filename){
     std::string labelDimension = "";
 
-    auto mappings = pLabelMap != nullptr ? getClassMappings(filename) : std::unordered_map<int, std::string>();
+    auto mappings = getClassMappings(filename);
     bool hasMappings = !mappings.empty();
 
     pdal::StageFactory factory;
@@ -116,13 +116,14 @@ std::unique_ptr<Point_set> readPointSet(const std::string &filename, Imap *pLabe
     opts.add("filename", filename);
     s->setOptions(opts);
     
-    pdal::PointTable table;
+    pdal::PointTable *table = new pdal::PointTable();
     pdal::PointViewSet pvSet;
 
     std::cout << "Reading points from " << filename << std::endl;
 
-    s->prepare(table);
-    pvSet = s->execute(table);
+    s->prepare(*table);
+    pvSet = s->execute(*table);
+
     pdal::PointViewPtr pView = *pvSet.begin();
     if (pView->empty()) {
         throw std::runtime_error("No points could be fetched");
@@ -130,95 +131,131 @@ std::unique_ptr<Point_set> readPointSet(const std::string &filename, Imap *pLabe
 
     std::cout << "Number of points: " << pView->size() << std::endl;
 
-    if (pLabelMap != nullptr){
-        for (auto &d : pView->dims()){
-            std::string dim = pView->dimName(d);
-            if (dim == "Label" || dim == "label" ||
-                dim == "Classification" || dim == "classification" ||
-                dim == "Class" || dim == "class"){
-                labelDimension = dim;
-            }
+    for (auto &d : pView->dims()){
+        std::string dim = pView->dimName(d);
+        if (dim == "Label" || dim == "label" ||
+            dim == "Classification" || dim == "classification" ||
+            dim == "Class" || dim == "class"){
+            labelDimension = dim;
         }
-        
-        if (labelDimension.empty()) throw std::runtime_error("Cannot find a classification dimension in the input point cloud (should be either \"Classification\" or \"Label\")");
-        std::cout << "Label dimension: " << labelDimension << std::endl;
     }
-
-    std::unique_ptr<Point_set> pts = std::make_unique<Point_set>();
-    pts->reserve (pView->size());
-
-    Color_map cMap;
-    if (pColorMap == nullptr) pColorMap = &cMap;
-
-    *pColorMap = pts->add_property_map<Color> ("color").first;
-
-    if (pLabelMap != nullptr){
-       *pLabelMap = pts->add_property_map<int>("label").first;
-    }
-
-    pdal::PointLayoutPtr layout(table.layout());
+    
+    pdal::PointLayoutPtr layout(table->layout());
     pdal::Dimension::Id labelId;
-    if (pLabelMap != nullptr){
+    if (!labelDimension.empty()){
+        std::cout << "Label dimension: " << labelDimension << std::endl;
         labelId = layout->findDim(labelDimension);
     }
 
-    for (pdal::PointId idx = 0; idx < pView->size(); ++idx) {
-        auto p = pView->point(idx);
-        auto x = p.getFieldAs<double>(pdal::Dimension::Id::X);
-        auto y = p.getFieldAs<double>(pdal::Dimension::Id::Y);
-        auto z = p.getFieldAs<double>(pdal::Dimension::Id::Z);
-        auto it = pts->insert(Point(x, y, z));
-
-        auto r = p.getFieldAs<uint8_t>(pdal::Dimension::Id::Red);
-        auto g = p.getFieldAs<uint8_t>(pdal::Dimension::Id::Green);
-        auto b = p.getFieldAs<uint8_t>(pdal::Dimension::Id::Blue);
-        
-        Color c(r, g, b);
-        (*pColorMap)[*it] = c;
-
-        if (pLabelMap != nullptr){
+    // Re-map labels if needed
+    if (hasMappings){
+        for (pdal::PointId idx = 0; idx < pView->size(); ++idx) {
+            auto p = pView->point(idx);
             int label = p.getFieldAs<int>(labelId);
 
-            if (hasMappings){
-                if (mappings.find(label) != mappings.end()){
-                    label = trainingCodes[mappings[label]];
-                }else{
-                    label = trainingCodes["unassigned"];
-                }
+            if (mappings.find(label) != mappings.end()){
+                label = trainingCodes[mappings[label]];
+            }else{
+                label = trainingCodes["unassigned"];
             }
 
-            (*pLabelMap)[*it] = label;
+            p.setField(labelId, label);
         }
     }
 
-    return pts;
+    return pView;
 }
 
-std::unique_ptr<Feature_generator> getGenerator(const Point_set &pts, int numScales = 9, float resolution = -1.0f){
-    std::cout << "Setting up generator (" << numScales << " scales)... this might take a bit" << std::endl;
-    std::unique_ptr<Feature_generator> generator = std::make_unique<Feature_generator>(pts, pts.point_map(), numScales, resolution);
-    return generator;
-}
-
-std::unique_ptr<Feature_set> getFeatures(Feature_generator &generator, const Color_map &colorMap){
-    std::cout << "Generating features..." << std::endl;
-
-    std::unique_ptr<Feature_set> features = std::make_unique<Feature_set>();
-
-    features->begin_parallel_additions();
-
-    // TODO: add your custom features here
-    generator.generate_covariance_features(*features);
-    generator.generate_moments_features(*features);
-    generator.generate_elevation_features(*features);
-    generator.generate_color_based_features(*features, colorMap);
+double modeSpacing(pdal::PointViewPtr pView, int kNeighbors){
+    pdal::KD3Index index(*pView);
+    index.build();
     
-    // if (false){ // TODO REMOVE
-        //generator.generate_point_based_features (*features);
-    // }
+    pdal::point_count_t np = pView->size();
+    pdal::point_count_t SAMPLES = std::min<pdal::point_count_t>(np, 10000);
 
-    features->end_parallel_additions();
+    pdal::point_count_t count = kNeighbors;
+    pdal::PointIdList indices(count);
+    std::vector<double> sqr_dists(count);
 
-    return features;
+    std::unordered_map<uint64_t, size_t> dist_map;
+    std::vector<double> all_distances;
+
+    std::random_device rd;
+    std::mt19937_64 gen(rd());
+    std::uniform_int_distribution<uint64_t> randomDis(
+        std::numeric_limits<pdal::PointId>::min(),
+        np - 1
+    );
+
+    #pragma omp parallel private (indices, sqr_dists)
+    {
+        indices.resize(count);
+        sqr_dists.resize(count);
+
+        #pragma omp for
+        for (pdal::PointId i = 0; i < SAMPLES; ++i)
+        {
+            const pdal::PointId idx = randomDis(gen);
+            index.knnSearch(idx, count, &indices, &sqr_dists);
+
+            double sum = 0.0;
+            for (size_t j = 1; j < count; ++j){
+                sum += std::sqrt(sqr_dists[j]);
+            }
+            sum /= count;
+
+            #pragma omp critical
+            {
+                uint64_t k = std::ceil(sum * 100);
+                if (dist_map.find(k) == dist_map.end()){
+                    dist_map[k] = 1;
+                }else{
+                    dist_map[k] += 1;
+                }
+            }
+
+            indices.clear(); indices.resize(count);
+            sqr_dists.clear(); sqr_dists.resize(count);
+        }
+    }
+
+    uint64_t max_val = std::numeric_limits<uint64_t>::min();
+    int d = 0;
+    for (auto it : dist_map){
+        if (it.second > max_val){
+            d = it.first;
+            max_val = it.second;
+        }
+    }
+
+    return static_cast<double>(d) / 100.0;
 }
+
+// std::unique_ptr<Feature_generator> getGenerator(const Point_set &pts, int numScales = 9, float resolution = -1.0f){
+//     std::cout << "Setting up generator (" << numScales << " scales)... this might take a bit" << std::endl;
+//     std::unique_ptr<Feature_generator> generator = std::make_unique<Feature_generator>(pts, pts.point_map(), numScales, resolution);
+//     return generator;
+// }
+
+// std::unique_ptr<Feature_set> getFeatures(Feature_generator &generator, const Color_map &colorMap){
+//     std::cout << "Generating features..." << std::endl;
+
+//     std::unique_ptr<Feature_set> features = std::make_unique<Feature_set>();
+
+//     features->begin_parallel_additions();
+
+//     // TODO: add your custom features here
+//     generator.generate_covariance_features(*features);
+//     generator.generate_moments_features(*features);
+//     generator.generate_elevation_features(*features);
+//     generator.generate_color_based_features(*features, colorMap);
+    
+//     // if (false){ // TODO REMOVE
+//         //generator.generate_point_based_features (*features);
+//     // }
+
+//     features->end_parallel_additions();
+
+//     return features;
+// }
 
