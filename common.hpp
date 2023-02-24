@@ -9,6 +9,9 @@
 #include <pdal/PointTable.hpp>
 #include <pdal/StageFactory.hpp>
 #include <pdal/KDIndex.hpp>
+#include <pdal/io/BufferReader.hpp>
+
+#include "scale.hpp"
 
 using json = nlohmann::json;
 
@@ -258,4 +261,3 @@ double modeSpacing(pdal::PointViewPtr pView, int kNeighbors){
 
 //     return features;
 // }
-

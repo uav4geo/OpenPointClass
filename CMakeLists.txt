@@ -20,9 +20,10 @@ include_directories(${PDAL_INCLUDE_DIR}/pdal)
 include_directories(vendor/json)
 
 set(LINK_LIBRARIES ${PDAL_LIBRARIES} OpenMP::OpenMP_CXX)
+set(SOURCES scale.cpp point_io.cpp)
 
-add_executable(pctrain pctrain.cpp)
-# add_executable(pcclassify pcclassify.cpp)
+add_executable(pctrain ${SOURCES} pctrain.cpp)
+# add_executable(pcclassify ${SOURCES} pcclassify.cpp)
 
 target_link_libraries(pctrain ${LINK_LIBRARIES})
 # target_link_libraries(pcclassify ${LINK_LIBRARIES})

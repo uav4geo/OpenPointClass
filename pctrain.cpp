@@ -1,4 +1,5 @@
 #include "common.hpp"
+#include "point_io.hpp"
 
 void help(char *ex){
     std::cout << "Usage: " << ex << std::endl
@@ -18,8 +19,14 @@ int main(int argc, char **argv){
         double mSpacing = modeSpacing(pView, 3);
         double startResolution = mSpacing * 4; // meters
 
-        std::cout << mSpacing << std::endl;
+        std::cout << "1st pyramid resolution: " << mSpacing << std::endl;
 
+        savePointSet(pView, "test.ply");
+        Scale s(pView, startResolution);
+        s.save("1.ply");
+
+        Scale s2(s.getView(), startResolution * 2);
+        s2.save("2.ply");
 
         // for (pdal::PointId idx = 0; idx < pView->size(); ++idx) {
         //     auto p = pView->point(idx);
