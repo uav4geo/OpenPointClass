@@ -237,11 +237,11 @@ double modeSpacing(pdal::PointViewPtr pView, int kNeighbors){
 template <std::size_t N>
 std::array<Scale *, N> computeScales(pdal::PointViewPtr pView, double startResolution){
     std::array<Scale *, N> scales;
-    scales[0] = new Scale(pView, startResolution);
+    double r = startResolution;
 
-    for (size_t i = 1; i < N; i++){
-        scales[i] = new Scale(scales[i - 1]->getView(), 
-                              scales[i - 1]->getResolution() * 2.0);
+    for (size_t i = 0; i < N; i++){
+        scales[i] = new Scale(pView, r);
+        r *= 2.0;
     }
 
     return scales;

@@ -15,13 +15,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 find_package(PDAL REQUIRED)
 find_package(OpenMP REQUIRED)
 find_package(Boost COMPONENTS serialization)
+find_package(Eigen3 REQUIRED)
 
 include_directories(${PDAL_INCLUDE_DIR})
 include_directories(${PDAL_INCLUDE_DIR}/pdal)
 include_directories(vendor/json)
 include_directories(vendor/ethz)
 
-set(LINK_LIBRARIES ${PDAL_LIBRARIES} OpenMP::OpenMP_CXX Boost::serialization)
+set(LINK_LIBRARIES ${PDAL_LIBRARIES} Eigen3::Eigen OpenMP::OpenMP_CXX Boost::serialization)
 set(SOURCES scale.cpp point_io.cpp randomforest.cpp)
 
 add_executable(pctrain ${SOURCES} pctrain.cpp)

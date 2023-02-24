@@ -12,7 +12,7 @@ void help(char *ex){
 int main(int argc, char **argv){
     if( argc < 3 ) help(argv[0]);
 
-    testForest();
+    // testForest();
     try {
         // Read points
         std::string filename = std::string(argv[1]);
@@ -21,7 +21,7 @@ int main(int argc, char **argv){
         double mSpacing = modeSpacing(pView, 3);
         double startResolution = mSpacing * 4; // meters
 
-        std::cout << "1st pyramid resolution: " << mSpacing << std::endl;
+        std::cout << "Starting resolution: " << mSpacing << std::endl;
 
         auto scales = computeScales<9>(pView, startResolution);
 

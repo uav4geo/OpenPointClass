@@ -1,0 +1,66 @@
+Random forest classifier by Stefan Walk (ETH)
+---------------------------------------------
+
+Random forest classifier template library and sample code:
+random-forest, dataview.h  - random forest classifier template library
+rforest.cpp - sample code using the template library
+desc.zip - sample training data for the code (optional)
+
+
+DESCRIPTION
+
+The random forest classifier template library is a research code created by
+Stefan Walk during his Post-doc stay at ETH Zurich 2012-2014. The provided code
+shows a sample usage of the template library, namely a binary classifier for
+two sets of SIFT descriptors - positive (label 1) and negative (label 0).
+The random forest can be saved to a file using platform independent gzipped
+text serialization provided by Boost.
+
+
+DEPENDENCIES
+
+Boost C++ Libraries (tested with 1.55.0) http://www.boost.org/
+  Pre-compiled Windows libraries can be found at:
+  http://sourceforge.net/projects/boost/files/boost-binaries/1.55.0-build2/
+
+
+BUILDING THE SOFTWARE FROM SOURCES
+
+WINDOWS - Visual Studio
+In the e.g. "VS2012 x64 Command Prompt" with Boost libraries available
+at the respective path, rforest.exe compiles with:
+cl.exe /nologo /EHsc /Ox /DNDEBUG /I C:\Boost\1.55.0\VC\11.0 rforest.cpp /link /LIBPATH:C:\Boost\1.55.0\VC\11.0\lib
+
+LINUX - gcc/g++
+With Boost installed in the system, rforest compiles with:
+g++ -O3 -DNDEBUG -Wall -march=native -o rforest rforest.cpp -I. -lboost_serialization-mt -lboost_iostreams-mt
+
+
+USAGE
+
+The command line application rforest(.exe) performs both classifier training
+and classification using a pre-trained classifier (testing):
+
+Training:
+rforest.exe -t 25 -d 20 -p pos.txt -n neg.txt -f rforest.gz
+  number of trees:                 -t 25
+  maximum tree depth:              -d 20
+  positive training file:          -p [filename]
+  negative training file:          -n [filename]
+  serialized random forest:        -f [filename]
+Files specified using -p and -n options should be plain text files containing
+one SIFT descriptor per line. The descriptor itself is a sequence of 128
+numbers [0..255] separated by spaces.
+
+Classification (testing):
+rforest.exe -f rforest.gz -i desc.txt -o res.txt
+  serialized random forest:        -f [filename]
+  descriptors to be classified:    -i [filename]
+  classification result:           -o [filename]
+The format of the file specified using -i option is the same as the one
+of the training files. The number of positively classified samples (using
+threshold 0.5) is output to command line. If the results are also saved to
+a file (using -o option), leaf label probability distribution can be
+obtained for each tested descriptor (the first and the second columns
+correspond to labels 0 and 1, respectively).
+
