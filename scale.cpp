@@ -1,6 +1,6 @@
 #include "scale.hpp"
 #include "point_io.hpp"
-#include <pdal/filters/VoxelDownsizeFilter.hpp>
+#include <pdal/filters/VoxelCentroidNearestNeighborFilter.hpp>
 
 Scale::Scale(pdal::PointViewPtr source, double resolution) :
     source(source), resolution(resolution){
@@ -8,10 +8,9 @@ Scale::Scale(pdal::PointViewPtr source, double resolution) :
     pdal::BufferReader reader;
     reader.addView(source);
 
-    pdal::VoxelDownsizeFilter filter;
+    pdal::VoxelCentroidNearestNeighborFilter filter;
     pdal::Options opts;
     opts.add("cell", resolution);
-    opts.add("mode", "center");
     filter.setOptions(opts);
     filter.setInput(reader);
 
