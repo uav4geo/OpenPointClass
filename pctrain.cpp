@@ -21,12 +21,9 @@ int main(int argc, char **argv){
 
         std::cout << "1st pyramid resolution: " << mSpacing << std::endl;
 
-        savePointSet(pView, "test.ply");
-        Scale s(pView, startResolution);
-        s.save("1.ply");
+        auto scales = computeScales<9>(pView, startResolution);
 
-        Scale s2(s.getView(), startResolution * 2);
-        s2.save("2.ply");
+        std::cout << "Computed " << scales.size() << " scales" << std::endl;
 
         // for (pdal::PointId idx = 0; idx < pView->size(); ++idx) {
         //     auto p = pView->point(idx);

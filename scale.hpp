@@ -15,6 +15,7 @@ public:
 
     void save(const std::string &filename) const;
 
+    double getResolution() const { return resolution; }
     pdal::PointViewPtr getView() const { return pView; }
 };
 

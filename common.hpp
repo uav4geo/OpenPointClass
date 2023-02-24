@@ -234,6 +234,19 @@ double modeSpacing(pdal::PointViewPtr pView, int kNeighbors){
     return static_cast<double>(d) / 100.0;
 }
 
+template <std::size_t N>
+std::array<Scale *, N> computeScales(pdal::PointViewPtr pView, double startResolution){
+    std::array<Scale *, N> scales;
+    scales[0] = new Scale(pView, startResolution);
+
+    for (size_t i = 1; i < N; i++){
+        scales[i] = new Scale(scales[i - 1]->getView(), 
+                              scales[i - 1]->getResolution() * 2.0);
+    }
+
+    return scales;
+}
+
 // std::unique_ptr<Feature_generator> getGenerator(const Point_set &pts, int numScales = 9, float resolution = -1.0f){
 //     std::cout << "Setting up generator (" << numScales << " scales)... this might take a bit" << std::endl;
 //     std::unique_ptr<Feature_generator> generator = std::make_unique<Feature_generator>(pts, pts.point_map(), numScales, resolution);
