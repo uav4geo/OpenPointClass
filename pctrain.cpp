@@ -19,7 +19,6 @@ int main(int argc, char **argv){
         
         auto pointSet = readPointSet(filename);
         pdal::PointViewPtr pView = pointSet.first;
-        pdal::Dimension::Id labelId = pointSet.second;
 
         double mSpacing = modeSpacing(pView, 3);
         double startResolution = mSpacing * 4; // meters
@@ -33,7 +32,7 @@ int main(int argc, char **argv){
 
         auto labels = getTrainingLabels();
 
-        train(pView, labelId, features, labels, modelFilename);
+        train(pointSet, features, labels, modelFilename);
 
         const std::string ext = filename.substr(filename.length() - 4);
         const std::string evalFilename = filename.substr(0, filename.length() - 4) + "_eval" + ext;
@@ -41,15 +40,13 @@ int main(int argc, char **argv){
             std::cout << "Evaluating on " << evalFilename << " ..." << std::endl;
             
             auto evalPointSet = readPointSet(evalFilename);
-            auto evalView = evalPointSet.first;
-
-            auto evalScales = computeScales(NUM_SCALES, evalView, startResolution);
+            auto evalScales = computeScales(NUM_SCALES, evalPointSet.first, startResolution);
             std::cout << "Computed " << evalScales.size() << " scales" << std::endl;
             auto evalFeatures = getFeatures(evalScales);
             std::cout << "Features: " << evalFeatures.size() << std::endl;
 
-            classify(evalView, modelFilename, evalFeatures, labels, true);
-            savePointSet(evalView, "evaluation.ply");
+            classify(evalPointSet, modelFilename, evalFeatures, labels, true, true);
+            savePointSet(evalPointSet.first, "evaluation.ply");
         }
     } catch(pdal::pdal_error& e) {
         std::cerr << "PDAL Error: " << e.what() << std::endl;

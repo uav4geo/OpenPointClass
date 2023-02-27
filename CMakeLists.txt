@@ -23,7 +23,7 @@ include_directories(vendor/json)
 include_directories(vendor/ethz)
 
 set(LINK_LIBRARIES ${PDAL_LIBRARIES} Eigen3::Eigen OpenMP::OpenMP_CXX Boost::iostreams Boost::serialization)
-set(SOURCES scale.cpp point_io.cpp randomforest.cpp features.cpp color.cpp labels.cpp)
+set(SOURCES common.cpp scale.cpp point_io.cpp randomforest.cpp features.cpp color.cpp labels.cpp)
 
 add_executable(pctrain ${SOURCES} pctrain.cpp)
 # add_executable(pcclassify ${SOURCES} pcclassify.cpp)

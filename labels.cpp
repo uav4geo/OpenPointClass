@@ -4,11 +4,11 @@ std::vector<Label> getLabels(){
     std::vector<Label> l;
 
     l.push_back(Label("unassigned", LABEL_UNASSIGNED, 1));
-    l.push_back(Label("ground", 0, 2, Color(128, 64, 0)));
+    l.push_back(Label("ground", 0, 2, Color(192, 192, 192)));
     l.push_back(Label("low_vegetation", 1, 3, Color(0, 128, 0)));
     l.push_back(Label("medium_vegetation", 2, 4, Color(0, 128, 0)));
     l.push_back(Label("high_vegetation", 3, 5, Color(0, 128, 0)));
-    l.push_back(Label("building", 4, 6, Color(0, 128, 0)));
+    l.push_back(Label("building", 4, 6, Color(255, 126, 0)));
     l.push_back(Label("water", 5, 9, Color(0, 128, 255)));
     l.push_back(Label("road_surface", 6, 11, Color(100, 100, 100)));
     l.push_back(Label("vehicle", 7, 64, Color(255, 0, 0)));

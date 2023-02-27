@@ -4,8 +4,10 @@
 #define MAX_DEPTH 20
 
 
-void train(pdal::PointViewPtr groundTruth, pdal::Dimension::Id labelId, const std::vector<Feature *> &features, const std::vector<Label> &labels, const std::string &modelFilename){
-  
+void train(const PointSetData &pointSet, const std::vector<Feature *> &features, const std::vector<Label> &labels, const std::string &modelFilename){
+  pdal::PointViewPtr groundTruth = pointSet.first;
+  pdal::Dimension::Id labelId = pointSet.second;
+
   liblearning::RandomForest::ForestParams params;
   params.n_trees   = N_TREES;
   params.max_depth = MAX_DEPTH;
@@ -48,11 +50,13 @@ void train(pdal::PointViewPtr groundTruth, pdal::Dimension::Id labelId, const st
   std::cout << "Saved " << modelFilename << std::endl;
 }
 
-void classify(pdal::PointViewPtr input, 
+void classify(const PointSetData &pointSet, 
     const std::string &modelFilename,
     const std::vector<Feature *> &features, 
     const std::vector<Label> &labels,
-    bool useColors){
+    bool useColors,
+    bool evaluate){
+  pdal::PointViewPtr input = pointSet.first;
 
   std::cout << "Loading " << modelFilename << std::endl;
   std::ifstream ifs(modelFilename.c_str(), std::ios_base::in | std::ios_base::binary);
@@ -73,6 +77,8 @@ void classify(pdal::PointViewPtr input,
   std::cout << "Classifying..." << std::endl;
   std::vector<float> probs(labels.size(), 0.);
   std::vector<float> ft (features.size());
+
+  std::size_t correct = 0;
 
   for (pdal::PointId i = 0; i < input->size(); i++ ){
     for (std::size_t f = 0; f < features.size(); f++){
@@ -102,6 +108,16 @@ void classify(pdal::PointViewPtr input,
       // TODO
     }
 
+    if (evaluate){
+      int gt = input->getFieldAs<int>(pointSet.second, i);
+      if (gt == bestClass) correct++;
+    }
+
     // TODO: local smoothing?
+  }
+
+  if (evaluate){
+    float modelErr = (1.f - static_cast<float>(correct) / static_cast<float>(input->size()));
+    std::cout << "Model error: " << std::setprecision(2) << (modelErr * 100.f) << "%" << std::endl;
   }
 }

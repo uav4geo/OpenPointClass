@@ -12,16 +12,18 @@
 #include <pdal/PointRef.hpp>
 #include "features.hpp"
 #include "labels.hpp"
+#include "common.hpp"
 
-void train(pdal::PointViewPtr groundTruth, pdal::Dimension::Id labelId, 
+void train(const PointSetData &pointSet, 
     const std::vector<Feature *> &features, 
     const std::vector<Label> &labels,
     const std::string &modelFilename);
 
-void classify(pdal::PointViewPtr input, 
+void classify(const PointSetData &pointSet, 
     const std::string &modelFilename,
     const std::vector<Feature *> &features, 
     const std::vector<Label> &labels,
-    bool useColors);
+    bool useColors = false,
+    bool evaluate = false);
 
 #endif
