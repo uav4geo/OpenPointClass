@@ -80,6 +80,7 @@ void classify(const PointSetData &pointSet,
 
   std::size_t correct = 0;
 
+  // #pragma omp for
   for (pdal::PointId i = 0; i < input->size(); i++ ){
     for (std::size_t f = 0; f < features.size(); f++){
       ft[f] = features[f]->getValue(i);
@@ -118,6 +119,6 @@ void classify(const PointSetData &pointSet,
 
   if (evaluate){
     float modelErr = (1.f - static_cast<float>(correct) / static_cast<float>(input->size()));
-    std::cout << "Model error: " << std::setprecision(2) << (modelErr * 100.f) << "%" << std::endl;
+    std::cout << "Model error: " << std::setprecision(4) << (modelErr * 100.f) << "%" << std::endl;
   }
 }

@@ -5,7 +5,7 @@
 
 Scale::Scale(size_t id, pdal::PointViewPtr pView, double resolution, int kNeighbors) :
     id(id), pView(pView), resolution(resolution), kNeighbors(kNeighbors){
-
+    
     pdal::BufferReader reader;
     reader.addView(pView);
 
@@ -26,7 +26,7 @@ Scale::Scale(size_t id, pdal::PointViewPtr pView, double resolution, int kNeighb
 
     eigenValues.resize(pView->size());
     Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver;
-        
+
     for (pdal::PointId idx = 0; idx < pView->size(); idx++){
         pdal::PointRef p = pView->point(idx);
         

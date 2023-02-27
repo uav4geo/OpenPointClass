@@ -26,10 +26,10 @@ set(LINK_LIBRARIES ${PDAL_LIBRARIES} Eigen3::Eigen OpenMP::OpenMP_CXX Boost::ios
 set(SOURCES common.cpp scale.cpp point_io.cpp randomforest.cpp features.cpp color.cpp labels.cpp)
 
 add_executable(pctrain ${SOURCES} pctrain.cpp)
-# add_executable(pcclassify ${SOURCES} pcclassify.cpp)
+add_executable(pcclassify ${SOURCES} pcclassify.cpp)
 
 target_link_libraries(pctrain ${LINK_LIBRARIES})
-# target_link_libraries(pcclassify ${LINK_LIBRARIES})
+target_link_libraries(pcclassify ${LINK_LIBRARIES})
 
 install(TARGETS pctrain RUNTIME DESTINATION bin)
-# install(TARGETS pcclassify RUNTIME DESTINATION bin)
+install(TARGETS pcclassify RUNTIME DESTINATION bin)

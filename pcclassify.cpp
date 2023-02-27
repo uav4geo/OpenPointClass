@@ -1,4 +1,6 @@
 #include "common.hpp"
+#include "point_io.hpp"
+#include "randomforest.hpp"
 
 void help(char *ex){
     std::cout << "Usage: " << ex << std::endl
@@ -17,47 +19,19 @@ int main(int argc, char **argv){
         std::string modelFile = std::string(argv[2]);
         std::string outputFile = std::string(argv[3]);
 
-        Color_map colorMap;
-        auto pts = readPointSet(inputFile, nullptr, &colorMap);
-        auto generator = getGenerator(*pts);
-        auto features = getFeatures(*generator, colorMap);
 
-        // Add labels
-        auto labels = getLabels();
+        auto labels = getTrainingLabels();
+        auto pointSet = readPointSet(inputFile);
+        double mSpacing = modeSpacing(pointSet.first, 3);
+        double startResolution = mSpacing * 4; // meters
+        std::cout << "Starting resolution: " << mSpacing << std::endl;
+        auto scales = computeScales(NUM_SCALES, pointSet.first, startResolution);
+        std::cout << "Computed " << scales.size() << " scales" << std::endl;
+        auto features = getFeatures(scales);
+        std::cout << "Features: " << features.size() << std::endl;
 
-        Classification::ETHZ::Random_forest_classifier classifier(*labels, *features);
-        std::cout << "Loading " << modelFile << std::endl;
-        std::ifstream fin(modelFile, std::ios::binary);
-        classifier.load_configuration(fin);
-
-        // TODO: test invalid model
-        std::vector<int> label_indices(pts->size(), -1);
-
-        std::cout << "Classifying..." << std::endl;
-        Classification::classify_with_local_smoothing<CGAL::Parallel_if_available_tag>
-              (*pts, pts->point_map(), *labels, classifier,
-                generator->neighborhood().sphere_neighbor_query(0.6),
-                label_indices);
-
-        // TODO: write using PDAL
-
-        UCmap red = pts->add_property_map<unsigned char>("red", 0).first;
-        UCmap green = pts->add_property_map<unsigned char>("green", 0).first;
-        UCmap blue = pts->add_property_map<unsigned char>("blue", 0).first;
-        for (std::size_t i = 0; i < label_indices.size(); ++ i){
-            Label_handle label = (*labels)[label_indices[i]];
-            const CGAL::IO::Color& color = label->color();
-            red[i] = color.red();
-            green[i] = color.green();
-            blue[i] = color.blue();
-        }
-
-        std::ofstream f (outputFile);
-        f.precision(18);
-        f << *pts;
-        f.close();
-        std::cout << "Saved " << outputFile << std::endl;
-
+        classify(pointSet, modelFile, features, labels, true, false);
+        savePointSet(pointSet.first, outputFile);
     } catch(pdal::pdal_error& e) {
         std::cerr << "PDAL Error: " << e.what() << std::endl;
         exit(EXIT_FAILURE);

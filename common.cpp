@@ -178,6 +178,7 @@ std::vector<Scale *> computeScales(size_t numScales, pdal::PointViewPtr pView, d
     double r = startResolution;
 
     for (size_t i = 0; i < numScales; i++){
+        std::cout << "Computing scale " << i << "..." << std::endl;
         scales[i] = new Scale(i, pView, r);
         r *= 2.0;
     }
