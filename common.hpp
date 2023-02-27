@@ -12,59 +12,12 @@
 #include <pdal/io/BufferReader.hpp>
 
 #include "scale.hpp"
+#include "features.hpp"
+#include "labels.hpp"
 
 using json = nlohmann::json;
 
-static std::unordered_map<std::string, int> trainingCodes = {
-    {"unassigned", -1},
-    {"ground", 0},
-    {"low_vegetation", 1},
-    {"medium_vegetation", 2},
-    {"high_vegetation", 3},
-    {"building", 4},
-    {"water", 5},
-    {"road_surface", 6},
-    {"vehicle", 7},
-};
-
-static std::unordered_map<std::string, int> asprsCodes = {
-    {"unassigned", 1},
-    {"ground", 2},
-    {"low_vegetation", 3},
-    {"medium_vegetation", 4},
-    {"high_vegetation", 5},
-    {"building", 6},
-    {"noise", 7},
-    {"reserved", 8},
-    {"water", 9},
-    {"rail", 10},
-    {"road_surface", 11},
-    {"reserved_2", 12},
-    {"wire_guard", 13},
-    {"wire_conductor", 14},
-    {"transmission_tower", 15},
-    {"wire_connect", 16},
-    {"bridge_deck", 17},
-    {"high_noise", 18},
-    {"vehicle", 64},
-    
-};
-
-// std::unique_ptr<Label_set> getLabels(){
-//     std::unique_ptr<Label_set> labels = std::make_unique<Label_set>();
-
-//     labels->add ("ground");
-//     labels->add ("low_vegetation");
-//     labels->add ("medium_vegetation");
-//     labels->add ("high_vegetation");
-//     labels->add ("building");
-//     labels->add ("water");
-//     labels->add ("road_surface");
-//     labels->add ("vehicle", Color(255, 0, 0));
-    
-
-//     return labels;
-// }
+#define NUM_SCALES 2
 
 bool fileExists(const std::string &path){
     std::ifstream fin(path);
@@ -102,7 +55,7 @@ std::unordered_map<int, std::string> getClassMappings(const std::string &filenam
     return res;
 }
 
-pdal::PointViewPtr readPointSet(const std::string &filename){
+std::pair<pdal::PointViewPtr, pdal::Dimension::Id> readPointSet(const std::string &filename){
     std::string labelDimension = "";
 
     auto mappings = getClassMappings(filename);
@@ -150,6 +103,8 @@ pdal::PointViewPtr readPointSet(const std::string &filename){
         labelId = layout->findDim(labelDimension);
     }
 
+    auto trainingCodes = getTrainingCodes();
+
     // Re-map labels if needed
     if (hasMappings){
         for (pdal::PointId idx = 0; idx < pView->size(); ++idx) {
@@ -162,11 +117,12 @@ pdal::PointViewPtr readPointSet(const std::string &filename){
                 label = trainingCodes["unassigned"];
             }
 
-            p.setField(labelId, label);
+            // p.setField(labelId, label);
+            pView->setField(labelId, idx, label);
         }
     }
 
-    return pView;
+    return std::make_pair(pView, labelId);
 }
 
 double modeSpacing(pdal::PointViewPtr pView, int kNeighbors){
@@ -234,43 +190,16 @@ double modeSpacing(pdal::PointViewPtr pView, int kNeighbors){
     return static_cast<double>(d) / 100.0;
 }
 
-template <std::size_t N>
-std::array<Scale *, N> computeScales(pdal::PointViewPtr pView, double startResolution){
-    std::array<Scale *, N> scales;
+
+std::vector<Scale *> computeScales(size_t numScales, pdal::PointViewPtr pView, double startResolution){
+    std::vector<Scale *> scales(numScales, nullptr);
     double r = startResolution;
 
-    for (size_t i = 0; i < N; i++){
-        scales[i] = new Scale(pView, r);
+    for (size_t i = 0; i < numScales; i++){
+        scales[i] = new Scale(i, pView, r);
         r *= 2.0;
     }
 
     return scales;
 }
 
-// std::unique_ptr<Feature_generator> getGenerator(const Point_set &pts, int numScales = 9, float resolution = -1.0f){
-//     std::cout << "Setting up generator (" << numScales << " scales)... this might take a bit" << std::endl;
-//     std::unique_ptr<Feature_generator> generator = std::make_unique<Feature_generator>(pts, pts.point_map(), numScales, resolution);
-//     return generator;
-// }
-
-// std::unique_ptr<Feature_set> getFeatures(Feature_generator &generator, const Color_map &colorMap){
-//     std::cout << "Generating features..." << std::endl;
-
-//     std::unique_ptr<Feature_set> features = std::make_unique<Feature_set>();
-
-//     features->begin_parallel_additions();
-
-//     // TODO: add your custom features here
-//     generator.generate_covariance_features(*features);
-//     generator.generate_moments_features(*features);
-//     generator.generate_elevation_features(*features);
-//     generator.generate_color_based_features(*features, colorMap);
-    
-//     // if (false){ // TODO REMOVE
-//         //generator.generate_point_based_features (*features);
-//     // }
-
-//     features->end_parallel_additions();
-
-//     return features;
-// }

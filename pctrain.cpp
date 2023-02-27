@@ -12,63 +12,45 @@ void help(char *ex){
 int main(int argc, char **argv){
     if( argc < 3 ) help(argv[0]);
 
-    // testForest();
     try {
         // Read points
         std::string filename = std::string(argv[1]);
+        std::string modelFilename = std::string(argv[2]);
         
-        auto pView = readPointSet(filename);
+        auto pointSet = readPointSet(filename);
+        pdal::PointViewPtr pView = pointSet.first;
+        pdal::Dimension::Id labelId = pointSet.second;
+
         double mSpacing = modeSpacing(pView, 3);
         double startResolution = mSpacing * 4; // meters
-
         std::cout << "Starting resolution: " << mSpacing << std::endl;
 
-        auto scales = computeScales<9>(pView, startResolution);
-
+        auto scales = computeScales(NUM_SCALES, pView, startResolution);
         std::cout << "Computed " << scales.size() << " scales" << std::endl;
 
-        // for (pdal::PointId idx = 0; idx < pView->size(); ++idx) {
-        //     auto p = pView->point(idx);
-        //     std::cout << p.getFieldAs<double>(pdal::Dimension::Id::X) << std::endl;
-        // }
+        auto features = getFeatures(scales);
+        std::cout << "Features: " << features.size() << std::endl;
 
-        // const std::string ext = filename.substr(filename.length() - 4);
-        // const std::string evalFilename = filename.substr(0, filename.length() - 4) + "_eval" + ext;
-        // if (fileExists(evalFilename)){
-        //     std::cout << "Evaluating on " << evalFilename << " ..." << std::endl;
+        auto labels = getTrainingLabels();
 
-        //     Imap evalLabelMap;
-        //     Color_map evalColorMap;
-        //     auto evalPts = readPointSet(evalFilename, &evalLabelMap, &evalColorMap);
-        //     auto evalGenerator = getGenerator(*evalPts);
-        //     auto evalFeatures = getFeatures(*generator, evalColorMap);
+        train(pView, labelId, features, labels, modelFilename);
 
-        //     if (!labels->is_valid_ground_truth (evalPts->range(evalLabelMap), true))
-        //         throw std::runtime_error("Invalid ground truth labels; check that the evaluation data has all the required labels.");
+        const std::string ext = filename.substr(filename.length() - 4);
+        const std::string evalFilename = filename.substr(0, filename.length() - 4) + "_eval" + ext;
+        if (fileExists(evalFilename)){
+            std::cout << "Evaluating on " << evalFilename << " ..." << std::endl;
+            
+            auto evalPointSet = readPointSet(evalFilename);
+            auto evalView = evalPointSet.first;
 
-        //     std::vector<int> label_indices(evalPts->size(), -1);
+            auto evalScales = computeScales(NUM_SCALES, evalView, startResolution);
+            std::cout << "Computed " << evalScales.size() << " scales" << std::endl;
+            auto evalFeatures = getFeatures(evalScales);
+            std::cout << "Features: " << evalFeatures.size() << std::endl;
 
-        //     std::cout << "Evaluating..." << std::endl;
-        //     Classification::classify_with_local_smoothing<CGAL::Parallel_if_available_tag>
-        //         (*evalPts, evalPts->point_map(), *labels, classifier,
-        //             evalGenerator->neighborhood().sphere_neighbor_query(0.6),
-        //             label_indices);
-
-        //     std::cout << std::endl << "Evaluation results" << std::endl << "==================" << std::endl;
-        //     Classification::Evaluation evaluation (*labels, evalPts->range(evalLabelMap), label_indices);
-        //     for (Label_handle l : *labels){
-        //         std::cout << " * " << l->name() << ": "
-        //                 << evaluation.precision(l) << " ; "
-        //                 << evaluation.recall(l) << " ; "
-        //                 << evaluation.f1_score(l) << " ; "
-        //                 << evaluation.intersection_over_union(l) << std::endl;
-        //     }
-        //     std::cout << "Accuracy = " << evaluation.accuracy() << std::endl
-        //             << "Mean F1 score = " << evaluation.mean_f1_score() << std::endl
-        //             << "Mean IoU = " << evaluation.mean_intersection_over_union() << std::endl;
-        // }
-
-
+            classify(evalView, modelFilename, evalFeatures, labels, true);
+            savePointSet(evalView, "evaluation.ply");
+        }
     } catch(pdal::pdal_error& e) {
         std::cerr << "PDAL Error: " << e.what() << std::endl;
         exit(EXIT_FAILURE);

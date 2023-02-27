@@ -3,7 +3,25 @@
 
 #include "random-forest/node-gini.hpp"
 #include "random-forest/forest.hpp"
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
 
-void testForest();
+#include <pdal/PointView.hpp>
+#include <pdal/PointRef.hpp>
+#include "features.hpp"
+#include "labels.hpp"
+
+void train(pdal::PointViewPtr groundTruth, pdal::Dimension::Id labelId, 
+    const std::vector<Feature *> &features, 
+    const std::vector<Label> &labels,
+    const std::string &modelFilename);
+
+void classify(pdal::PointViewPtr input, 
+    const std::string &modelFilename,
+    const std::vector<Feature *> &features, 
+    const std::vector<Label> &labels,
+    bool useColors);
 
 #endif

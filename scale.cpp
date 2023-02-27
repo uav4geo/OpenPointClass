@@ -3,8 +3,8 @@
 #include <pdal/filters/VoxelCentroidNearestNeighborFilter.hpp>
 #include <pdal/private/MathUtils.hpp>
 
-Scale::Scale(pdal::PointViewPtr pView, double resolution, int kNeighbors) :
-    pView(pView), resolution(resolution), kNeighbors(kNeighbors){
+Scale::Scale(size_t id, pdal::PointViewPtr pView, double resolution, int kNeighbors) :
+    id(id), pView(pView), resolution(resolution), kNeighbors(kNeighbors){
 
     pdal::BufferReader reader;
     reader.addView(pView);
@@ -39,11 +39,6 @@ Scale::Scale(pdal::PointViewPtr pView, double resolution, int kNeighbors) :
         
         double sum = ev[0] + ev[1] + ev[2]; 
         eigenValues[idx] = ev / sum; // sum-normalized
-
-        // std::cout << covariance << std::endl;
-        // std::cout << "======" << std::endl;
-        // std::cout << eigenValues[idx] << std::endl;
-        exit(1);
     }
 }
 

@@ -23,4 +23,6 @@ void savePointSet(pdal::PointViewPtr pView, const std::string &filename){
 
     s->prepare(table);
     s->execute(table);
+
+    std::cout << "Wrote " << filename << std::endl;
 }
