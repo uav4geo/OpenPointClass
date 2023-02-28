@@ -6,8 +6,6 @@
 #include <unordered_map>
 #include <random>
 
-#include <json.hpp>
-
 #include <pdal/Options.hpp>
 #include <pdal/PointTable.hpp>
 #include <pdal/StageFactory.hpp>
@@ -17,17 +15,16 @@
 #include "scale.hpp"
 #include "features.hpp"
 #include "labels.hpp"
+#include "point_io.hpp"
 
-using json = nlohmann::json;
 
 #define NUM_SCALES 2
 
 typedef std::pair<pdal::PointViewPtr, pdal::Dimension::Id> PointSetData;
 
-bool fileExists(const std::string &path);
-std::unordered_map<int, std::string> getClassMappings(const std::string &filename);
-PointSetData readPointSet(const std::string &filename);
-double modeSpacing(pdal::PointViewPtr pView, int kNeighbors);
+PointSetData readPointSet_old(const std::string &filename);
+double modeSpacing_old(pdal::PointViewPtr pView, int kNeighbors);
+double modeSpacing(const PointSet &pSet, int kNeighbors);
 std::vector<Scale *> computeScales(size_t numScales, pdal::PointViewPtr pView, double startResolution);
 
 #endif

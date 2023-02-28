@@ -12,17 +12,28 @@ void help(char *ex){
 int main(int argc, char **argv){
     if( argc < 3 ) help(argv[0]);
 
+
     try {
         // Read points
         std::string filename = std::string(argv[1]);
         std::string modelFilename = std::string(argv[2]);
-        
-        auto pointSet = readPointSet(filename);
+
+        auto pointSet_new = readPointSet(filename);
+        double mSpacing_new = modeSpacing(pointSet_new, 3);
+        double startResolution_new = mSpacing_new * 4; // meters
+
+        // TODO: classification mapping
+        // auto scales = computeScales(NUM_SCALES, pointSet2, startResolution);
+
+        std::cout << "Starting resolution: " << mSpacing_new << std::endl;
+        exit(1);
+
+        auto pointSet = readPointSet_old(filename);
         pdal::PointViewPtr pView = pointSet.first;
 
-        double mSpacing = modeSpacing(pView, 3);
+        double mSpacing = modeSpacing_old(pView, 3);
         double startResolution = mSpacing * 4; // meters
-        std::cout << "Starting resolution: " << mSpacing << std::endl;
+        std::cout << "Starting resolution: " << startResolution << std::endl;
 
         auto scales = computeScales(NUM_SCALES, pView, startResolution);
         std::cout << "Computed " << scales.size() << " scales" << std::endl;
@@ -39,7 +50,7 @@ int main(int argc, char **argv){
         if (fileExists(evalFilename)){
             std::cout << "Evaluating on " << evalFilename << " ..." << std::endl;
             
-            auto evalPointSet = readPointSet(evalFilename);
+            auto evalPointSet = readPointSet_old(evalFilename);
             auto evalScales = computeScales(NUM_SCALES, evalPointSet.first, startResolution);
             std::cout << "Computed " << evalScales.size() << " scales" << std::endl;
             auto evalFeatures = getFeatures(evalScales);

@@ -80,7 +80,6 @@ void classify(const PointSetData &pointSet,
 
   std::size_t correct = 0;
 
-  // #pragma omp for
   for (pdal::PointId i = 0; i < input->size(); i++ ){
     for (std::size_t f = 0; f < features.size(); f++){
       ft[f] = features[f]->getValue(i);

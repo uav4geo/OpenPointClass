@@ -21,7 +21,7 @@ int main(int argc, char **argv){
 
 
         auto labels = getTrainingLabels();
-        auto pointSet = readPointSet(inputFile);
+        auto pointSet = readPointSet_old(inputFile);
         double mSpacing = modeSpacing(pointSet.first, 3);
         double startResolution = mSpacing * 4; // meters
         std::cout << "Starting resolution: " << mSpacing << std::endl;

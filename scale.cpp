@@ -21,28 +21,28 @@ Scale::Scale(size_t id, pdal::PointViewPtr pView, double resolution, int kNeighb
     pScaledView = *pvSet.begin();
 
     // Build KDTree
-    kdTree = new pdal::KD3Index(*pScaledView);
-    kdTree->build();
+    // kdTree = new pdal::KD3Index(*pScaledView);
+    // kdTree->build();
 
     eigenValues.resize(pView->size());
-    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver;
+    // Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver;
 
-    for (pdal::PointId idx = 0; idx < pView->size(); idx++){
-        pdal::PointRef p = pView->point(idx);
+    // for (pdal::PointId idx = 0; idx < pView->size(); idx++){
+    //     pdal::PointRef p = pView->point(idx);
         
-        // Compute eigen analysis structure
-        pdal::PointIdList ids = kdTree->neighbors(p, kNeighbors);
-        Eigen::Matrix3d covariance = computeCovariance(p, pScaledView, ids);
+    //     // Compute eigen analysis structure
+    //     pdal::PointIdList ids = kdTree->neighbors(p, kNeighbors);
+    //     Eigen::Matrix3d covariance = computeCovariance(p, pScaledView, ids);
         
-        solver.computeDirect(covariance, Eigen::ComputeEigenvectors);
-        Eigen::Vector3d ev = solver.eigenvalues();
+    //     solver.computeDirect(covariance, Eigen::ComputeEigenvectors);
+    //     Eigen::Vector3d ev = solver.eigenvalues();
 
-        double sum = ev[0] + ev[1] + ev[2]; 
-        eigenValues[idx] = ev / sum; // sum-normalized
+    //     double sum = ev[0] + ev[1] + ev[2]; 
+    //     eigenValues[idx] = ev / sum; // sum-normalized
 
-        // TODO: attach a debugger and find why this core dumps
-        // while in multi-thread
-    }
+    //     // TODO: attach a debugger and find why this core dumps
+    //     // while in multi-thread
+    // }
 }
 
 void Scale::save(const std::string &filename) const{

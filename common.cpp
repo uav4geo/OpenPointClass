@@ -1,43 +1,7 @@
 #include <iostream>
 #include "common.hpp"
 
-bool fileExists(const std::string &path){
-    std::ifstream fin(path);
-    bool e = fin.good();
-    fin.close();
-    return e;
-}
-
-std::unordered_map<int, std::string> getClassMappings(const std::string &filename){
-    std::string jsonFile = filename.substr(0, filename.length() - 4) + ".json";
-    
-    // Need to drop _eval filename suffix?
-    if (filename.substr(filename.length() - 5 - 4, 5) == "_eval" &&
-            !fileExists(jsonFile)){
-        jsonFile = filename.substr(0, filename.length() - 5 - 4) + ".json";
-    }
-
-    std::ifstream fin(jsonFile);
-    std::unordered_map<int, std::string> res;
-
-    if (fin.good()){
-        std::cout << "Reading classification information: " << jsonFile << std::endl;
-        json data = json::parse(fin);
-        if (data.contains("classification")){
-            auto c = data["classification"];
-            for (json::iterator it = c.begin(); it != c.end(); ++it) {
-                res[std::stoi(it.key())] = it.value().get<std::string>();
-                std::cout << it.key() << ": " << it.value().get<std::string>() << std::endl;
-            }
-        }else{
-            std::cout << "Error: Invalid JSON (no mapping will be applied)" << std::endl;
-        }
-    }
-
-    return res;
-}
-
-PointSetData readPointSet(const std::string &filename){
+PointSetData readPointSet_old(const std::string &filename){
     std::string labelDimension = "";
 
     auto mappings = getClassMappings(filename);
@@ -107,7 +71,68 @@ PointSetData readPointSet(const std::string &filename){
     return std::make_pair(pView, labelId);
 }
 
-double modeSpacing(pdal::PointViewPtr pView, int kNeighbors){
+double modeSpacing(const PointSet &pSet, int kNeighbors){
+    std::cout << "Estimating mode spacing..." << std::endl;
+
+    KdTree index(3, pSet, { KDTREE_MAX_LEAF });
+    index.buildIndex();
+
+    size_t np = pSet.count();
+    size_t SAMPLES = std::min<size_t>(np, 10000);
+    int count = kNeighbors + 1;
+
+    std::unordered_map<uint64_t, size_t> dist_map;
+
+    std::random_device rd;
+    std::mt19937_64 gen(rd());
+    std::uniform_int_distribution<uint64_t> randomDis(
+        std::numeric_limits<size_t>::min(),
+        np - 1
+    );
+
+    #pragma omp parallel
+    {
+        std::vector<uint32_t> indices(count);
+        std::vector<float> sqr_dists(count);
+
+        #pragma omp for
+        for (size_t i = 0; i < SAMPLES; ++i){
+            const size_t idx = randomDis(gen);
+            index.knnSearch(&pSet.points[idx][0], count, &indices[0], &sqr_dists[0]);
+
+            double sum = 0.0;
+            for (size_t j = 1; j < kNeighbors; ++j){
+                sum += std::sqrt(sqr_dists[j]);
+            }
+            sum /= static_cast<double>(kNeighbors);
+
+            uint64_t k = std::ceil(sum * 100);
+            if (k == 0) std::cout << sum << std::endl;
+
+            #pragma omp critical
+            {
+                if (dist_map.find(k) == dist_map.end()){
+                    dist_map[k] = 1;
+                }else{
+                    dist_map[k] += 1;
+                }
+            }
+        }
+    }
+
+    uint64_t max_val = std::numeric_limits<uint64_t>::min();
+    int d = 0;
+    for (auto it : dist_map){
+        if (it.second > max_val){
+            d = it.first;
+            max_val = it.second;
+        }
+    }
+
+    return static_cast<double>(d) / 100.0;
+}
+
+double modeSpacing_old(pdal::PointViewPtr pView, int kNeighbors){
     pdal::KD3Index index(*pView);
     index.build();
     
@@ -119,7 +144,6 @@ double modeSpacing(pdal::PointViewPtr pView, int kNeighbors){
     std::vector<double> sqr_dists(count);
 
     std::unordered_map<uint64_t, size_t> dist_map;
-    std::vector<double> all_distances;
 
     std::random_device rd;
     std::mt19937_64 gen(rd());
@@ -177,7 +201,7 @@ std::vector<Scale *> computeScales(size_t numScales, pdal::PointViewPtr pView, d
     std::vector<Scale *> scales(numScales, nullptr);
     double r = startResolution;
 
-    //#pragma omp parallel for
+    #pragma omp parallel for
     for (size_t i = 0; i < numScales; i++){
         std::cout << "Computing scale " << i << "..." << std::endl;
         scales[i] = new Scale(i, pView, r);
