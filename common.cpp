@@ -92,8 +92,8 @@ double modeSpacing(const PointSet &pSet, int kNeighbors){
 
     #pragma omp parallel
     {
-        std::vector<uint32_t> indices(count);
-        std::vector<float> sqr_dists(count);
+        std::vector<size_t> indices(count);
+        std::vector<double> sqr_dists(count);
 
         #pragma omp for
         for (size_t i = 0; i < SAMPLES; ++i){
@@ -107,7 +107,6 @@ double modeSpacing(const PointSet &pSet, int kNeighbors){
             sum /= static_cast<double>(kNeighbors);
 
             uint64_t k = std::ceil(sum * 100);
-            if (k == 0) std::cout << sum << std::endl;
 
             #pragma omp critical
             {
@@ -196,17 +195,30 @@ double modeSpacing_old(pdal::PointViewPtr pView, int kNeighbors){
     return static_cast<double>(d) / 100.0;
 }
 
-
-std::vector<Scale *> computeScales(size_t numScales, pdal::PointViewPtr pView, double startResolution){
+std::vector<Scale *> computeScales(size_t numScales, PointSet pSet, double startResolution){
     std::vector<Scale *> scales(numScales, nullptr);
     double r = startResolution;
 
-    #pragma omp parallel for
+    //#pragma omp parallel for
     for (size_t i = 0; i < numScales; i++){
         std::cout << "Computing scale " << i << "..." << std::endl;
-        scales[i] = new Scale(i, pView, r);
+        scales[i] = new Scale(i, pSet, r);
         r *= 2.0;
     }
 
     return scales;
+}
+
+std::vector<Scale *> computeScales_old(size_t numScales, pdal::PointViewPtr pView, double startResolution){
+    // std::vector<Scale *> scales(numScales, nullptr);
+    // double r = startResolution;
+
+    // #pragma omp parallel for
+    // for (size_t i = 0; i < numScales; i++){
+    //     std::cout << "Computing scale " << i << "..." << std::endl;
+    //     scales[i] = new Scale(i, pView, r);
+    //     r *= 2.0;
+    // }
+
+    // return scales;
 }

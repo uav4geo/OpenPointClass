@@ -21,11 +21,10 @@ int main(int argc, char **argv){
         auto pointSet_new = readPointSet(filename);
         double mSpacing_new = modeSpacing(pointSet_new, 3);
         double startResolution_new = mSpacing_new * 4; // meters
-
-        // TODO: classification mapping
-        // auto scales = computeScales(NUM_SCALES, pointSet2, startResolution);
-
         std::cout << "Starting resolution: " << mSpacing_new << std::endl;
+
+        auto scales_new = computeScales(NUM_SCALES, pointSet_new, startResolution_new);
+
         exit(1);
 
         auto pointSet = readPointSet_old(filename);
@@ -35,6 +34,7 @@ int main(int argc, char **argv){
         double startResolution = mSpacing * 4; // meters
         std::cout << "Starting resolution: " << startResolution << std::endl;
 
+/*
         auto scales = computeScales(NUM_SCALES, pView, startResolution);
         std::cout << "Computed " << scales.size() << " scales" << std::endl;
 
@@ -59,9 +59,7 @@ int main(int argc, char **argv){
             classify(evalPointSet, modelFilename, evalFeatures, labels, true, true);
             savePointSet(evalPointSet.first, "evaluation.ply");
         }
-    } catch(pdal::pdal_error& e) {
-        std::cerr << "PDAL Error: " << e.what() << std::endl;
-        exit(EXIT_FAILURE);
+*/
     } catch(std::exception &e){
         std::cerr << "Error: " << e.what() << std::endl;
         exit(EXIT_FAILURE);

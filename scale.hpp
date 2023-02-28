@@ -6,28 +6,38 @@
 #include <pdal/StageFactory.hpp>
 #include <pdal/KDIndex.hpp>
 #include <Eigen/Dense>
+#include "point_io.hpp"
 
 class Scale{
     size_t id;
-    pdal::PointViewPtr pView;
+    PointSet pSet;
+    PointSet scaledSet;
     double resolution;
     int kNeighbors;
 
-    pdal::PointViewPtr pScaledView;
-    pdal::KD3Index *kdTree;
+    KdTree *kdTree;
 
-    Eigen::Matrix3d computeCovariance(const pdal::PointRef &p, pdal::PointViewPtr neighborView, const pdal::PointIdList &neighborIds);
-    Eigen::Vector3d computeMedoid(const pdal::PointRef &p, pdal::PointViewPtr neighborView, const pdal::PointIdList &neighborIds);
+    pdal::PointViewPtr pScaledView;
+    pdal::PointViewPtr pView;
+    // pdal::KD3Index *kdTree;
+
+    Eigen::Matrix3d computeCovariance(size_t ptIdx, const std::vector<size_t> &neighborIds);
+    Eigen::Vector3d computeMedoid(size_t ptIdx, const std::vector<size_t> &neighborIds);
+    Eigen::Vector3d computeCentroid(const std::vector<size_t> &pointIds);
+
+    void computeScaledSet();
 public:
     std::vector<Eigen::Vector3d> eigenValues;
 
-    Scale(size_t id, pdal::PointViewPtr pView, double resolution, int kNeighbors = 10);
+    Scale(size_t id, const PointSet &pSet, double resolution, int kNeighbors = 10);
 
     size_t getId() const { return id; }
     void save(const std::string &filename) const;
     double getResolution() const { return resolution; }
     pdal::PointViewPtr getScaledView() const { return pScaledView; }
     pdal::PointViewPtr getView() const { return pView; }
+    PointSet getScaledSet() const { return scaledSet; }
+    PointSet getPointSet() const { return pSet; }
     
 
 };

@@ -20,18 +20,18 @@ int main(int argc, char **argv){
         std::string outputFile = std::string(argv[3]);
 
 
-        auto labels = getTrainingLabels();
-        auto pointSet = readPointSet_old(inputFile);
-        double mSpacing = modeSpacing(pointSet.first, 3);
-        double startResolution = mSpacing * 4; // meters
-        std::cout << "Starting resolution: " << mSpacing << std::endl;
-        auto scales = computeScales(NUM_SCALES, pointSet.first, startResolution);
-        std::cout << "Computed " << scales.size() << " scales" << std::endl;
-        auto features = getFeatures(scales);
-        std::cout << "Features: " << features.size() << std::endl;
+        // auto labels = getTrainingLabels();
+        // auto pointSet = readPointSet_old(inputFile);
+        // double mSpacing = modeSpacing(pointSet.first, 3);
+        // double startResolution = mSpacing * 4; // meters
+        // std::cout << "Starting resolution: " << mSpacing << std::endl;
+        // auto scales = computeScales(NUM_SCALES, pointSet.first, startResolution);
+        // std::cout << "Computed " << scales.size() << " scales" << std::endl;
+        // auto features = getFeatures(scales);
+        // std::cout << "Features: " << features.size() << std::endl;
 
-        classify(pointSet, modelFile, features, labels, true, false);
-        savePointSet(pointSet.first, outputFile);
+        // classify(pointSet, modelFile, features, labels, true, false);
+        // savePointSet(pointSet.first, outputFile);
     } catch(pdal::pdal_error& e) {
         std::cerr << "PDAL Error: " << e.what() << std::endl;
         exit(EXIT_FAILURE);

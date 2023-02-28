@@ -25,6 +25,7 @@ typedef std::pair<pdal::PointViewPtr, pdal::Dimension::Id> PointSetData;
 PointSetData readPointSet_old(const std::string &filename);
 double modeSpacing_old(pdal::PointViewPtr pView, int kNeighbors);
 double modeSpacing(const PointSet &pSet, int kNeighbors);
-std::vector<Scale *> computeScales(size_t numScales, pdal::PointViewPtr pView, double startResolution);
+std::vector<Scale *> computeScales(size_t numScales, PointSet pSet, double startResolution);
+std::vector<Scale *> computeScales_old(size_t numScales, pdal::PointViewPtr pView, double startResolution);
 
 #endif

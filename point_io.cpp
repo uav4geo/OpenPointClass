@@ -69,10 +69,23 @@ PointSet readPointSet(const std::string& filename){
     bool hasColors = false;
     std::string labelDim = "";
 
+    size_t redIdx = 0, greenIdx = 1, blueIdx = 2;
+
     std::getline(reader, line);
     while (line != "end_header"){
         if (hasHeader(line, "nx") || hasHeader(line, "normal_x")) hasNormals = true;
-        if (hasHeader(line, "red")) hasColors = true;
+        if (hasHeader(line, "red")){
+            hasColors = true;
+            redIdx = c;
+        }
+        if (hasHeader(line, "green")){
+            hasColors = true;
+            greenIdx = c;
+        }
+        if (hasHeader(line, "blue")){
+            hasColors = true;
+            blueIdx = c;
+        }
         if (hasHeader(line, "views")) hasViews = true;
 
         if (hasHeader(line, "label")) labelDim = "label";
@@ -83,6 +96,12 @@ PointSet readPointSet(const std::string& filename){
         std::getline(reader, line);
     }
 
+    size_t colorIdxMin = std::min<size_t>(std::min<size_t>(redIdx, greenIdx), blueIdx);
+    redIdx -= colorIdxMin;
+    greenIdx -= colorIdxMin;
+    blueIdx -= colorIdxMin;
+    if (redIdx + greenIdx + blueIdx != 3) throw std::runtime_error("red/green/blue properties need to be contiguous");
+
     bool hasLabels = !labelDim.empty();
         
     r.points.resize(count);
@@ -91,14 +110,21 @@ PointSet readPointSet(const std::string& filename){
     if (hasViews) r.views.resize(count);
     if (hasLabels) r.labels.resize(count);
 
+    // if (hasNormals) std::cout << "N";
+    // if (hasColors) std::cout << "C";
+    // if (hasViews) std::cout << "V";
+    // if (hasLabels) std::cout << "L";
+    // std::cout << std::endl;
+
     // Read points
     if (ascii){
         uint16_t buf;
 
         for (size_t i = 0; i < count; i++) {
-            reader >> r.points[i][0]
-                >> r.points[i][1]
-                >> r.points[i][2];
+            reader >> r.points[i][0] 
+                   >> r.points[i][1]
+                   >> r.points[i][2];
+            
             if (hasNormals){
                 reader >> r.normals[i][0]
                     >> r.normals[i][1]
@@ -106,11 +132,11 @@ PointSet readPointSet(const std::string& filename){
             }
             if (hasColors){
                 reader >> buf;
-                r.colors[i][0] = static_cast<uint8_t>(buf);
+                r.colors[i][redIdx] = static_cast<uint8_t>(buf);
                 reader >> buf;
-                r.colors[i][1] = static_cast<uint8_t>(buf);
+                r.colors[i][greenIdx] = static_cast<uint8_t>(buf);
                 reader >> buf;
-                r.colors[i][2] = static_cast<uint8_t>(buf);
+                r.colors[i][blueIdx] = static_cast<uint8_t>(buf);
             }
             if (hasViews){
                 reader >> buf;
@@ -124,21 +150,24 @@ PointSet readPointSet(const std::string& filename){
     }else{
 
         // Read points
+        XYZ p;
+        uint8_t color[3];
+
         for (size_t i = 0; i < count; i++) {
-            reader.read(reinterpret_cast<char*>(&r.points[i][0]), sizeof(float));
-            reader.read(reinterpret_cast<char*>(&r.points[i][1]), sizeof(float));
-            reader.read(reinterpret_cast<char*>(&r.points[i][2]), sizeof(float));
+            reader.read(reinterpret_cast<char*>(&p), sizeof(float) * 3);
+            r.points[i][0] = static_cast<double>(p.x);
+            r.points[i][1] = static_cast<double>(p.y);
+            r.points[i][2] = static_cast<double>(p.z);
 
             if (hasNormals){
-                reader.read(reinterpret_cast<char*>(&r.normals[i][0]), sizeof(float));
-                reader.read(reinterpret_cast<char*>(&r.normals[i][1]), sizeof(float));
-                reader.read(reinterpret_cast<char*>(&r.normals[i][2]), sizeof(float));
+                reader.read(reinterpret_cast<char*>(&r.normals[i][0]), sizeof(float) * 3);
             }
 
             if (hasColors){
-                reader.read(reinterpret_cast<char*>(&r.colors[i][0]), sizeof(uint8_t));
-                reader.read(reinterpret_cast<char*>(&r.colors[i][1]), sizeof(uint8_t));
-                reader.read(reinterpret_cast<char*>(&r.colors[i][2]), sizeof(uint8_t));
+                reader.read(reinterpret_cast<char*>(&color), sizeof(uint8_t) * 3);
+                r.colors[i][redIdx] = color[0];
+                r.colors[i][greenIdx] = color[1];
+                r.colors[i][blueIdx] = color[2];
             }
 
             if (hasViews){
@@ -181,7 +210,9 @@ PointSet readPointSet(const std::string& filename){
     //     std::cout << std::to_string(r.colors[idx][1]) << " ";
     //     std::cout << std::to_string(r.colors[idx][2]) << " ";
 
-    //     std::cout << std::to_string(r.labels[idx]) << " ";
+    //     if (hasLabels){
+    //         std::cout << std::to_string(r.labels[idx]) << " ";
+    //     }
     //     std::cout << std::endl;
         
     //     if (idx > 9) exit(1);
@@ -201,10 +232,64 @@ void checkHeader(std::ifstream& reader, const std::string &prop){
 }
 
 bool hasHeader(const std::string &line, const std::string &prop){
+    //std::cout << line << " -> " << prop << " : " << line.substr(line.length() - prop.length(), prop.length()) << std::endl;
     return line.substr(0, 8) == "property" && line.substr(line.length() - prop.length(), prop.length()) == prop;
 }
 
-void savePointSet(pdal::PointViewPtr pView, const std::string &filename){
+void savePointSet(const PointSet &pSet, const std::string &filename){
+    std::ofstream o(filename, std::ios::binary);
+
+    o << "ply" << std::endl;
+    o << "format binary_little_endian 1.0" << std::endl;
+    o << "comment Generated by PCClassify" << std::endl;
+    o << "element vertex " << pSet.count() << std::endl;
+    o << "property float x" << std::endl;
+    o << "property float y" << std::endl;
+    o << "property float z" << std::endl;
+
+    bool hasNormals = pSet.hasNormals();
+    bool hasColors = pSet.hasColors();
+    bool hasViews = pSet.hasViews();
+    bool hasLabels = pSet.hasLabels();
+
+    if (hasNormals){
+        o << "property float nx" << std::endl;
+        o << "property float ny" << std::endl;
+        o << "property float nz" << std::endl;
+    }
+    if (hasColors){
+        o << "property uchar red" << std::endl;
+        o << "property uchar green" << std::endl;
+        o << "property uchar blue" << std::endl;
+    }
+    if (hasViews){
+        o << "property uchar views" << std::endl;
+    }
+    if (hasLabels){
+        // TODO: which name for classification label?
+        o << "property uchar class" << std::endl;
+    }
+
+    o << "end_header" << std::endl;
+
+    XYZ p;
+    for (size_t i = 0; i < pSet.count(); i++){
+        p.x = static_cast<float>(pSet.points[i][0]);
+        p.y = static_cast<float>(pSet.points[i][1]);
+        p.z = static_cast<float>(pSet.points[i][2]);
+        
+        o.write(reinterpret_cast<const char*>(&p), sizeof(float) * 3);
+        if (hasNormals) o.write(reinterpret_cast<const char*>(&pSet.normals[i][0]), sizeof(float) * 3);
+        if (hasColors) o.write(reinterpret_cast<const char*>(&pSet.colors[i][0]), sizeof(uint8_t) * 3);
+        if (hasViews) o.write(reinterpret_cast<const char*>(&pSet.views[i]), sizeof(uint8_t));
+        if (hasLabels) o.write(reinterpret_cast<const char*>(&pSet.labels[i]), sizeof(uint8_t));
+    }
+
+    o.close();
+    std::cout << "Wrote " << filename << std::endl;
+}
+
+void savePointSet_old(pdal::PointViewPtr pView, const std::string &filename){
     pdal::StageFactory factory;
     std::string driver = pdal::StageFactory::inferWriterDriver(filename);
     if (driver.empty()){
@@ -230,79 +315,6 @@ void savePointSet(pdal::PointViewPtr pView, const std::string &filename){
 
     std::cout << "Wrote " << filename << std::endl;
 }
-
-        // void write(std::ostream& o) {
-
-        //     const auto cnt = this->points.size();
-
-        //     o << "ply" << std::endl;
-        //     o << "format binary_little_endian 1.0" << std::endl;
-        //     o << "comment Generated by FPCFilter v" << FPCFilter_VERSION_MAJOR << "." << FPCFilter_VERSION_MINOR << std::endl;
-        //     o << "element vertex " << cnt << std::endl;
-
-        //     o << "property float x" << std::endl;
-        //     o << "property float y" << std::endl;
-        //     o << "property float z" << std::endl;
-
-        //     const auto hasNormals = this->hasNormals();
-
-        //     if (hasNormals)
-        //     {
-        //         o << "property float nx" << std::endl;
-        //         o << "property float ny" << std::endl;
-        //         o << "property float nz" << std::endl;
-        //     }
-
-        //     o << "property uchar red" << std::endl;
-        //     o << "property uchar blue" << std::endl;
-        //     o << "property uchar green" << std::endl;
-        //     o << "property uchar views" << std::endl;
-
-        //     o << "end_header" << std::endl;
-
-        //     if (hasNormals)
-        //     {
-        //         for (auto n = 0; n < cnt; n++)
-        //         {
-        //             const auto point = this->points[n];
-        //             const auto extra = this->extras[n];
-
-        //             o.write(reinterpret_cast<const char*>(&point.x), sizeof(float));
-        //             o.write(reinterpret_cast<const char*>(&point.y), sizeof(float));
-        //             o.write(reinterpret_cast<const char*>(&point.z), sizeof(float));
-
-        //             o.write(reinterpret_cast<const char*>(&extra.nx), sizeof(float));
-        //             o.write(reinterpret_cast<const char*>(&extra.ny), sizeof(float));
-        //             o.write(reinterpret_cast<const char*>(&extra.nz), sizeof(float));
-
-        //             o.write(reinterpret_cast<const char*>(&point.red), sizeof(uint8_t));
-        //             o.write(reinterpret_cast<const char*>(&point.blue), sizeof(uint8_t));
-        //             o.write(reinterpret_cast<const char*>(&point.green), sizeof(uint8_t));
-
-        //             o.write(reinterpret_cast<const char*>(&point.views), sizeof(uint8_t));
-
-        //         }
-
-        //     } else
-        //     {
-        //         for (auto n = 0; n < cnt; n++)
-        //         {
-        //             const auto point = this->points[n];
-
-        //             o.write(reinterpret_cast<const char*>(&point.x), sizeof(float));
-        //             o.write(reinterpret_cast<const char*>(&point.y), sizeof(float));
-        //             o.write(reinterpret_cast<const char*>(&point.z), sizeof(float));
-
-        //             o.write(reinterpret_cast<const char*>(&point.red), sizeof(uint8_t));
-        //             o.write(reinterpret_cast<const char*>(&point.blue), sizeof(uint8_t));
-        //             o.write(reinterpret_cast<const char*>(&point.green), sizeof(uint8_t));
-
-        //             o.write(reinterpret_cast<const char*>(&point.views), sizeof(uint8_t));
-
-        //         }
-        //     }            
-
-        // }
 
 std::unordered_map<int, std::string> getClassMappings(const std::string &filename){
     std::string jsonFile = filename.substr(0, filename.length() - 4) + ".json";

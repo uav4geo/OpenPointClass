@@ -12,6 +12,12 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+if((CMAKE_CXX_COMPILER_ID MATCHES "Clang") OR (CMAKE_CXX_COMPILER_ID MATCHES "GNU"))
+      add_compile_options(-ffast-math)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+      add_compile_options(/fp:fast)
+endif()
+
 find_package(PDAL REQUIRED)
 find_package(OpenMP REQUIRED)
 find_package(Boost COMPONENTS iostreams serialization)
