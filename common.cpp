@@ -177,6 +177,7 @@ std::vector<Scale *> computeScales(size_t numScales, pdal::PointViewPtr pView, d
     std::vector<Scale *> scales(numScales, nullptr);
     double r = startResolution;
 
+    //#pragma omp parallel for
     for (size_t i = 0; i < numScales; i++){
         std::cout << "Computing scale " << i << "..." << std::endl;
         scales[i] = new Scale(i, pView, r);

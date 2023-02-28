@@ -36,9 +36,12 @@ Scale::Scale(size_t id, pdal::PointViewPtr pView, double resolution, int kNeighb
         
         solver.computeDirect(covariance, Eigen::ComputeEigenvectors);
         Eigen::Vector3d ev = solver.eigenvalues();
-        
+
         double sum = ev[0] + ev[1] + ev[2]; 
         eigenValues[idx] = ev / sum; // sum-normalized
+
+        // TODO: attach a debugger and find why this core dumps
+        // while in multi-thread
     }
 }
 
@@ -84,7 +87,7 @@ Eigen::Vector3d Scale::computeMedoid(const pdal::PointRef &p, pdal::PointViewPtr
             double x = xi - p.getFieldAs<double>(pdal::Dimension::Id::X);
             double y = yi - p.getFieldAs<double>(pdal::Dimension::Id::Y);
             double z = zi - p.getFieldAs<double>(pdal::Dimension::Id::Z);
-            sum += sqrt(x*x + y*y + z*z);
+            sum += x*x + y*y + z*z;
         }
 
         if (sum < minDist){

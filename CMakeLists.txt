@@ -17,16 +17,17 @@ find_package(OpenMP REQUIRED)
 find_package(Boost COMPONENTS iostreams serialization)
 find_package(Eigen3 REQUIRED)
 
-include_directories(${PDAL_INCLUDE_DIR})
-include_directories(${PDAL_INCLUDE_DIR}/pdal)
+include_directories(${PDAL_INCLUDE_DIRS})
+include_directories(${EIGEN3_INCLUDE_DIR})
 include_directories(vendor/json)
 include_directories(vendor/ethz)
 
-set(LINK_LIBRARIES ${PDAL_LIBRARIES} Eigen3::Eigen OpenMP::OpenMP_CXX Boost::iostreams Boost::serialization)
+set(LINK_LIBRARIES pcc ${PDAL_LIBRARIES} Eigen3::Eigen OpenMP::OpenMP_CXX Boost::iostreams Boost::serialization)
 set(SOURCES common.cpp scale.cpp point_io.cpp randomforest.cpp features.cpp color.cpp labels.cpp)
 
-add_executable(pctrain ${SOURCES} pctrain.cpp)
-add_executable(pcclassify ${SOURCES} pcclassify.cpp)
+add_library(pcc STATIC ${SOURCES})
+add_executable(pctrain pctrain.cpp)
+add_executable(pcclassify pcclassify.cpp)
 
 target_link_libraries(pctrain ${LINK_LIBRARIES})
 target_link_libraries(pcclassify ${LINK_LIBRARIES})
