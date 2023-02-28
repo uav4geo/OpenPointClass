@@ -1,11 +1,8 @@
 #ifndef POINTIO_H
 #define POINTIO_H
 
-#include <pdal/Options.hpp>
-#include <pdal/PointTable.hpp>
-#include <pdal/StageFactory.hpp>
-#include <pdal/io/BufferReader.hpp>
-
+#include <iostream>
+#include <fstream>
 #include "vendor/json/json.hpp"
 #include "vendor/nanoflann/nanoflann.hpp"
 
@@ -60,8 +57,6 @@ inline bool hasHeader(const std::string &line, const std::string &prop);
 
 PointSet readPointSet(const std::string& filename);
 void savePointSet(const PointSet &pSet, const std::string &filename);
-
-void savePointSet_old(pdal::PointViewPtr pView, const std::string &filename);
 
 bool fileExists(const std::string &path);
 std::unordered_map<int, std::string> getClassMappings(const std::string &filename);

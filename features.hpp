@@ -11,12 +11,11 @@ protected:
 public:
     Feature(Scale *s) : s(s){};
 
-    virtual float getValue(pdal::PointId i) = 0;
+    virtual float getValue(size_t i) = 0;
     std::string getName() const { return name; }
-    pdal::PointRef getPoint(pdal::PointId id) const { return s->getView()->point(id); }
 
     void setName(const std::string &name){
-        this->name = name + "_" + std::to_string(s->getId());
+        this->name = name + "_" + std::to_string(s->id);
     }
 };
 
@@ -26,7 +25,7 @@ public:
         this->setName("surface_variation");
     };
 
-    virtual float getValue(pdal::PointId i){
+    virtual float getValue(size_t i){
         return s->eigenValues[i][0];
     }
 };
@@ -39,11 +38,10 @@ public:
         this->setName("point_color_" + std::to_string(componentIdx));
     };
 
-    virtual float getValue(pdal::PointId i){
-        pdal::PointRef p = getPoint(i);
-        double r = p.getFieldAs<double>(pdal::Dimension::Id::Red);
-        double g = p.getFieldAs<double>(pdal::Dimension::Id::Green);
-        double b = p.getFieldAs<double>(pdal::Dimension::Id::Blue);
+    virtual float getValue(size_t i){
+        double r = s->pSet.colors[i][0];
+        double g = s->pSet.colors[i][1];
+        double b = s->pSet.colors[i][2];
         auto hsv = rgb2hsv(r, g, b);
         return hsv[componentIdx];
     }

@@ -4,10 +4,7 @@
 #define MAX_DEPTH 20
 
 
-void train(const PointSetData &pointSet, const std::vector<Feature *> &features, const std::vector<Label> &labels, const std::string &modelFilename){
-  pdal::PointViewPtr groundTruth = pointSet.first;
-  pdal::Dimension::Id labelId = pointSet.second;
-
+void train(const PointSet &pointSet, const std::vector<Feature *> &features, const std::vector<Label> &labels, const std::string &modelFilename){
   liblearning::RandomForest::ForestParams params;
   params.n_trees   = N_TREES;
   params.max_depth = MAX_DEPTH;
@@ -19,14 +16,14 @@ void train(const PointSetData &pointSet, const std::vector<Feature *> &features,
   std::vector<float> ft;
   std::vector<std::size_t> count (labels.size(), 0);
 
-  for (pdal::PointId i = 0; i < groundTruth->size(); i++ ){
-    int g = groundTruth->point(i).getFieldAs<int>(labelId);
+  for (size_t i = 0; i < pointSet.count(); i++){
+    int g = pointSet.labels[i];
     if (g != LABEL_UNASSIGNED) {
         for (std::size_t f = 0; f < features.size(); f++){
           ft.push_back(features[f]->getValue(i));
         }
         gt.push_back(g);
-        count[std::size_t(g)]++;
+        // count[std::size_t(g)]++;
     }
   }
 
@@ -50,14 +47,12 @@ void train(const PointSetData &pointSet, const std::vector<Feature *> &features,
   std::cout << "Saved " << modelFilename << std::endl;
 }
 
-void classify(const PointSetData &pointSet, 
+void classify(PointSet &pointSet, 
     const std::string &modelFilename,
     const std::vector<Feature *> &features, 
     const std::vector<Label> &labels,
     bool useColors,
     bool evaluate){
-  pdal::PointViewPtr input = pointSet.first;
-
   std::cout << "Loading " << modelFilename << std::endl;
   std::ifstream ifs(modelFilename.c_str(), std::ios_base::in | std::ios_base::binary);
   if (!ifs.is_open()) throw std::runtime_error("Cannot open " + modelFilename);
@@ -80,7 +75,7 @@ void classify(const PointSetData &pointSet,
 
   std::size_t correct = 0;
 
-  for (pdal::PointId i = 0; i < input->size(); i++ ){
+  for (size_t i = 0; i < pointSet.count(); i++ ){
     for (std::size_t f = 0; f < features.size(); f++){
       ft[f] = features[f]->getValue(i);
     }
@@ -101,23 +96,22 @@ void classify(const PointSetData &pointSet,
     auto label = labels[bestClass];
     if (useColors){
       auto color = label.getColor();
-      input->setField(pdal::Dimension::Id::Red, i, color.r);
-      input->setField(pdal::Dimension::Id::Green, i, color.g);
-      input->setField(pdal::Dimension::Id::Blue, i, color.b);
+      pointSet.colors[i][0] = color.r;
+      pointSet.colors[i][1] = color.g;
+      pointSet.colors[i][2] = color.b;
     }else{
       // TODO
     }
 
     if (evaluate){
-      int gt = input->getFieldAs<int>(pointSet.second, i);
-      if (gt == bestClass) correct++;
+      if (pointSet.labels[i] == bestClass) correct++;
     }
 
     // TODO: local smoothing?
   }
 
   if (evaluate){
-    float modelErr = (1.f - static_cast<float>(correct) / static_cast<float>(input->size()));
+    float modelErr = (1.f - static_cast<float>(correct) / static_cast<float>(pointSet.count()));
     std::cout << "Model error: " << std::setprecision(4) << (modelErr * 100.f) << "%" << std::endl;
   }
 }

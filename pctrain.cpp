@@ -18,25 +18,12 @@ int main(int argc, char **argv){
         std::string filename = std::string(argv[1]);
         std::string modelFilename = std::string(argv[2]);
 
-        auto pointSet_new = readPointSet(filename);
-        double mSpacing_new = modeSpacing(pointSet_new, 3);
-        double startResolution_new = mSpacing_new * 4; // meters
-        std::cout << "Starting resolution: " << mSpacing_new << std::endl;
-
-        auto scales_new = computeScales(NUM_SCALES, pointSet_new, startResolution_new);
-
-        exit(1);
-
-        auto pointSet = readPointSet_old(filename);
-        pdal::PointViewPtr pView = pointSet.first;
-
-        double mSpacing = modeSpacing_old(pView, 3);
+        auto pointSet = readPointSet(filename);
+        double mSpacing = modeSpacing(pointSet, 3);
         double startResolution = mSpacing * 4; // meters
-        std::cout << "Starting resolution: " << startResolution << std::endl;
+        std::cout << "Starting resolution: " << mSpacing << std::endl;
 
-/*
-        auto scales = computeScales(NUM_SCALES, pView, startResolution);
-        std::cout << "Computed " << scales.size() << " scales" << std::endl;
+        auto scales = computeScales(NUM_SCALES, pointSet, startResolution);
 
         auto features = getFeatures(scales);
         std::cout << "Features: " << features.size() << std::endl;
@@ -50,16 +37,15 @@ int main(int argc, char **argv){
         if (fileExists(evalFilename)){
             std::cout << "Evaluating on " << evalFilename << " ..." << std::endl;
             
-            auto evalPointSet = readPointSet_old(evalFilename);
-            auto evalScales = computeScales(NUM_SCALES, evalPointSet.first, startResolution);
+            auto evalPointSet = readPointSet(evalFilename);
+            auto evalScales = computeScales(NUM_SCALES, evalPointSet, startResolution);
             std::cout << "Computed " << evalScales.size() << " scales" << std::endl;
             auto evalFeatures = getFeatures(evalScales);
             std::cout << "Features: " << evalFeatures.size() << std::endl;
 
             classify(evalPointSet, modelFilename, evalFeatures, labels, true, true);
-            savePointSet(evalPointSet.first, "evaluation.ply");
+            savePointSet(evalPointSet, "evaluation.ply");
         }
-*/
     } catch(std::exception &e){
         std::cerr << "Error: " << e.what() << std::endl;
         exit(EXIT_FAILURE);
