@@ -68,11 +68,15 @@ void classify(PointSet &pointSet,
   ias >> BOOST_SERIALIZATION_NVP(rtrees);
 
   std::cout << "Classifying..." << std::endl;
+  std::size_t correct = 0;
+
+  #pragma omp parallel
+  {
+
   std::vector<float> probs(labels.size(), 0.);
   std::vector<float> ft (features.size());
 
-  std::size_t correct = 0;
-
+  #pragma omp for
   for (size_t i = 0; i < pointSet.count(); i++ ){
     for (std::size_t f = 0; f < features.size(); f++){
       ft[f] = features[f]->getValue(i);
@@ -102,11 +106,16 @@ void classify(PointSet &pointSet,
     }
 
     if (evaluate){
-      if (pointSet.labels[i] == bestClass) correct++;
+      if (pointSet.labels[i] == bestClass){
+        #pragma omp atomic
+        correct++;
+      }
     }
 
     // TODO: local smoothing?
   }
+
+  } // end parallel
 
   if (evaluate){
     float modelErr = (1.f - static_cast<float>(correct) / static_cast<float>(pointSet.count()));

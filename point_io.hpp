@@ -57,6 +57,10 @@ struct PointSet {
     bool hasColors() const { return colors.size() > 0; }
     bool hasViews() const { return views.size() > 0; }
     bool hasLabels() const { return labels.size() > 0; }
+
+    double spacing(int kNeighbors = 3);
+private:
+    double m_spacing = -1.0;
 };
 
 using KdTree = nanoflann::KDTreeSingleIndexAdaptor<

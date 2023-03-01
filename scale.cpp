@@ -29,12 +29,11 @@ void Scale::build(){
     Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solver;
     std::vector<size_t> neighborIds(kNeighbors);
     std::vector<float> sqrDists(kNeighbors);
+    KdTree *index = scaledSet.getIndex<KdTree>();
 
     #pragma omp for schedule(static)
     for (size_t idx = 0; idx < pSet.count(); idx++){
-        scaledSet.getIndex<KdTree>()->knnSearch(&pSet.points[idx][0], kNeighbors, 
-                                    &neighborIds[0], &sqrDists[0]);
-
+        index->knnSearch(&pSet.points[idx][0], kNeighbors, &neighborIds[0], &sqrDists[0]);
         Eigen::Vector3f medoid = computeMedoid(neighborIds);
         Eigen::Matrix3f covariance = computeCovariance(neighborIds, medoid);
         solver.computeDirect(covariance);
@@ -81,15 +80,14 @@ void Scale::build(){
     if (id == 0){
         #pragma omp parallel
         {
+        KdTree *index = pSet.getIndex<KdTree>();
         std::vector<nanoflann::ResultItem<size_t, float>> radiusMatches;
-        
+
         #pragma omp for schedule(static)
         for (size_t idx = 0; idx < pSet.count(); idx++){
-            radiusMatches.clear();
-            size_t numMatches = pSet.getIndex<KdTree>()->radiusSearch(&pSet.points[idx][0], radius, radiusMatches);
-            
+            size_t numMatches = index->radiusSearch(&pSet.points[idx][0], radius, radiusMatches);
             avgHsv[idx] = {0.f, 0.f, 0.f};
-            
+
             for (size_t i = 0; i < numMatches; i++){
                 size_t nIdx = radiusMatches[i].first;
                 // TODO: precompute HSV values at read time
@@ -257,4 +255,19 @@ Eigen::Vector3f Scale::computeCentroid(const std::vector<size_t> &pointIds){
     centroid << mx, my, mz;
 
     return centroid;
+}
+
+std::vector<Scale *> computeScales(size_t numScales, PointSet pSet, double startResolution){
+    std::vector<Scale *> scales(numScales, nullptr);
+    #pragma omp parallel for ordered schedule(dynamic, 1)
+    for (size_t i = 0; i < numScales; i++){
+        scales[i] = new Scale(i, pSet, startResolution * std::pow(2.0, i));
+    }
+
+    for (size_t i = 0; i < numScales; i++){
+        std::cout << "Building scale " << i << "..." << std::endl;
+        scales[i]->build();
+    }
+
+    return scales;
 }
