@@ -1,9 +1,5 @@
 #include "randomforest.hpp"
 
-#define N_TREES 25
-#define MAX_DEPTH 20
-
-
 void train(const PointSet &pointSet, const std::vector<Feature *> &features, const std::vector<Label> &labels, const std::string &modelFilename){
   liblearning::RandomForest::ForestParams params;
   params.n_trees   = N_TREES;

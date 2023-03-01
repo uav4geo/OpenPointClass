@@ -1,27 +1,24 @@
 #include "scale.hpp"
 
-Scale::Scale(size_t id, const PointSet &pSet, double resolution, int kNeighbors) :
-    id(id), pSet(pSet), resolution(resolution), kNeighbors(kNeighbors){
+Scale::Scale(size_t id, PointSet &pSet, double resolution, int kNeighbors, double radius) :
+    id(id), pSet(pSet), resolution(resolution), kNeighbors(kNeighbors), radius(radius){
     
     computeScaledSet();
-
-    kdTree = new KdTree(3, scaledSet, { KDTREE_MAX_LEAF });
-    kdTree->buildIndex();
 
     eigenValues.resize(pSet.count());
     eigenVectors.resize(pSet.count());
     orderAxis.resize(pSet.count());
     heightMin.resize(pSet.count());
     heightMax.resize(pSet.count());
-    
+
     Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver;
 
     std::vector<size_t> neighborIds(kNeighbors);
     std::vector<double> sqrDists(kNeighbors);
     
     for (size_t idx = 0; idx < pSet.count(); idx++){
-        kdTree->knnSearch(&pSet.points[idx][0], kNeighbors, 
-                            &neighborIds[0], &sqrDists[0]);
+        scaledSet.getIndex<KdTree>()->knnSearch(&pSet.points[idx][0], kNeighbors, 
+                                    &neighborIds[0], &sqrDists[0]);
 
         Eigen::Vector3d medoid = computeMedoid(neighborIds);
         Eigen::Matrix3d covariance = computeCovariance(neighborIds, medoid);
@@ -59,6 +56,34 @@ Scale::Scale(size_t id, const PointSet &pSet, double resolution, int kNeighbors)
 
             if (p[2] > heightMax[idx]) heightMax[idx] = p[2];
             if (p[2] < heightMin[idx]) heightMin[idx] = p[2];
+        }
+    }
+
+    // Single scale only
+    if (id == 0){
+        avgHsv.resize(pSet.count());
+
+        std::vector<nanoflann::ResultItem<size_t, double>> radiusMatches;
+        
+        for (size_t idx = 0; idx < pSet.count(); idx++){
+            radiusMatches.clear();
+            size_t numMatches = pSet.getIndex<KdTree>()->radiusSearch(&pSet.points[idx][0], radius, radiusMatches);
+            
+            avgHsv[idx] = {0.f, 0.f, 0.f};
+            
+            for (size_t i = 0; i < numMatches; i++){
+                size_t nIdx = radiusMatches[i].first;
+                auto hsv = rgb2hsv(pSet.colors[nIdx][0], 
+                                pSet.colors[nIdx][1], 
+                                pSet.colors[nIdx][2]);
+                for (size_t j = 0; j < 3; j++)
+                    avgHsv[idx][j] += hsv[j];
+            }
+
+            if (numMatches > 0){
+                for (size_t j = 0; j < 3; j++)
+                    avgHsv[idx][j] /= numMatches;
+            }
         }
     }
 }
@@ -138,9 +163,11 @@ void Scale::computeScaledSet(){
             scaledSet.appendPoint(pSet, pmin);
         }
     }
+
+    scaledSet.buildIndex<KdTree>();
 }
 
-void Scale::save(const std::string &filename) const{
+void Scale::save(const std::string &filename){
     savePointSet(scaledSet, filename);
 }
 

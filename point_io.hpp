@@ -14,6 +14,8 @@ struct XYZ{
     float z;
 };
 
+#define KDTREE_MAX_LEAF 20
+
 struct PointSet {
     std::vector<std::array<double, 3> > points;
     std::vector<std::array<uint8_t, 3> > colors;
@@ -21,6 +23,19 @@ struct PointSet {
     std::vector<std::array<float, 3> > normals;
     std::vector<uint8_t> labels;
     std::vector<uint8_t> views;
+
+    void *kdTree = nullptr;
+
+    template <typename T>
+    inline T *getIndex(){
+        return kdTree != nullptr ? reinterpret_cast<T *>(kdTree) : buildIndex<T>();
+    }
+
+    template <typename T>
+    inline T *buildIndex(){
+        if (kdTree == nullptr) kdTree = static_cast<void *>(new T(3, *this, { KDTREE_MAX_LEAF }));
+        return reinterpret_cast<T *>(kdTree);
+    }
 
     inline size_t count() const { return points.size(); }
     inline size_t kdtree_get_point_count() const { return points.size(); }
@@ -48,7 +63,6 @@ using KdTree = nanoflann::KDTreeSingleIndexAdaptor<
         nanoflann::L2_Simple_Adaptor<double, PointSet>,
         PointSet, 3 /* dim */, size_t
         >;
-#define KDTREE_MAX_LEAF 20
 
 std::string getVertexLine(std::ifstream& reader);
 size_t getVertexCount(const std::string& line);
@@ -56,7 +70,7 @@ inline void checkHeader(std::ifstream& reader, const std::string &prop);
 inline bool hasHeader(const std::string &line, const std::string &prop);
 
 PointSet readPointSet(const std::string& filename);
-void savePointSet(const PointSet &pSet, const std::string &filename);
+void savePointSet(PointSet &pSet, const std::string &filename);
 
 bool fileExists(const std::string &path);
 std::unordered_map<int, std::string> getClassMappings(const std::string &filename);

@@ -1,7 +1,7 @@
 #ifndef COLOR_H
 #define COLOR_H
 
-std::array<double, 3> rgb2hsv(double r, double g, double b);
+std::array<float, 3> rgb2hsv(double r, double g, double b);
 
 struct Color{
   uint8_t r, g, b;

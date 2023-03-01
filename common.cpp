@@ -1,11 +1,10 @@
 #include <iostream>
 #include "common.hpp"
 
-double modeSpacing(const PointSet &pSet, int kNeighbors){
+double modeSpacing(PointSet &pSet, int kNeighbors){
     std::cout << "Estimating mode spacing..." << std::endl;
 
-    KdTree index(3, pSet, { KDTREE_MAX_LEAF });
-    index.buildIndex();
+    auto index = pSet.getIndex<KdTree>();
 
     size_t np = pSet.count();
     size_t SAMPLES = std::min<size_t>(np, 10000);
@@ -28,7 +27,7 @@ double modeSpacing(const PointSet &pSet, int kNeighbors){
         #pragma omp for
         for (size_t i = 0; i < SAMPLES; ++i){
             const size_t idx = randomDis(gen);
-            index.knnSearch(&pSet.points[idx][0], count, &indices[0], &sqr_dists[0]);
+            index->knnSearch(&pSet.points[idx][0], count, &indices[0], &sqr_dists[0]);
 
             double sum = 0.0;
             for (size_t j = 1; j < kNeighbors; ++j){

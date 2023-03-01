@@ -3,7 +3,6 @@
 
 #include <Eigen/Dense>
 #include "scale.hpp"
-#include "color.hpp"
 
 class Feature{
 protected:
@@ -176,6 +175,19 @@ public:
         double b = s->pSet.colors[i][2];
         auto hsv = rgb2hsv(r, g, b);
         return hsv[componentIdx];
+    }
+};
+
+class NeighborhoodColors : Feature{
+private:
+    size_t componentIdx;
+public:
+    NeighborhoodColors(Scale *s, size_t componentIdx) : Feature(s), componentIdx(componentIdx){
+        this->setName("neighborhood_colors_" + std::to_string(componentIdx));
+    };
+
+    virtual float getValue(size_t i){
+        return s->avgHsv[i][componentIdx];
     }
 };
 

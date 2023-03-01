@@ -12,9 +12,11 @@
 #include "point_io.hpp"
 
 
-#define NUM_SCALES 2
+#define NUM_SCALES 9
+#define N_TREES 100
+#define MAX_DEPTH 30
 
-double modeSpacing(const PointSet &pSet, int kNeighbors);
+double modeSpacing(PointSet &pSet, int kNeighbors);
 std::vector<Scale *> computeScales(size_t numScales, PointSet pSet, double startResolution);
 
 #endif

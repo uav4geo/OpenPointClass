@@ -1,7 +1,7 @@
 #include <array>
 #include "color.hpp"
 
-std::array<double, 3> rgb2hsv(double r, double g, double b){
+std::array<float, 3> rgb2hsv(double r, double g, double b){
     r /= 255.;
     g /= 255.;
     b /= 255.;
@@ -22,5 +22,5 @@ std::array<double, 3> rgb2hsv(double r, double g, double b){
     double saturation = (color_max == 0. ? 0. : 100. * (diff / color_max));
     double value = 100. * color_max;
 
-    return { hue, saturation, value};
+    return { static_cast<float>(hue), static_cast<float>(saturation), static_cast<float>(value) };
 }

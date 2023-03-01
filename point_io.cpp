@@ -236,7 +236,7 @@ bool hasHeader(const std::string &line, const std::string &prop){
     return line.substr(0, 8) == "property" && line.substr(line.length() - prop.length(), prop.length()) == prop;
 }
 
-void savePointSet(const PointSet &pSet, const std::string &filename){
+void savePointSet(PointSet &pSet, const std::string &filename){
     std::ofstream o(filename, std::ios::binary);
 
     o << "ply" << std::endl;

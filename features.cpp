@@ -25,14 +25,12 @@ std::vector<Feature *> getFeatures(const std::vector<Scale *> &scales){
         feats.push_back(reinterpret_cast<Feature *>(new VerticalRange(scales[i])));
         feats.push_back(reinterpret_cast<Feature *>(new HeightBelow(scales[i])));
         feats.push_back(reinterpret_cast<Feature *>(new HeightAbove(scales[i])));
-        
     }
-
-    // TODO: add all features
 
     // Color
     for (size_t c = 0; c < 3; c++){
         feats.push_back(reinterpret_cast<Feature *>(new PointColor(scales[0], c)));
+        feats.push_back(reinterpret_cast<Feature *>(new NeighborhoodColors(scales[0], c)));
     }
     
 
