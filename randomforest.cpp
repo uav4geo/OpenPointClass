@@ -23,7 +23,7 @@ void train(const PointSet &pointSet, const std::vector<Feature *> &features, con
           ft.push_back(features[f]->getValue(i));
         }
         gt.push_back(g);
-        // count[std::size_t(g)]++;
+        count[std::size_t(g)]++;
     }
   }
 
@@ -43,6 +43,8 @@ void train(const PointSet &pointSet, const std::vector<Feature *> &features, con
   outs.push(ofs);
   boost::archive::text_oarchive oas(outs);
   oas << BOOST_SERIALIZATION_NVP(rtrees);
+
+  // TODO: copy what CGAL is doing
 
   std::cout << "Saved " << modelFilename << std::endl;
 }

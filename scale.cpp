@@ -9,6 +9,11 @@ Scale::Scale(size_t id, const PointSet &pSet, double resolution, int kNeighbors)
     kdTree->buildIndex();
 
     eigenValues.resize(pSet.count());
+    eigenVectors.resize(pSet.count());
+    orderAxis.resize(pSet.count());
+    heightMin.resize(pSet.count());
+    heightMax.resize(pSet.count());
+    
     Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver;
 
     std::vector<size_t> neighborIds(kNeighbors);
@@ -18,12 +23,43 @@ Scale::Scale(size_t id, const PointSet &pSet, double resolution, int kNeighbors)
         kdTree->knnSearch(&pSet.points[idx][0], kNeighbors, 
                             &neighborIds[0], &sqrDists[0]);
 
-        Eigen::Matrix3d covariance = computeCovariance(idx, neighborIds);
-        solver.computeDirect(covariance, Eigen::ComputeEigenvectors);
+        Eigen::Vector3d medoid = computeMedoid(neighborIds);
+        Eigen::Matrix3d covariance = computeCovariance(neighborIds, medoid);
+        solver.computeDirect(covariance);
         Eigen::Vector3d ev = solver.eigenvalues();
+        for (size_t i = 0; i < 3; i++) ev[i] = std::max(ev[i], 0.0);
 
-        double sum = ev[0] + ev[1] + ev[2]; 
+        double sum = ev[0] + ev[1] + ev[2];
         eigenValues[idx] = ev / sum; // sum-normalized
+        eigenVectors[idx] = solver.eigenvectors();
+
+        // lambda1 = eigenValues[idx][2]
+        // lambda3 = eigenValues[idx][0]
+
+        // e1 = eigenVectors[idx].col(2)
+        // e3 = eigenVectors[idx].col(0)
+        orderAxis[idx](0,0) = 0.0;
+        orderAxis[idx](1,0) = 0.0;
+        orderAxis[idx](0,1) = 0.0;
+        orderAxis[idx](1,1) = 0.0;
+
+        heightMin[idx] = std::numeric_limits<float>::max();
+        heightMax[idx] = std::numeric_limits<float>::min();
+        
+        for (size_t const &i : neighborIds){
+            Eigen::Vector3d p(scaledSet.points[i][0],
+                              scaledSet.points[i][1],
+                              scaledSet.points[i][2]);
+            double v00 = (p - medoid).dot(eigenVectors[idx].col(2));
+            double v01 = (p - medoid).dot(eigenVectors[idx].col(1));
+            orderAxis[idx](0,0) += v00;
+            orderAxis[idx](0,1) += v01;
+            orderAxis[idx](1,0) += v00 * v00;
+            orderAxis[idx](1,1) += v01 * v01;
+
+            if (p[2] > heightMax[idx]) heightMax[idx] = p[2];
+            if (p[2] < heightMin[idx]) heightMin[idx] = p[2];
+        }
     }
 }
 
@@ -108,10 +144,9 @@ void Scale::save(const std::string &filename) const{
     savePointSet(scaledSet, filename);
 }
 
-Eigen::Matrix3d Scale::computeCovariance(size_t ptIdx, const std::vector<size_t> &neighborIds){
+Eigen::Matrix3d Scale::computeCovariance(const std::vector<size_t> &neighborIds, const Eigen::Vector3d &medoid){
     size_t n = neighborIds.size() + 1;
 
-    Eigen::Vector3d medoid = computeMedoid(ptIdx, neighborIds);
     Eigen::MatrixXd A(3, n);
     size_t k = 0;
     for (size_t const &i : neighborIds){
@@ -125,7 +160,7 @@ Eigen::Matrix3d Scale::computeCovariance(size_t ptIdx, const std::vector<size_t>
     return A * A.transpose() / (neighborIds.size());
 }
 
-Eigen::Vector3d Scale::computeMedoid(size_t ptIdx, const std::vector<size_t> &neighborIds){
+Eigen::Vector3d Scale::computeMedoid(const std::vector<size_t> &neighborIds){
     double minDist = std::numeric_limits<double>::infinity();
     Eigen::Vector3d medoid;
 
@@ -141,35 +176,12 @@ Eigen::Vector3d Scale::computeMedoid(size_t ptIdx, const std::vector<size_t> &ne
                    pow(xi - scaledSet.points[j][2], 2);
         }
 
-        sum += pow(xi - pSet.points[ptIdx][0], 2) +
-               pow(xi - pSet.points[ptIdx][1], 2) +
-               pow(xi - pSet.points[ptIdx][2], 2);
-
         if (sum < minDist){
             medoid[0] = xi;
             medoid[1] = yi;
             medoid[2] = zi;
             minDist = sum;
         }
-    }
-
-    // Check ptIdx
-    double sum = 0.0;
-    double xi = pSet.points[ptIdx][0];
-    double yi = pSet.points[ptIdx][1];
-    double zi = pSet.points[ptIdx][2];
-
-    for (size_t const &j : neighborIds){
-        sum += pow(xi - scaledSet.points[j][0], 2) +
-                pow(xi - scaledSet.points[j][1], 2) +
-                pow(xi - scaledSet.points[j][2], 2);
-    }
-
-    if (sum < minDist){
-        medoid[0] = xi;
-        medoid[1] = yi;
-        medoid[2] = zi;
-        minDist = sum;
     }
 
     return medoid;

@@ -67,7 +67,11 @@ std::vector<Scale *> computeScales(size_t numScales, PointSet pSet, double start
 
     #pragma omp parallel for
     for (size_t i = 0; i < numScales; i++){
-        std::cout << "Computing scale " << i << "..." << std::endl;
+        #pragma omp critical
+        {
+            std::cout << "Computing scale " << i << "..." << std::endl;
+        }
+        
         scales[i] = new Scale(i, pSet, r);
         r *= 2.0;
     }
