@@ -13,6 +13,12 @@ void help(char *ex){
 int main(int argc, char **argv){
     if( argc < 4 ) help(argv[0]);
 
+
+    std::cerr << sizeof(Eigen::Vector3d) << std::endl;
+    std::cerr << sizeof(Eigen::Matrix3d) << std::endl;
+    std::cerr << sizeof(Eigen::Matrix2d) << std::endl;
+    exit(1);
+
     try {
         // Read points
         std::string inputFile = std::string(argv[1]);
@@ -22,8 +28,9 @@ int main(int argc, char **argv){
         auto labels = getTrainingLabels();
         auto pointSet = readPointSet(inputFile);
         double mSpacing = modeSpacing(pointSet, 3);
-        double startResolution = mSpacing * 4; // meters
-        std::cout << "Starting resolution: " << mSpacing << std::endl;
+        // double startResolution = mSpacing * 4; // meters
+        double startResolution = 0.08; // TODO: remove
+        std::cout << "Starting resolution: " << startResolution << std::endl;
         auto scales = computeScales(NUM_SCALES, pointSet, startResolution);
         std::cout << "Computed " << scales.size() << " scales" << std::endl;
         auto features = getFeatures(scales);
