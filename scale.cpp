@@ -47,8 +47,9 @@ Scale::Scale(size_t id, PointSet &pSet, double resolution, int kNeighbors, doubl
             Eigen::Vector3d p(scaledSet.points[i][0],
                               scaledSet.points[i][1],
                               scaledSet.points[i][2]);
-            double v00 = (p - medoid).dot(eigenVectors[idx].col(2));
-            double v01 = (p - medoid).dot(eigenVectors[idx].col(1));
+            Eigen::Vector3d n = (p - medoid);
+            double v00 = n.dot(eigenVectors[idx].col(2));
+            double v01 = n.dot(eigenVectors[idx].col(1));
             orderAxis[idx](0,0) += v00;
             orderAxis[idx](0,1) += v01;
             orderAxis[idx](1,0) += v00 * v00;

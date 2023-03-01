@@ -12,7 +12,7 @@
 #include "point_io.hpp"
 
 
-#define NUM_SCALES 9
+#define NUM_SCALES 6
 #define N_TREES 100
 #define MAX_DEPTH 30
 

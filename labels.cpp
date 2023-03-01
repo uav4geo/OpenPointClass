@@ -11,7 +11,7 @@ std::vector<Label> getLabels(){
     l.push_back(Label("building", 4, 6, Color(255, 126, 0)));
     l.push_back(Label("water", 5, 9, Color(0, 128, 255)));
     l.push_back(Label("road_surface", 6, 11, Color(100, 100, 100)));
-    l.push_back(Label("vehicle", 7, 64, Color(255, 0, 0)));
+    l.push_back(Label("vehicle", 7, 64, Color(255, 255, 0)));
 
     return l;
 }

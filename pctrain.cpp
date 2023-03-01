@@ -19,8 +19,8 @@ int main(int argc, char **argv){
         std::string modelFilename = std::string(argv[2]);
 
         auto pointSet = readPointSet(filename);
-        //double mSpacing = modeSpacing(pointSet, 3);
-        double mSpacing = 0.25;
+        double mSpacing = modeSpacing(pointSet, 3);
+        // double mSpacing = 0.25;
         double startResolution = mSpacing * 4; // meters
         std::cout << "Starting resolution: " << mSpacing << std::endl;
 
