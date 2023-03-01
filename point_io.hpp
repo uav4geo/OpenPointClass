@@ -17,7 +17,7 @@ struct XYZ{
 #define KDTREE_MAX_LEAF 20
 
 struct PointSet {
-    std::vector<std::array<double, 3> > points;
+    std::vector<std::array<float, 3> > points;
     std::vector<std::array<uint8_t, 3> > colors;
     
     std::vector<std::array<float, 3> > normals;
@@ -39,7 +39,7 @@ struct PointSet {
 
     inline size_t count() const { return points.size(); }
     inline size_t kdtree_get_point_count() const { return points.size(); }
-    inline double kdtree_get_pt(const size_t idx, const size_t dim) const{
+    inline float kdtree_get_pt(const size_t idx, const size_t dim) const{
         return points[idx][dim];
     };
     template <class BBOX>
@@ -60,7 +60,7 @@ struct PointSet {
 };
 
 using KdTree = nanoflann::KDTreeSingleIndexAdaptor<
-        nanoflann::L2_Simple_Adaptor<double, PointSet>,
+        nanoflann::L2_Simple_Adaptor<float, PointSet>,
         PointSet, 3 /* dim */, size_t
         >;
 

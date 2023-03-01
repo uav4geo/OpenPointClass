@@ -1,5 +1,6 @@
 #include <iostream>
 #include "common.hpp"
+#include <unistd.h>
 
 double modeSpacing(PointSet &pSet, int kNeighbors){
     std::cout << "Estimating mode spacing..." << std::endl;
@@ -22,18 +23,18 @@ double modeSpacing(PointSet &pSet, int kNeighbors){
     #pragma omp parallel
     {
         std::vector<size_t> indices(count);
-        std::vector<double> sqr_dists(count);
+        std::vector<float> sqr_dists(count);
 
         #pragma omp for
         for (size_t i = 0; i < SAMPLES; ++i){
             const size_t idx = randomDis(gen);
             index->knnSearch(&pSet.points[idx][0], count, &indices[0], &sqr_dists[0]);
 
-            double sum = 0.0;
+            float sum = 0.0;
             for (size_t j = 1; j < kNeighbors; ++j){
                 sum += std::sqrt(sqr_dists[j]);
             }
-            sum /= static_cast<double>(kNeighbors);
+            sum /= static_cast<float>(kNeighbors);
 
             uint64_t k = std::ceil(sum * 100);
 
@@ -62,17 +63,17 @@ double modeSpacing(PointSet &pSet, int kNeighbors){
 
 std::vector<Scale *> computeScales(size_t numScales, PointSet pSet, double startResolution){
     std::vector<Scale *> scales(numScales, nullptr);
-    double r = startResolution;
+    double r = startResolution / 2.0;
 
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(dynamic, 1)
     for (size_t i = 0; i < numScales; i++){
-        #pragma omp critical
-        {
-            std::cout << "Computing scale " << i << "..." << std::endl;
-        }
-        
-        scales[i] = new Scale(i, pSet, r);
-        r *= 2.0;
+        scales[i] = new Scale(i, pSet, r * (2.0 * (i + 1)));
+        scales[i]->save("scale_" + std::to_string(i) + ".ply");
+    }
+
+    for (size_t i = 0; i < numScales; i++){
+        std::cout << "Building scale " << i << "..." << std::endl;
+        scales[i]->build();
     }
 
     return scales;

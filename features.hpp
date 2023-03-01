@@ -103,7 +103,7 @@ public:
 };
 
 class Verticality : Feature{
-    Eigen::Vector3d up;
+    Eigen::Vector3f up;
 public:
     Verticality(Scale *s) : Feature(s), up(0, 0, 1){
         this->setName("verticality");

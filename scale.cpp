@@ -3,6 +3,11 @@
 Scale::Scale(size_t id, PointSet &pSet, double resolution, int kNeighbors, double radius) :
     id(id), pSet(pSet), resolution(resolution), kNeighbors(kNeighbors), radius(radius){
     
+    #pragma omp critical
+    {
+    std::cout << "Indexing scale " << id << " at " << resolution << " ..." << std::endl;
+    }
+
     computeScaledSet();
 
     eigenValues.resize(pSet.count());
@@ -11,20 +16,30 @@ Scale::Scale(size_t id, PointSet &pSet, double resolution, int kNeighbors, doubl
     heightMin.resize(pSet.count());
     heightMax.resize(pSet.count());
 
-    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver;
+    if (id == 0){
+        avgHsv.resize(pSet.count());
+    }
+}
 
-    std::vector<size_t> neighborIds(kNeighbors);
-    std::vector<double> sqrDists(kNeighbors);
+void Scale::build(){
+    #pragma omp parallel
+    {
     
+    // TODO: is this fast enough?
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solver;
+    std::vector<size_t> neighborIds(kNeighbors);
+    std::vector<float> sqrDists(kNeighbors);
+
+    #pragma omp for schedule(static)
     for (size_t idx = 0; idx < pSet.count(); idx++){
         scaledSet.getIndex<KdTree>()->knnSearch(&pSet.points[idx][0], kNeighbors, 
                                     &neighborIds[0], &sqrDists[0]);
 
-        Eigen::Vector3d medoid = computeMedoid(neighborIds);
-        Eigen::Matrix3d covariance = computeCovariance(neighborIds, medoid);
+        Eigen::Vector3f medoid = computeMedoid(neighborIds);
+        Eigen::Matrix3f covariance = computeCovariance(neighborIds, medoid);
         solver.computeDirect(covariance);
-        Eigen::Vector3d ev = solver.eigenvalues();
-        for (size_t i = 0; i < 3; i++) ev[i] = std::max(ev[i], 0.0);
+        Eigen::Vector3f ev = solver.eigenvalues();
+        for (size_t i = 0; i < 3; i++) ev[i] = std::max(ev[i], 0.f);
 
         double sum = ev[0] + ev[1] + ev[2];
         eigenValues[idx] = ev / sum; // sum-normalized
@@ -35,19 +50,19 @@ Scale::Scale(size_t id, PointSet &pSet, double resolution, int kNeighbors, doubl
 
         // e1 = eigenVectors[idx].col(2)
         // e3 = eigenVectors[idx].col(0)
-        orderAxis[idx](0,0) = 0.0;
-        orderAxis[idx](1,0) = 0.0;
-        orderAxis[idx](0,1) = 0.0;
-        orderAxis[idx](1,1) = 0.0;
+        orderAxis[idx](0,0) = 0.f;
+        orderAxis[idx](1,0) = 0.f;
+        orderAxis[idx](0,1) = 0.f;
+        orderAxis[idx](1,1) = 0.f;
 
         heightMin[idx] = std::numeric_limits<float>::max();
         heightMax[idx] = std::numeric_limits<float>::min();
         
         for (size_t const &i : neighborIds){
-            Eigen::Vector3d p(scaledSet.points[i][0],
+            Eigen::Vector3f p(scaledSet.points[i][0],
                               scaledSet.points[i][1],
                               scaledSet.points[i][2]);
-            Eigen::Vector3d n = (p - medoid);
+            Eigen::Vector3f n = (p - medoid);
             double v00 = n.dot(eigenVectors[idx].col(2));
             double v01 = n.dot(eigenVectors[idx].col(1));
             orderAxis[idx](0,0) += v00;
@@ -60,12 +75,15 @@ Scale::Scale(size_t id, PointSet &pSet, double resolution, int kNeighbors, doubl
         }
     }
 
+    } // end parallel
+
     // Single scale only
     if (id == 0){
-        avgHsv.resize(pSet.count());
-
-        std::vector<nanoflann::ResultItem<size_t, double>> radiusMatches;
+        #pragma omp parallel
+        {
+        std::vector<nanoflann::ResultItem<size_t, float>> radiusMatches;
         
+        #pragma omp for schedule(static)
         for (size_t idx = 0; idx < pSet.count(); idx++){
             radiusMatches.clear();
             size_t numMatches = pSet.getIndex<KdTree>()->radiusSearch(&pSet.points[idx][0], radius, radiusMatches);
@@ -74,6 +92,7 @@ Scale::Scale(size_t id, PointSet &pSet, double resolution, int kNeighbors, doubl
             
             for (size_t i = 0; i < numMatches; i++){
                 size_t nIdx = radiusMatches[i].first;
+                // TODO: precompute HSV values at read time
                 auto hsv = rgb2hsv(pSet.colors[nIdx][0], 
                                 pSet.colors[nIdx][1], 
                                 pSet.colors[nIdx][2]);
@@ -86,6 +105,8 @@ Scale::Scale(size_t id, PointSet &pSet, double resolution, int kNeighbors, doubl
                     avgHsv[idx][j] /= numMatches;
             }
         }
+
+        } // end parallel
     }
 }
 
@@ -146,16 +167,16 @@ void Scale::computeScaledSet(){
             // closest to the centroid.
 
             // Compute the centroid.
-            Eigen::Vector3d centroid = computeCentroid(t.second);
+            Eigen::Vector3f centroid = computeCentroid(t.second);
 
             // Compute distance from each point in the voxel to the centroid,
             // retaining only the closest.
             size_t pmin = 0;
             double dmin((std::numeric_limits<double>::max)());
             for (auto const& p : t.second){
-                double sqr_dist = pow(centroid.x() - pSet.points[p][0], 2) +
-                                  pow(centroid.y() - pSet.points[p][1], 2) +
-                                  pow(centroid.z() - pSet.points[p][2], 2);
+                double sqr_dist = pow(centroid[0] - pSet.points[p][0], 2) +
+                                  pow(centroid[1] - pSet.points[p][1], 2) +
+                                  pow(centroid[2] - pSet.points[p][2], 2);
                 if (sqr_dist < dmin){
                     dmin = sqr_dist;
                     pmin = p;
@@ -172,10 +193,10 @@ void Scale::save(const std::string &filename){
     savePointSet(scaledSet, filename);
 }
 
-Eigen::Matrix3d Scale::computeCovariance(const std::vector<size_t> &neighborIds, const Eigen::Vector3d &medoid){
+Eigen::Matrix3f Scale::computeCovariance(const std::vector<size_t> &neighborIds, const Eigen::Vector3f &medoid){
     size_t n = neighborIds.size() + 1;
 
-    Eigen::MatrixXd A(3, n);
+    Eigen::MatrixXf A(3, n);
     size_t k = 0;
     for (size_t const &i : neighborIds){
 
@@ -188,9 +209,9 @@ Eigen::Matrix3d Scale::computeCovariance(const std::vector<size_t> &neighborIds,
     return A * A.transpose() / (neighborIds.size());
 }
 
-Eigen::Vector3d Scale::computeMedoid(const std::vector<size_t> &neighborIds){
+Eigen::Vector3f Scale::computeMedoid(const std::vector<size_t> &neighborIds){
     double minDist = std::numeric_limits<double>::infinity();
-    Eigen::Vector3d medoid;
+    Eigen::Vector3f medoid;
 
     for (size_t const &i : neighborIds){
         double sum = 0.0;
@@ -200,8 +221,8 @@ Eigen::Vector3d Scale::computeMedoid(const std::vector<size_t> &neighborIds){
 
         for (size_t const &j : neighborIds){
             sum += pow(xi - scaledSet.points[j][0], 2) +
-                   pow(xi - scaledSet.points[j][1], 2) +
-                   pow(xi - scaledSet.points[j][2], 2);
+                   pow(yi - scaledSet.points[j][1], 2) +
+                   pow(zi - scaledSet.points[j][2], 2);
         }
 
         if (sum < minDist){
@@ -215,7 +236,7 @@ Eigen::Vector3d Scale::computeMedoid(const std::vector<size_t> &neighborIds){
     return medoid;
 }
 
-Eigen::Vector3d Scale::computeCentroid(const std::vector<size_t> &pointIds){
+Eigen::Vector3f Scale::computeCentroid(const std::vector<size_t> &pointIds){
     double mx, my, mz;
     mx = my = mz = 0.0;
     size_t n = 0;
@@ -232,7 +253,7 @@ Eigen::Vector3d Scale::computeCentroid(const std::vector<size_t> &pointIds){
         mz = update(pSet.points[j][2], mz);
     }
 
-    Eigen::Vector3d centroid;
+    Eigen::Vector3f centroid;
     centroid << mx, my, mz;
 
     return centroid;

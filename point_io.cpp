@@ -154,10 +154,7 @@ PointSet readPointSet(const std::string& filename){
         uint8_t color[3];
 
         for (size_t i = 0; i < count; i++) {
-            reader.read(reinterpret_cast<char*>(&p), sizeof(float) * 3);
-            r.points[i][0] = static_cast<double>(p.x);
-            r.points[i][1] = static_cast<double>(p.y);
-            r.points[i][2] = static_cast<double>(p.z);
+            reader.read(reinterpret_cast<char*>(&r.points[i][0]), sizeof(float) * 3);
 
             if (hasNormals){
                 reader.read(reinterpret_cast<char*>(&r.normals[i][0]), sizeof(float) * 3);
@@ -274,11 +271,7 @@ void savePointSet(PointSet &pSet, const std::string &filename){
 
     XYZ p;
     for (size_t i = 0; i < pSet.count(); i++){
-        p.x = static_cast<float>(pSet.points[i][0]);
-        p.y = static_cast<float>(pSet.points[i][1]);
-        p.z = static_cast<float>(pSet.points[i][2]);
-        
-        o.write(reinterpret_cast<const char*>(&p), sizeof(float) * 3);
+        o.write(reinterpret_cast<const char*>(&pSet.points[i][0]), sizeof(float) * 3);
         if (hasNormals) o.write(reinterpret_cast<const char*>(&pSet.normals[i][0]), sizeof(float) * 3);
         if (hasColors) o.write(reinterpret_cast<const char*>(&pSet.colors[i][0]), sizeof(uint8_t) * 3);
         if (hasViews) o.write(reinterpret_cast<const char*>(&pSet.views[i]), sizeof(uint8_t));

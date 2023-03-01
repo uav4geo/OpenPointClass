@@ -13,12 +13,6 @@ void help(char *ex){
 int main(int argc, char **argv){
     if( argc < 4 ) help(argv[0]);
 
-
-    std::cerr << sizeof(Eigen::Vector3d) << std::endl;
-    std::cerr << sizeof(Eigen::Matrix3d) << std::endl;
-    std::cerr << sizeof(Eigen::Matrix2d) << std::endl;
-    exit(1);
-
     try {
         // Read points
         std::string inputFile = std::string(argv[1]);
