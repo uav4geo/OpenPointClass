@@ -5,7 +5,6 @@ This is a work in progress. It currently generates only colored PLY outputs but 
 ## Build
 
 Dependencies:
- * PDAL
  * Intel TBB
  * Boost System and Serialization
 

@@ -6,7 +6,8 @@ void help(char *ex){
     std::cout << "Usage: " << ex << std::endl
               << "\t <input point cloud>" << std::endl
               << "\t <classification model (.bin)>" << std::endl
-              << "\t <output point cloud>" << std::endl;
+              << "\t <output point cloud>" << std::endl
+              << "\t [start resolution]" << std::endl;
     exit(EXIT_FAILURE);
 }
 
@@ -21,8 +22,7 @@ int main(int argc, char **argv){
 
         auto labels = getTrainingLabels();
         auto pointSet = readPointSet(inputFile);
-        double startResolution = pointSet.spacing(); // meters
-        startResolution = 0.25; // TODO: remove
+        double startResolution = argc >= 5 ? std::atof(argv[4]) : pointSet.spacing(); // meters
         std::cout << "Starting resolution: " << startResolution << std::endl;
         auto scales = computeScales(NUM_SCALES, pointSet, startResolution);
         std::cout << "Computed " << scales.size() << " scales" << std::endl;
