@@ -14,7 +14,7 @@ struct XYZ{
     float z;
 };
 
-#define KDTREE_MAX_LEAF 20
+#define KDTREE_MAX_LEAF 10
 
 struct PointSet {
     std::vector<std::array<float, 3> > points;
@@ -65,7 +65,7 @@ private:
 
 using KdTree = nanoflann::KDTreeSingleIndexAdaptor<
         nanoflann::L2_Simple_Adaptor<float, PointSet>,
-        PointSet, 3 /* dim */, size_t
+        PointSet, 3, size_t
         >;
 
 std::string getVertexLine(std::ifstream& reader);

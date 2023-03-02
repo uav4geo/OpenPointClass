@@ -20,32 +20,25 @@ double PointSet::spacing(int kNeighbors){
         np - 1
     );
 
-    #pragma omp parallel
-    {
-        std::vector<size_t> indices(count);
-        std::vector<float> sqr_dists(count);
+    std::vector<size_t> indices(count);
+    std::vector<float> sqr_dists(count);
 
-        #pragma omp for
-        for (size_t i = 0; i < SAMPLES; ++i){
-            const size_t idx = randomDis(gen);
-            index->knnSearch(&points[idx][0], count, &indices[0], &sqr_dists[0]);
+    for (size_t i = 0; i < SAMPLES; ++i){
+        const size_t idx = randomDis(gen);
+        index->knnSearch(&points[idx][0], count, &indices[0], &sqr_dists[0]);
 
-            float sum = 0.0;
-            for (size_t j = 1; j < kNeighbors; ++j){
-                sum += std::sqrt(sqr_dists[j]);
-            }
-            sum /= static_cast<float>(kNeighbors);
+        float sum = 0.0;
+        for (size_t j = 1; j < kNeighbors; ++j){
+            sum += std::sqrt(sqr_dists[j]);
+        }
+        sum /= static_cast<float>(kNeighbors);
 
-            uint64_t k = std::ceil(sum * 100);
+        uint64_t k = std::ceil(sum * 100);
 
-            #pragma omp critical
-            {
-                if (dist_map.find(k) == dist_map.end()){
-                    dist_map[k] = 1;
-                }else{
-                    dist_map[k] += 1;
-                }
-            }
+        if (dist_map.find(k) == dist_map.end()){
+            dist_map[k] = 1;
+        }else{
+            dist_map[k] += 1;
         }
     }
 

@@ -23,7 +23,7 @@ int main(int argc, char **argv){
         auto pointSet = readPointSet(inputFile);
         // double mSpacing = modeSpacing(pointSet, 3);
         // double startResolution = mSpacing * 4; // meters
-        double startResolution = 0.15; // TODO: remove
+        double startResolution = 0.08; // TODO: remove
         std::cout << "Starting resolution: " << startResolution << std::endl;
         auto scales = computeScales(NUM_SCALES, pointSet, startResolution);
         std::cout << "Computed " << scales.size() << " scales" << std::endl;

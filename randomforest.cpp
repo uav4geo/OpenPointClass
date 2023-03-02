@@ -33,7 +33,7 @@ void train(const PointSet &pointSet, const std::vector<Feature *> &features, con
   std::cout << "Training..." << std::endl;
   rtrees.train(feature_vector, label_vector, liblearning::DataView2D<int>(), generator, 0, false);
   
-  std::ofstream ofs(modelFilename.c_str(), std::ios_base::out | std::ios_base::binary);
+  std::ofstream ofs(modelFilename.c_str(), std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
   boost::iostreams::filtering_ostream outs;
   outs.push(boost::iostreams::gzip_compressor());
   outs.push(ofs);
@@ -70,13 +70,9 @@ void classify(PointSet &pointSet,
   std::cout << "Classifying..." << std::endl;
   std::size_t correct = 0;
 
-  #pragma omp parallel
-  {
-
   std::vector<float> probs(labels.size(), 0.);
   std::vector<float> ft (features.size());
 
-  #pragma omp for
   for (size_t i = 0; i < pointSet.count(); i++ ){
     for (std::size_t f = 0; f < features.size(); f++){
       ft[f] = features[f]->getValue(i);
@@ -107,15 +103,12 @@ void classify(PointSet &pointSet,
 
     if (evaluate){
       if (pointSet.labels[i] == bestClass){
-        #pragma omp atomic
         correct++;
       }
     }
 
     // TODO: local smoothing?
   }
-
-  } // end parallel
 
   if (evaluate){
     float modelErr = (1.f - static_cast<float>(correct) / static_cast<float>(pointSet.count()));

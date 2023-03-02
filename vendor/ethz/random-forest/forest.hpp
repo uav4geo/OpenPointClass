@@ -65,7 +65,6 @@ public:
             was_oob = DataView2D<uint8_t>(&was_oob_data[0], n_idxes, params.n_trees);
         }
 
-        //#pragma omp parallel for schedule(dynamic, 1)
         for (size_t i_tree = 0; i_tree < params.n_trees; ++i_tree) {
 #if VERBOSE_TREE_PROGRESS
             std::printf("Training tree %zu/%zu, max depth %zu\n", i_tree+1, params.n_trees, params.max_depth);

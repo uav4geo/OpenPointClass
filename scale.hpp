@@ -13,7 +13,6 @@ struct Scale{
     int kNeighbors;
     double radius;
 
-    KdTree *kdTree;
     std::vector<Eigen::Vector3f> eigenValues;
     std::vector<Eigen::Matrix3f> eigenVectors;
     std::vector<Eigen::Matrix2f> orderAxis;
@@ -26,7 +25,6 @@ struct Scale{
     Eigen::Vector3f computeCentroid(const std::vector<size_t> &pointIds);
     void computeScaledSet();
     void save(const std::string &filename);
-    void build();
 
     Scale(size_t id, PointSet &pSet, double resolution, int kNeighbors = 10, double radius = 0.6);
 };
