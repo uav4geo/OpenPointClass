@@ -65,7 +65,6 @@ Scale::Scale(size_t id, PointSet &pSet, double resolution, int kNeighbors, doubl
     }
 
     if (id == 0){
-        KdTree *index = pSet.getIndex<KdTree>();
         std::vector<nanoflann::ResultItem<size_t, float>> radiusMatches;
 
         for (size_t idx = 0; idx < pSet.count(); idx++){
@@ -75,9 +74,9 @@ Scale::Scale(size_t id, PointSet &pSet, double resolution, int kNeighbors, doubl
             for (size_t i = 0; i < numMatches; i++){
                 size_t nIdx = radiusMatches[i].first;
                 // TODO: precompute HSV values at read time
-                auto hsv = rgb2hsv(pSet.colors[nIdx][0], 
-                                pSet.colors[nIdx][1], 
-                                pSet.colors[nIdx][2]);
+                auto hsv = rgb2hsv(scaledSet.colors[nIdx][0], 
+                                scaledSet.colors[nIdx][1], 
+                                scaledSet.colors[nIdx][2]);
                 for (size_t j = 0; j < 3; j++)
                     avgHsv[idx][j] += hsv[j];
             }
@@ -244,6 +243,7 @@ std::vector<Scale *> computeScales(size_t numScales, PointSet pSet, double start
     
     for (size_t i = 0; i < numScales; i++){
         scales[i] = new Scale(i, pSet, startResolution * std::pow(2.0, i));
+        // scales[i]->save("scale_" + std::to_string(i) + ".ply");
     }
 
     return scales;

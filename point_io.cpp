@@ -127,7 +127,7 @@ PointSet readPointSet(const std::string& filename){
 
     std::getline(reader, line);
     while (line != "end_header"){
-        if (hasHeader(line, "nx") || hasHeader(line, "normal_x")) hasNormals = true;
+        if (hasHeader(line, "nx") || hasHeader(line, "normal_x") || hasHeader(line, "normalx")) hasNormals = true;
         if (hasHeader(line, "red")){
             hasColors = true;
             redIdx = c;
@@ -323,7 +323,6 @@ void savePointSet(PointSet &pSet, const std::string &filename){
 
     o << "end_header" << std::endl;
 
-    XYZ p;
     for (size_t i = 0; i < pSet.count(); i++){
         o.write(reinterpret_cast<const char*>(&pSet.points[i][0]), sizeof(float) * 3);
         if (hasNormals) o.write(reinterpret_cast<const char*>(&pSet.normals[i][0]), sizeof(float) * 3);
