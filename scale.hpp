@@ -20,7 +20,7 @@ struct Scale{
     std::vector<float> heightMax;
     std::vector<std::array<float, 3> > avgHsv;
 
-    Eigen::Matrix3f computeCovariance(const std::vector<size_t> &neighborIds, const Eigen::Vector3f &medoid);
+    Eigen::Matrix3d computeCovariance(const std::vector<size_t> &neighborIds, const Eigen::Vector3f &medoid);
     Eigen::Vector3f computeMedoid(const std::vector<size_t> &neighborIds);
     Eigen::Vector3f computeCentroid(const std::vector<size_t> &pointIds);
     void computeScaledSet();

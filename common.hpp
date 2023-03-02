@@ -10,8 +10,8 @@
 #include "labels.hpp"
 #include "point_io.hpp"
 
-#define NUM_SCALES 6
-#define N_TREES 50
-#define MAX_DEPTH 25
+#define NUM_SCALES 9
+#define N_TREES 100
+#define MAX_DEPTH 30
 
 #endif

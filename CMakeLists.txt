@@ -13,7 +13,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 if((CMAKE_CXX_COMPILER_ID MATCHES "Clang") OR (CMAKE_CXX_COMPILER_ID MATCHES "GNU"))
-add_compile_options(-march=native -ffast-math -fno-math-errno)
+add_compile_options(-march=native)
 endif()
 
 find_package(OpenMP REQUIRED)

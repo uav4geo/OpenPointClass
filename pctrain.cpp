@@ -20,8 +20,7 @@ int main(int argc, char **argv){
         std::string modelFilename = std::string(argv[2]);
 
         auto pointSet = readPointSet(filename);
-        //double startResolution = pointSet.spacing(); // meters
-        double startResolution = 0.90;
+        double startResolution = pointSet.spacing(); // meters
         std::cout << "Starting resolution: " << startResolution << std::endl;
 
         auto scales = computeScales(NUM_SCALES, pointSet, startResolution);

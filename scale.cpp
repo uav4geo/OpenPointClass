@@ -18,21 +18,31 @@ Scale::Scale(size_t id, PointSet &pSet, double resolution, int kNeighbors, doubl
     }
 
     KdTree *index = scaledSet.getIndex<KdTree>();
-    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solver;
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver;
     std::vector<size_t> neighborIds(kNeighbors);
     std::vector<float> sqrDists(kNeighbors);
 
     for (size_t idx = 0; idx < pSet.count(); idx++){
         index->knnSearch(&pSet.points[idx][0], kNeighbors, &neighborIds[0], &sqrDists[0]);
         Eigen::Vector3f medoid = computeMedoid(neighborIds);
-        Eigen::Matrix3f covariance = computeCovariance(neighborIds, medoid);
+        Eigen::Matrix3d covariance = computeCovariance(neighborIds, medoid);
         solver.computeDirect(covariance);
-        Eigen::Vector3f ev = solver.eigenvalues();
-        for (size_t i = 0; i < 3; i++) ev[i] = std::max(ev[i], 0.f);
+        Eigen::Vector3d ev = solver.eigenvalues();
+        for (size_t i = 0; i < 3; i++) ev[i] = std::max(ev[i], 0.0);
 
         double sum = ev[0] + ev[1] + ev[2];
-        eigenValues[idx] = ev / sum; // sum-normalized
-        eigenVectors[idx] = solver.eigenvectors();
+        eigenValues[idx] = (ev / sum).cast<float>(); // sum-normalized
+        eigenVectors[idx] = solver.eigenvectors().cast<float>();
+
+        // std::cout <<  "==Covariance==" << std::endl << 
+        //     covariance << std::endl;
+        // std::cout  << "==Medoid==" << std::endl << 
+        //     medoid << std::endl;
+        // std::cout <<  "==Eigenvalues==" << std::endl << 
+        //     eigenValues[idx] << std::endl;
+        // std::cout <<  "==Eigenvectors==" << std::endl << 
+        //     eigenVectors[idx] << std::endl;
+        // exit(1);
 
         // lambda1 = eigenValues[idx][2]
         // lambda3 = eigenValues[idx][0]
@@ -172,25 +182,24 @@ void Scale::save(const std::string &filename){
     savePointSet(scaledSet, filename);
 }
 
-Eigen::Matrix3f Scale::computeCovariance(const std::vector<size_t> &neighborIds, const Eigen::Vector3f &medoid){
-    size_t n = neighborIds.size() + 1;
-
-    Eigen::MatrixXf A(3, n);
+Eigen::Matrix3d Scale::computeCovariance(const std::vector<size_t> &neighborIds, const Eigen::Vector3f &medoid){
+    Eigen::MatrixXd A(3, neighborIds.size());
     size_t k = 0;
-    for (size_t const &i : neighborIds){
 
+    for (size_t const &i : neighborIds){
         A(0, k) = scaledSet.points[i][0] - medoid[0];
         A(1, k) = scaledSet.points[i][1] - medoid[1];
         A(2, k) = scaledSet.points[i][2] - medoid[2];
         k++;
     }
 
-    return A * A.transpose() / (neighborIds.size());
+    return A * A.transpose() / (neighborIds.size() - 1);
 }
 
 Eigen::Vector3f Scale::computeMedoid(const std::vector<size_t> &neighborIds){
+    double mx, my, mz;
+    mx = my = mz = 0.0;
     double minDist = std::numeric_limits<double>::max();
-    Eigen::Vector3f medoid;
 
     for (size_t const &i : neighborIds){
         double sum = 0.0;
@@ -205,12 +214,15 @@ Eigen::Vector3f Scale::computeMedoid(const std::vector<size_t> &neighborIds){
         }
 
         if (sum < minDist){
-            medoid[0] = xi;
-            medoid[1] = yi;
-            medoid[2] = zi;
+            mx = xi;
+            my = yi;
+            mz = zi;
             minDist = sum;
         }
     }
+
+    Eigen::Vector3f medoid;
+    medoid << mx, my, mz;
 
     return medoid;
 }
