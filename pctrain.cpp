@@ -13,7 +13,7 @@ void help(char *ex){
 int main(int argc, char **argv){
     if( argc < 3 ) help(argv[0]);
 
-    //gbm::test();
+    gbm::test();
     try {
         // Read points
         std::string filename = std::string(argv[1]);
@@ -30,8 +30,8 @@ int main(int argc, char **argv){
 
         auto labels = getTrainingLabels();
 
-        train(pointSet, features, labels, modelFilename);
-        // gbm::train(pointSet, features, labels, modelFilename);
+        // train(pointSet, features, labels, modelFilename);
+        gbm::train(pointSet, features, labels, modelFilename);
 
         const std::string ext = filename.substr(filename.length() - 4);
         const std::string evalFilename = filename.substr(0, filename.length() - 4) + "_eval" + ext;
