@@ -175,21 +175,19 @@ void train(const PointSet &pointSet,
     std::vector<float> gt;
     std::vector< std::vector<double> > featuresData(features.size());
     std::vector< std::vector<int> > featuresIdx(features.size());
-
     std::vector<std::size_t> count (labels.size(), 0);
-    // std::vector<double> fs(features.size());
-    // std::vector<int> fx(features.size());
 
-    size_t c = 0;
+    int c = 0;
     for (size_t i = 0; i < pointSet.count(); i++){
         int g = pointSet.labels[i];
         if (g != LABEL_UNASSIGNED) {
             gt.push_back(g);
             for (std::size_t f = 0; f < features.size(); f++){
                 featuresData[f].push_back(features[f]->getValue(i));
-                featuresIdx[f].push_back(c++);
+                featuresIdx[f].push_back(c);
             }
             count[std::size_t(g)]++;
+            c++;
         }
     }
 
@@ -215,8 +213,6 @@ void train(const PointSet &pointSet,
                                                numRows,
                                                numRows,
                                                numRows) );
-    
-    exit(1); // WHY IS IT CRASHING?
     
     //#pragma omp parallel
     {
@@ -246,10 +242,11 @@ void train(const PointSet &pointSet,
     }
 
     LightGBM::Config boostConfig;
-    boostConfig.num_iterations = 20;
+    boostConfig.num_iterations = N_TREES;
     // boostConfig.bagging_freq = 1;
     boostConfig.bagging_fraction = 0.5;
     boostConfig.num_class = numClasses;
+    boostConfig.max_depth = MAX_DEPTH;
 
     // tree params
     boostConfig.num_leaves = 16;
@@ -299,8 +296,12 @@ void train(const PointSet &pointSet,
 
     booster->InitPredict(booster->GetCurrentIteration() - 1, 0, false);
 
+    std::vector<double> row(features.size());
     for (int i=0; i < numRows; i++){
-        booster->Predict(featuresData[i].data(), predVec.data(), &earlyStop);
+        for (size_t f = 0; f < features.size(); f++)
+            row[f] = featuresData[f][i];
+
+        booster->Predict(row.data(), predVec.data(), &earlyStop);
         const auto predMax = std::max_element(predVec.begin(), predVec.end());
         predictedClass[i] = std::distance(predVec.begin(), predMax);
     }

@@ -70,9 +70,12 @@ void classify(PointSet &pointSet,
   std::cout << "Classifying..." << std::endl;
   std::size_t correct = 0;
 
+  #pragma omp parallel
+  {
   std::vector<float> probs(labels.size(), 0.);
   std::vector<float> ft (features.size());
-
+  
+  #pragma omp for
   for (size_t i = 0; i < pointSet.count(); i++ ){
     for (std::size_t f = 0; f < features.size(); f++){
       ft[f] = features[f]->getValue(i);
@@ -103,11 +106,14 @@ void classify(PointSet &pointSet,
 
     if (evaluate){
       if (pointSet.labels[i] == bestClass){
+        #pragma omp atomic
         correct++;
       }
     }
 
     // TODO: local smoothing?
+  }
+
   }
 
   if (evaluate){
