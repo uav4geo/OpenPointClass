@@ -25,6 +25,8 @@ struct Scale{
     Eigen::Vector3f computeCentroid(const std::vector<size_t> &pointIds);
     void computeScaledSet();
     void save(const std::string &filename);
+    void init();
+    void build();
 
     Scale(size_t id, PointSet &pSet, double resolution, int kNeighbors = 10, double radius = 0.6);
 };

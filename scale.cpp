@@ -3,8 +3,13 @@
 Scale::Scale(size_t id, PointSet &pSet, double resolution, int kNeighbors, double radius) :
     id(id), pSet(pSet), resolution(resolution), kNeighbors(kNeighbors), radius(radius){
     
-    std::cout << "Building scale " << id << " at " << resolution << " ..." << std::endl;
+}
 
+void Scale::init(){
+    #pragma omp critical
+    {
+        std::cout << "Init scale " << id << " at " << resolution << " ..." << std::endl;
+    }
     computeScaledSet();
 
     eigenValues.resize(pSet.count());
@@ -16,12 +21,22 @@ Scale::Scale(size_t id, PointSet &pSet, double resolution, int kNeighbors, doubl
     if (id == 0){
         avgHsv.resize(pSet.count());
     }
+}
 
+void Scale::build(){
+    #pragma omp critical
+    {
+    std::cout << "Building scale " << id << " (" << scaledSet.count() << " points) ..." << std::endl;
+    }
+
+    #pragma omp parallel
+    {
     KdTree *index = scaledSet.getIndex<KdTree>();
     Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver;
     std::vector<size_t> neighborIds(kNeighbors);
     std::vector<float> sqrDists(kNeighbors);
 
+    #pragma omp for
     for (size_t idx = 0; idx < pSet.count(); idx++){
         index->knnSearch(&pSet.points[idx][0], kNeighbors, &neighborIds[0], &sqrDists[0]);
         Eigen::Vector3f medoid = computeMedoid(neighborIds);
@@ -77,6 +92,7 @@ Scale::Scale(size_t id, PointSet &pSet, double resolution, int kNeighbors, doubl
     if (id == 0){
         std::vector<nanoflann::ResultItem<size_t, float>> radiusMatches;
 
+        #pragma omp for
         for (size_t idx = 0; idx < pSet.count(); idx++){
             size_t numMatches = index->radiusSearch(&pSet.points[idx][0], radius, radiusMatches);
             avgHsv[idx] = {0.f, 0.f, 0.f};
@@ -96,6 +112,8 @@ Scale::Scale(size_t id, PointSet &pSet, double resolution, int kNeighbors, doubl
                     avgHsv[idx][j] /= numMatches;
             }
         }
+    }
+
     }
 }
 
@@ -252,9 +270,17 @@ Eigen::Vector3f Scale::computeCentroid(const std::vector<size_t> &pointIds){
 
 std::vector<Scale *> computeScales(size_t numScales, PointSet pSet, double startResolution){
     std::vector<Scale *> scales(numScales, nullptr);
-    
     for (size_t i = 0; i < numScales; i++){
         scales[i] = new Scale(i, pSet, startResolution * std::pow(2.0, i));
+    }
+
+    #pragma omp parallel for
+    for (size_t i = 0; i < numScales; i++){
+        scales[i]->init();
+    }
+
+    for (size_t i = 0; i < numScales; i++){
+        scales[i]->build();
         // scales[i]->save("scale_" + std::to_string(i) + ".ply");
     }
 
