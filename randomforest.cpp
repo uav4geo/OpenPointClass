@@ -11,21 +11,47 @@ void train(const PointSet &pointSet, const std::vector<Feature *> &features, con
   std::vector<int> gt;
   std::vector<float> ft;
   std::vector<std::size_t> count (labels.size(), 0);
+  std::vector<bool> sampled (pointSet.count(), false);
+  std::vector<std::pair<size_t, int> > idxes;
 
   for (size_t i = 0; i < pointSet.count(); i++){
     int g = pointSet.labels[i];
     if (g != LABEL_UNASSIGNED) {
-        for (std::size_t f = 0; f < features.size(); f++){
-          ft.push_back(features[f]->getValue(i));
+        size_t idx = pointSet.pointMap[i];
+        if (!sampled[idx]){
+          idxes.push_back(std::make_pair(idx, g));
+          count[std::size_t(g)]++;
+          sampled[idx] = true;
         }
-        gt.push_back(g);
-        count[std::size_t(g)]++;
     }
   }
 
+  size_t samplesPerLabel = std::numeric_limits<size_t>::max();
+  for (std::size_t i = 0; i < labels.size(); i++){
+    if (count[i] > 0) samplesPerLabel = std::min(count[i], samplesPerLabel);
+  }
+  samplesPerLabel = std::min<size_t>(samplesPerLabel, 1000000);
+  std::vector<std::size_t> added (labels.size(), 0);
+
+  std::cout << "Samples per label: " << samplesPerLabel << std::endl;
+
+  std::random_shuffle ( idxes.begin(), idxes.end() );
+
+  for (const auto &p : idxes){
+    size_t idx = p.first;
+    int g = p.second;
+    if (added[std::size_t(g)] < samplesPerLabel){
+      for (std::size_t f = 0; f < features.size(); f++){
+        ft.push_back(features[f]->getValue(idx));
+      }
+      gt.push_back(g);
+      added[std::size_t(g)]++;
+    }
+  }
+  
   std::cout << "Using " << gt.size() << " inliers:" << std::endl;
   for (std::size_t i = 0; i < labels.size(); i++)
-      std::cout << " * " << labels[i].getName() << ": " << count[i] << std::endl;
+      std::cout << " * " << labels[i].getName() << ": " << added[i] << " / " << count[i] << std::endl;
 
   liblearning::DataView2D<int> label_vector (&(gt[0]), gt.size(), 1);
   liblearning::DataView2D<float> feature_vector(&(ft[0]), gt.size(), ft.size() / gt.size());
@@ -39,8 +65,6 @@ void train(const PointSet &pointSet, const std::vector<Feature *> &features, con
   outs.push(ofs);
   boost::archive::text_oarchive oas(outs);
   oas << BOOST_SERIALIZATION_NVP(rtrees);
-
-  // TODO: copy what CGAL is doing
 
   std::cout << "Saved " << modelFilename << std::endl;
 }
@@ -74,11 +98,13 @@ void classify(PointSet &pointSet,
   {
   std::vector<float> probs(labels.size(), 0.);
   std::vector<float> ft (features.size());
-  
+
   #pragma omp for
   for (size_t i = 0; i < pointSet.count(); i++ ){
+    size_t idx = pointSet.pointMap[i];
+
     for (std::size_t f = 0; f < features.size(); f++){
-      ft[f] = features[f]->getValue(i);
+      ft[f] = features[f]->getValue(idx);
     }
 
     rtrees.evaluate (ft.data(), probs.data());

@@ -10,17 +10,21 @@ void Scale::init(){
     {
         std::cout << "Init scale " << id << " at " << resolution << " ..." << std::endl;
     }
-    computeScaledSet();
-
-    eigenValues.resize(pSet.count());
-    eigenVectors.resize(pSet.count());
-    orderAxis.resize(pSet.count());
-    heightMin.resize(pSet.count());
-    heightMax.resize(pSet.count());
-
     if (id == 0){
-        avgHsv.resize(pSet.count());
+        pSet.pointMap.resize(pSet.count());
+    }else if (id > 0){
+        eigenValues.resize(pSet.count());
+        eigenVectors.resize(pSet.count());
+        orderAxis.resize(pSet.count());
+        heightMin.resize(pSet.count());
+        heightMax.resize(pSet.count());
+
+        if (id == 1){
+            avgHsv.resize(pSet.count());
+        }
     }
+
+    computeScaledSet();
 }
 
 void Scale::build(){
@@ -89,7 +93,7 @@ void Scale::build(){
         }
     }
 
-    if (id == 0){
+    if (id == 1){
         std::vector<nanoflann::ResultItem<size_t, float>> radiusMatches;
 
         #pragma omp for
@@ -118,6 +122,8 @@ void Scale::build(){
 }
 
 void Scale::computeScaledSet(){
+    bool trackPointMap = id == 0;
+
     // Voxel centroid nearest neighbor
     // Roughly from https://raw.githubusercontent.com/PDAL/PDAL/master/filters/VoxelCentroidNearestNeighborFilter.cpp
     double x0 = pSet.points[0][0];
@@ -144,7 +150,7 @@ void Scale::computeScaledSet(){
     for (auto const& t : populated_voxel_ids){
         if (t.second.size() == 1){
             // If there is only one point in the voxel, simply append it.
-            scaledSet.appendPoint(pSet, t.second[0]);
+            scaledSet.appendPoint(pSet, t.second[0], trackPointMap);
         }else if (t.second.size() == 2){
             // Else if there are only two, they are equidistant to the
             // centroid, so append the one closest to voxel center.
@@ -167,8 +173,8 @@ void Scale::computeScaledSet(){
             double d2 = pow(x_center - x2, 2) + pow(y_center - y2, 2) + pow(z_center - z2, 2);
 
             // Append the closer of the two.
-            if (d1 < d2) scaledSet.appendPoint(pSet, t.second[0]);
-            else scaledSet.appendPoint(pSet, t.second[1]);
+            if (d1 < d2) scaledSet.appendPoint(pSet, t.second[0], trackPointMap);
+            else scaledSet.appendPoint(pSet, t.second[1], trackPointMap);
         } else  {
             // Else there are more than two neighbors, so choose the one
             // closest to the centroid.
@@ -189,11 +195,11 @@ void Scale::computeScaledSet(){
                     pmin = p;
                 }
             }
-            scaledSet.appendPoint(pSet, pmin);
+            scaledSet.appendPoint(pSet, pmin, trackPointMap);
         }
     }
 
-    scaledSet.buildIndex<KdTree>();
+    if (id > 0) scaledSet.buildIndex<KdTree>();
 }
 
 void Scale::save(const std::string &filename){
@@ -268,10 +274,16 @@ Eigen::Vector3f Scale::computeCentroid(const std::vector<size_t> &pointIds){
     return centroid;
 }
 
-std::vector<Scale *> computeScales(size_t numScales, PointSet pSet, double startResolution){
+std::vector<Scale *> computeScales(size_t numScales, PointSet &pSet, double startResolution){
     std::vector<Scale *> scales(numScales, nullptr);
+
+    Scale *base = new Scale(0, pSet, startResolution * std::pow(2.0, 0));
+    base->init();
+    base->save("base.ply");
+    pSet = base->pSet;
+
     for (size_t i = 0; i < numScales; i++){
-        scales[i] = new Scale(i, pSet, startResolution * std::pow(2.0, i));
+        scales[i] = new Scale(i + 1, base->scaledSet, startResolution * std::pow(2.0, i + 1));
     }
 
     #pragma omp parallel for
@@ -281,7 +293,7 @@ std::vector<Scale *> computeScales(size_t numScales, PointSet pSet, double start
 
     for (size_t i = 0; i < numScales; i++){
         scales[i]->build();
-        // scales[i]->save("scale_" + std::to_string(i) + ".ply");
+        scales[i]->save("scale_" + std::to_string(i + 1) + ".ply");
     }
 
     return scales;

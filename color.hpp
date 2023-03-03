@@ -1,6 +1,8 @@
 #ifndef COLOR_H
 #define COLOR_H
 
+#include <cstdint>
+
 std::array<float, 3> rgb2hsv(double r, double g, double b);
 
 struct Color{

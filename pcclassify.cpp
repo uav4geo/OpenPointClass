@@ -22,10 +22,12 @@ int main(int argc, char **argv){
 
         auto labels = getTrainingLabels();
         auto pointSet = readPointSet(inputFile);
+
         double startResolution = argc >= 5 ? std::atof(argv[4]) : pointSet.spacing(); // meters
         std::cout << "Starting resolution: " << startResolution << std::endl;
         auto scales = computeScales(NUM_SCALES, pointSet, startResolution);
         std::cout << "Computed " << scales.size() << " scales" << std::endl;
+
         auto features = getFeatures(scales);
         std::cout << "Features: " << features.size() << std::endl;
 

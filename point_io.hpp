@@ -24,6 +24,8 @@ struct PointSet {
     std::vector<uint8_t> labels;
     std::vector<uint8_t> views;
 
+    std::vector<size_t> pointMap;
+
     void *kdTree = nullptr;
 
     template <typename T>
@@ -48,9 +50,12 @@ struct PointSet {
         return false;
     }
 
-    void appendPoint(const PointSet &src, size_t idx){
+    void appendPoint(PointSet &src, size_t idx, bool trackPointMap){
         points.push_back(src.points[idx]);
         colors.push_back(src.colors[idx]);
+        if (trackPointMap){
+            src.pointMap[idx] = points.size() - 1;
+        }
     }
 
     bool hasNormals() const { return normals.size() > 0; }

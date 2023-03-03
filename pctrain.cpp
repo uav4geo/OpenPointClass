@@ -1,7 +1,7 @@
 #include "common.hpp"
 #include "point_io.hpp"
 #include "randomforest.hpp"
-#include "gbm.hpp"
+// #include "gbm.hpp"
 
 void help(char *ex){
     std::cout << "Usage: " << ex << std::endl
@@ -13,7 +13,7 @@ void help(char *ex){
 int main(int argc, char **argv){
     if( argc < 3 ) help(argv[0]);
 
-    gbm::test();
+    // gbm::test();
     try {
         // Read points
         std::string filename = std::string(argv[1]);

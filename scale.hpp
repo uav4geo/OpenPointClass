@@ -31,6 +31,6 @@ struct Scale{
     Scale(size_t id, PointSet &pSet, double resolution, int kNeighbors = 10, double radius = 0.6);
 };
 
-std::vector<Scale *> computeScales(size_t numScales, PointSet pSet, double startResolution);
+std::vector<Scale *> computeScales(size_t numScales, PointSet &pSet, double startResolution);
 
 #endif
