@@ -122,7 +122,7 @@ void Scale::build(){
 }
 
 void Scale::computeScaledSet(){
-    bool trackPointMap = id == 0;
+    bool trackPoints = id == 0;
 
     // Voxel centroid nearest neighbor
     // Roughly from https://raw.githubusercontent.com/PDAL/PDAL/master/filters/VoxelCentroidNearestNeighborFilter.cpp
@@ -150,7 +150,8 @@ void Scale::computeScaledSet(){
     for (auto const& t : populated_voxel_ids){
         if (t.second.size() == 1){
             // If there is only one point in the voxel, simply append it.
-            scaledSet.appendPoint(pSet, t.second[0], trackPointMap);
+            scaledSet.appendPoint(pSet, t.second[0]);
+            if (trackPoints) scaledSet.trackPoint(pSet, t.second[0]);
         }else if (t.second.size() == 2){
             // Else if there are only two, they are equidistant to the
             // centroid, so append the one closest to voxel center.
@@ -173,8 +174,14 @@ void Scale::computeScaledSet(){
             double d2 = pow(x_center - x2, 2) + pow(y_center - y2, 2) + pow(z_center - z2, 2);
 
             // Append the closer of the two.
-            if (d1 < d2) scaledSet.appendPoint(pSet, t.second[0], trackPointMap);
-            else scaledSet.appendPoint(pSet, t.second[1], trackPointMap);
+            // TODO: this is probably wrong!
+            if (d1 < d2) scaledSet.appendPoint(pSet, t.second[0]);
+            else scaledSet.appendPoint(pSet, t.second[1]);
+
+            if (trackPoints){
+                scaledSet.trackPoint(pSet, t.second[0]);
+                scaledSet.trackPoint(pSet, t.second[1]);
+            }
         } else  {
             // Else there are more than two neighbors, so choose the one
             // closest to the centroid.
@@ -195,7 +202,14 @@ void Scale::computeScaledSet(){
                     pmin = p;
                 }
             }
-            scaledSet.appendPoint(pSet, pmin, trackPointMap);
+
+            scaledSet.appendPoint(pSet, pmin);
+
+            if (trackPoints){
+                for (auto const &p : t.second){
+                    scaledSet.trackPoint(pSet, p);
+                }
+            }
         }
     }
 
@@ -224,7 +238,6 @@ Eigen::Vector3f Scale::computeMedoid(const std::vector<size_t> &neighborIds){
     double mx, my, mz;
     mx = my = mz = 0.0;
     double minDist = std::numeric_limits<double>::max();
-
     for (size_t const &i : neighborIds){
         double sum = 0.0;
         double xi = scaledSet.points[i][0];
@@ -279,11 +292,11 @@ std::vector<Scale *> computeScales(size_t numScales, PointSet &pSet, double star
 
     Scale *base = new Scale(0, pSet, startResolution * std::pow(2.0, 0));
     base->init();
-    base->save("base.ply");
+    // base->save("base.ply");
     pSet = base->pSet;
 
     for (size_t i = 0; i < numScales; i++){
-        scales[i] = new Scale(i + 1, base->scaledSet, startResolution * std::pow(2.0, i + 1));
+        scales[i] = new Scale(i + 1, base->scaledSet, startResolution * std::pow(2.0, i));
     }
 
     #pragma omp parallel for
@@ -293,7 +306,7 @@ std::vector<Scale *> computeScales(size_t numScales, PointSet &pSet, double star
 
     for (size_t i = 0; i < numScales; i++){
         scales[i]->build();
-        scales[i]->save("scale_" + std::to_string(i + 1) + ".ply");
+        // scales[i]->save("scale_" + std::to_string(i + 1) + ".ply");
     }
 
     return scales;

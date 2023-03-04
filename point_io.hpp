@@ -50,12 +50,13 @@ struct PointSet {
         return false;
     }
 
-    void appendPoint(PointSet &src, size_t idx, bool trackPointMap){
+    void appendPoint(PointSet &src, size_t idx){
         points.push_back(src.points[idx]);
         colors.push_back(src.colors[idx]);
-        if (trackPointMap){
-            src.pointMap[idx] = points.size() - 1;
-        }
+    }
+
+    void trackPoint(PointSet &src, size_t idx){
+        src.pointMap[idx] = points.size() - 1;
     }
 
     bool hasNormals() const { return normals.size() > 0; }
