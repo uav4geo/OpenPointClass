@@ -8,7 +8,7 @@
 struct Scale{
     size_t id;
     PointSet *pSet;
-    PointSet scaledSet;
+    PointSet *scaledSet;
     double resolution;
     int kNeighbors;
     double radius;

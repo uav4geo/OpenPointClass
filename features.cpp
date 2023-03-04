@@ -32,7 +32,6 @@ std::vector<Feature *> getFeatures(const std::vector<Scale *> &scales){
         feats.push_back(reinterpret_cast<Feature *>(new PointColor(scales[0], c)));
         feats.push_back(reinterpret_cast<Feature *>(new NeighborhoodColors(scales[0], c)));
     }
-    
 
     return feats;
 }

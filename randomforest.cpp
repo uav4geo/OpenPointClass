@@ -164,7 +164,7 @@ void classify(PointSet &pointSet,
 
     const double radius = features[0]->getScale()->radius;
 
-    #pragma omp for
+    #pragma omp for schedule(dynamic, 1)
     for (size_t i = 0; i < pointSet.base->count(); i++){
       size_t numMatches = index->radiusSearch(&pointSet.base->points[i][0], radius, radiusMatches);
       std::fill(mean.begin(), mean.end(), 0.);
