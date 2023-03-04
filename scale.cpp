@@ -213,8 +213,6 @@ void Scale::computeScaledSet(){
                 }
             }
         }
-    }else{
-        std::cout << "Skip " << id << std::endl;
     }
 
     if (id > 0) scaledSet->buildIndex<KdTree>();
