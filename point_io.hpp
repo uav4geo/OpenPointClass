@@ -80,7 +80,7 @@ size_t getVertexCount(const std::string& line);
 inline void checkHeader(std::ifstream& reader, const std::string &prop);
 inline bool hasHeader(const std::string &line, const std::string &prop);
 
-PointSet readPointSet(const std::string& filename);
+PointSet* readPointSet(const std::string& filename);
 void savePointSet(PointSet &pSet, const std::string &filename);
 
 bool fileExists(const std::string &path);

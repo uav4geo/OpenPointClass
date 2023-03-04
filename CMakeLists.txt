@@ -14,6 +14,10 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+if (NOT WIN32 AND NOT APPLE)
+    set(STDPPFS_LIBRARY stdc++fs)
+endif()
+
 if((CMAKE_CXX_COMPILER_ID MATCHES "Clang") OR (CMAKE_CXX_COMPILER_ID MATCHES "GNU"))
 add_compile_options(-march=native)
 endif()
@@ -24,7 +28,7 @@ find_package(Eigen3 REQUIRED)
 
 if (WITH_GBM)
       message("Building with GBM support")
-      
+
       set(LIGHTGBM_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/local")
       include(ExternalProject)
       ExternalProject_Add(lightgbm
@@ -73,7 +77,7 @@ endif()
 add_executable(pctrain pctrain.cpp)
 add_executable(pcclassify pcclassify.cpp)
 
-target_link_libraries(pcc Eigen3::Eigen OpenMP::OpenMP_CXX Boost::iostreams Boost::serialization ${GBM_LIB})
+target_link_libraries(pcc ${STDPPFS_LIBRARY} Eigen3::Eigen OpenMP::OpenMP_CXX Boost::iostreams Boost::serialization ${GBM_LIB})
 target_link_libraries(pctrain pcc)
 target_link_libraries(pcclassify pcc)
 

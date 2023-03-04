@@ -175,7 +175,6 @@ void Scale::computeScaledSet(){
                 double d2 = pow(x_center - x2, 2) + pow(y_center - y2, 2) + pow(z_center - z2, 2);
 
                 // Append the closer of the two.
-                // TODO: this is probably wrong!
                 if (d1 < d2) scaledSet->appendPoint(*pSet, t.second[0]);
                 else scaledSet->appendPoint(*pSet, t.second[1]);
 

@@ -2,16 +2,39 @@
 
 namespace rf{
 
-void train(const PointSet &pointSet, 
-          const std::vector<Feature *> &features, 
+void train(const std::vector<PointSet *> &pointSets,
+          const std::vector<std::vector<Feature *> > &featureSets,
           const std::vector<Label> &labels, 
           const std::string &modelFilename){
-  liblearning::RandomForest::ForestParams params;
+  if (pointSets.size() != featureSets.size()) throw std::runtime_error("pointSets.size() != featureSets.size()");
+
+  ForestParams params;
   params.n_trees   = N_TREES;
   params.max_depth = MAX_DEPTH;
 
-  liblearning::RandomForest::RandomForest< liblearning::RandomForest::NodeGini<liblearning::RandomForest::AxisAlignedSplitter> > rtrees(params);
-  liblearning::RandomForest::AxisAlignedRandomSplitGenerator generator;
+  RandomForest rtrees(params);
+
+  for (size_t i = 0; i < pointSets.size(); i++){
+    std::cout << "Training set " << i << std::endl;
+    trainForest(*pointSets[i], featureSets[i], labels, &rtrees);
+  }
+
+  std::ofstream ofs(modelFilename.c_str(), std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
+  boost::iostreams::filtering_ostream outs;
+  outs.push(boost::iostreams::gzip_compressor());
+  outs.push(ofs);
+  boost::archive::text_oarchive oas(outs);
+  oas << BOOST_SERIALIZATION_NVP(rtrees);
+
+  std::cout << "Saved " << modelFilename << std::endl;
+}
+
+void trainForest(const PointSet &pointSet, 
+          const std::vector<Feature *> &features,
+          const std::vector<Label> &labels, 
+          RandomForest *rtrees){
+
+  AxisAlignedRandomSplitGenerator generator;
   
   std::vector<int> gt;
   std::vector<float> ft;
@@ -58,20 +81,12 @@ void train(const PointSet &pointSet,
   for (std::size_t i = 0; i < labels.size(); i++)
       std::cout << " * " << labels[i].getName() << ": " << added[i] << " / " << count[i] << std::endl;
 
-  liblearning::DataView2D<int> label_vector (&(gt[0]), gt.size(), 1);
-  liblearning::DataView2D<float> feature_vector(&(ft[0]), gt.size(), ft.size() / gt.size());
+  LabelDataView label_vector (&(gt[0]), gt.size(), 1);
+  FeatureDataView feature_vector(&(ft[0]), gt.size(), ft.size() / gt.size());
 
   std::cout << "Training..." << std::endl;
-  rtrees.train(feature_vector, label_vector, liblearning::DataView2D<int>(), generator, 0, false);
-  
-  std::ofstream ofs(modelFilename.c_str(), std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
-  boost::iostreams::filtering_ostream outs;
-  outs.push(boost::iostreams::gzip_compressor());
-  outs.push(ofs);
-  boost::archive::text_oarchive oas(outs);
-  oas << BOOST_SERIALIZATION_NVP(rtrees);
+  rtrees->train(feature_vector, label_vector, LabelDataView(), generator, 0, false, false);
 
-  std::cout << "Saved " << modelFilename << std::endl;
 }
 
 void classify(PointSet &pointSet, 
@@ -85,11 +100,11 @@ void classify(PointSet &pointSet,
   std::ifstream ifs(modelFilename.c_str(), std::ios_base::in | std::ios_base::binary);
   if (!ifs.is_open()) throw std::runtime_error("Cannot open " + modelFilename);
   
-  liblearning::RandomForest::ForestParams params;
+  ForestParams params;
   params.n_trees   = N_TREES;
   params.max_depth = MAX_DEPTH;
 
-  liblearning::RandomForest::RandomForest< liblearning::RandomForest::NodeGini<liblearning::RandomForest::AxisAlignedSplitter> > rtrees(params);
+  RandomForest rtrees(params);
   
   boost::iostreams::filtering_istream ins;
   ins.push(boost::iostreams::gzip_decompressor());

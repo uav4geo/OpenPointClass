@@ -1,6 +1,9 @@
 #include <random>
+#include <filesystem>
 #include "point_io.hpp"
 #include "labels.hpp"
+
+namespace fs = std::filesystem;
 
 double PointSet::spacing(int kNeighbors){
     if (m_spacing != -1) return m_spacing;
@@ -90,10 +93,10 @@ size_t getVertexCount(const std::string& line) {
     return std::stoi(tokens[2]);
 }
 
-PointSet readPointSet(const std::string& filename){
+PointSet* readPointSet(const std::string& filename){
     std::ifstream reader(filename);
     
-    PointSet r;
+    PointSet *r = new PointSet();
 
     if (!reader.is_open())
         throw std::runtime_error("Cannot open file " + filename);
@@ -158,11 +161,11 @@ PointSet readPointSet(const std::string& filename){
 
     bool hasLabels = !labelDim.empty();
         
-    r.points.resize(count);
-    if (hasNormals) r.normals.resize(count);
-    if (hasColors) r.colors.resize(count);
-    if (hasViews) r.views.resize(count);
-    if (hasLabels) r.labels.resize(count);
+    r->points.resize(count);
+    if (hasNormals) r->normals.resize(count);
+    if (hasColors) r->colors.resize(count);
+    if (hasViews) r->views.resize(count);
+    if (hasLabels) r->labels.resize(count);
 
     // if (hasNormals) std::cout << "N";
     // if (hasColors) std::cout << "C";
@@ -175,30 +178,30 @@ PointSet readPointSet(const std::string& filename){
         uint16_t buf;
 
         for (size_t i = 0; i < count; i++) {
-            reader >> r.points[i][0] 
-                   >> r.points[i][1]
-                   >> r.points[i][2];
+            reader >> r->points[i][0] 
+                   >> r->points[i][1]
+                   >> r->points[i][2];
             
             if (hasNormals){
-                reader >> r.normals[i][0]
-                    >> r.normals[i][1]
-                    >> r.normals[i][2];
+                reader >> r->normals[i][0]
+                    >> r->normals[i][1]
+                    >> r->normals[i][2];
             }
             if (hasColors){
                 reader >> buf;
-                r.colors[i][redIdx] = static_cast<uint8_t>(buf);
+                r->colors[i][redIdx] = static_cast<uint8_t>(buf);
                 reader >> buf;
-                r.colors[i][greenIdx] = static_cast<uint8_t>(buf);
+                r->colors[i][greenIdx] = static_cast<uint8_t>(buf);
                 reader >> buf;
-                r.colors[i][blueIdx] = static_cast<uint8_t>(buf);
+                r->colors[i][blueIdx] = static_cast<uint8_t>(buf);
             }
             if (hasViews){
                 reader >> buf;
-                r.views[i] = static_cast<uint8_t>(buf);
+                r->views[i] = static_cast<uint8_t>(buf);
             }
             if (hasLabels){
                 reader >> buf;
-                r.labels[i] = static_cast<uint8_t>(buf);
+                r->labels[i] = static_cast<uint8_t>(buf);
             }
         }
     }else{
@@ -208,25 +211,25 @@ PointSet readPointSet(const std::string& filename){
         uint8_t color[3];
 
         for (size_t i = 0; i < count; i++) {
-            reader.read(reinterpret_cast<char*>(&r.points[i][0]), sizeof(float) * 3);
+            reader.read(reinterpret_cast<char*>(&r->points[i][0]), sizeof(float) * 3);
 
             if (hasNormals){
-                reader.read(reinterpret_cast<char*>(&r.normals[i][0]), sizeof(float) * 3);
+                reader.read(reinterpret_cast<char*>(&r->normals[i][0]), sizeof(float) * 3);
             }
 
             if (hasColors){
                 reader.read(reinterpret_cast<char*>(&color), sizeof(uint8_t) * 3);
-                r.colors[i][redIdx] = color[0];
-                r.colors[i][greenIdx] = color[1];
-                r.colors[i][blueIdx] = color[2];
+                r->colors[i][redIdx] = color[0];
+                r->colors[i][greenIdx] = color[1];
+                r->colors[i][blueIdx] = color[2];
             }
 
             if (hasViews){
-                reader.read(reinterpret_cast<char*>(&r.views[i]), sizeof(uint8_t));
+                reader.read(reinterpret_cast<char*>(&r->views[i]), sizeof(uint8_t));
             }
 
             if (hasLabels){
-                reader.read(reinterpret_cast<char*>(&r.labels[i]), sizeof(uint8_t));
+                reader.read(reinterpret_cast<char*>(&r->labels[i]), sizeof(uint8_t));
             }
         }
     }
@@ -239,7 +242,7 @@ PointSet readPointSet(const std::string& filename){
         if (hasMappings){
             auto trainingCodes = getTrainingCodes();
             for (size_t idx = 0; idx < count; idx++) {
-                int label = r.labels[idx];
+                int label = r->labels[idx];
 
                 if (mappings.find(label) != mappings.end()){
                     label = trainingCodes[mappings[label]];
@@ -247,22 +250,22 @@ PointSet readPointSet(const std::string& filename){
                     label = trainingCodes["unassigned"];
                 }
 
-                r.labels[idx] = label;
+                r->labels[idx] = label;
             }
         }
     }
 
     // for (size_t idx = 0; idx < count; idx++) {
-    //     std::cout << r.points[idx][0] << " ";
-    //     std::cout << r.points[idx][1] << " ";
-    //     std::cout << r.points[idx][2] << " ";
+    //     std::cout << r->points[idx][0] << " ";
+    //     std::cout << r->points[idx][1] << " ";
+    //     std::cout << r->points[idx][2] << " ";
 
-    //     std::cout << std::to_string(r.colors[idx][0]) << " ";
-    //     std::cout << std::to_string(r.colors[idx][1]) << " ";
-    //     std::cout << std::to_string(r.colors[idx][2]) << " ";
+    //     std::cout << std::to_string(r->colors[idx][0]) << " ";
+    //     std::cout << std::to_string(r->colors[idx][1]) << " ";
+    //     std::cout << std::to_string(r->colors[idx][2]) << " ";
 
     //     if (hasLabels){
-    //         std::cout << std::to_string(r.labels[idx]) << " ";
+    //         std::cout << std::to_string(r->labels[idx]) << " ";
     //     }
     //     std::cout << std::endl;
         
@@ -336,12 +339,21 @@ void savePointSet(PointSet &pSet, const std::string &filename){
 }
 
 std::unordered_map<int, std::string> getClassMappings(const std::string &filename){
-    std::string jsonFile = filename.substr(0, filename.length() - 4) + ".json";
+    fs::path p(filename);
+    std::string jsonFile = p.replace_filename(p.filename().replace_extension(".json")).string();
     
     // Need to drop _eval filename suffix?
     if (filename.substr(filename.length() - 5 - 4, 5) == "_eval" &&
             !fileExists(jsonFile)){
         jsonFile = filename.substr(0, filename.length() - 5 - 4) + ".json";
+    }
+
+    if (!fileExists(jsonFile)){
+        // Check for a mappings.json file
+        std::string mappingJson = p.replace_filename("mappings.json").string();
+        if (fileExists(mappingJson)){
+            jsonFile = mappingJson;
+        }
     }
 
     std::ifstream fin(jsonFile);

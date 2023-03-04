@@ -27,17 +27,15 @@ int main(int argc, char **argv){
         auto labels = getTrainingLabels();
         auto pointSet = readPointSet(inputFile);
 
-        double startResolution = argc >= 5 ? std::atof(argv[4]) : pointSet.spacing(); // meters
+        double startResolution = argc >= 5 ? std::atof(argv[4]) : pointSet->spacing(); // meters
         std::cout << "Starting resolution: " << startResolution << std::endl;
-        auto scales = computeScales(NUM_SCALES, &pointSet, startResolution);
-        std::cout << "Computed " << scales.size() << " scales" << std::endl;
 
-        auto features = getFeatures(scales);
+        auto features = getFeatures(computeScales(NUM_SCALES, pointSet, startResolution));
         std::cout << "Features: " << features.size() << std::endl;
 
-        rf::classify(pointSet, modelFile, features, labels, rf::Regularization::LocalSmooth, true, false);
+        rf::classify(*pointSet, modelFile, features, labels, rf::Regularization::LocalSmooth, true, false);
         // gbm::classify(pointSet, modelFile, features, labels, true, false);
-        savePointSet(pointSet, outputFile);
+        savePointSet(*pointSet, outputFile);
     } catch(std::exception &e){
         std::cerr << "Error: " << e.what() << std::endl;
         exit(EXIT_FAILURE);

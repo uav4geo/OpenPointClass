@@ -32,10 +32,11 @@ public:
                DataView2D<int> train_sample_idxes, 
                SplitGenerator const& split_generator,
                size_t seed_start = 1,
-               bool register_oob = true 
+               bool register_oob = true,
+               bool reset_trees = true
                ) 
     {
-        trees.clear();
+        if (reset_trees) trees.clear();
         params.n_classes  = *std::max_element(&labels(0,0), &labels(0,0)+labels.num_elements()) + 1;
         params.n_features = samples.cols;
         params.n_samples  = samples.rows;

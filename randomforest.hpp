@@ -19,10 +19,21 @@ namespace rf{
 
 enum Regularization { None, LocalSmooth};
 
-void train(const PointSet &pointSet, 
-    const std::vector<Feature *> &features, 
+typedef liblearning::RandomForest::RandomForest< liblearning::RandomForest::NodeGini<liblearning::RandomForest::AxisAlignedSplitter> > RandomForest;
+typedef liblearning::RandomForest::AxisAlignedRandomSplitGenerator AxisAlignedRandomSplitGenerator;
+typedef liblearning::RandomForest::ForestParams ForestParams;
+typedef liblearning::DataView2D<int> LabelDataView;
+typedef liblearning::DataView2D<float> FeatureDataView;
+
+void train(const std::vector<PointSet *> &pointSets,
+    const std::vector<std::vector<Feature *> > &features,
     const std::vector<Label> &labels,
     const std::string &modelFilename);
+
+void trainForest(const PointSet &pointSet,
+          const std::vector<Feature *> &features,
+          const std::vector<Label> &labels,
+          RandomForest *rtrees);
 
 void classify(PointSet &pointSet, 
     const std::string &modelFilename,
