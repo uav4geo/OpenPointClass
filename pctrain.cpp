@@ -1,7 +1,7 @@
 #include "common.hpp"
 #include "point_io.hpp"
 #include "randomforest.hpp"
-// #include "gbm.hpp"
+#include "gbm.hpp"
 
 void help(char *ex){
     std::cout << "Usage: " << ex << std::endl
@@ -11,9 +11,10 @@ void help(char *ex){
 }
 
 int main(int argc, char **argv){
+    gbm::test();
+    
     if( argc < 3 ) help(argv[0]);
 
-    // gbm::test();
     try {
         // Read points
         std::string filename = std::string(argv[1]);
@@ -30,8 +31,8 @@ int main(int argc, char **argv){
 
         auto labels = getTrainingLabels();
 
-        train(pointSet, features, labels, modelFilename);
-        // gbm::train(pointSet, features, labels, modelFilename);
+        // train(pointSet, features, labels, modelFilename);
+        gbm::train(pointSet, features, labels, modelFilename);
 
         const std::string ext = filename.substr(filename.length() - 4);
         const std::string evalFilename = filename.substr(0, filename.length() - 4) + "_eval" + ext;
@@ -44,7 +45,9 @@ int main(int argc, char **argv){
             auto evalFeatures = getFeatures(evalScales);
             std::cout << "Features: " << evalFeatures.size() << std::endl;
 
-            classify(evalPointSet, modelFilename, evalFeatures, labels, true, true);
+            // classify(evalPointSet, modelFilename, evalFeatures, labels, true, true);
+            gbm::classify(evalPointSet, modelFilename, evalFeatures, labels, true, true);
+            
             savePointSet(evalPointSet, "evaluation.ply");
         }
     } catch(std::exception &e){

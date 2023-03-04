@@ -47,7 +47,6 @@ void test(){
         }
     }
 
-
     LightGBM::Config ioconfig;
     ioconfig.num_class = numClasses;
     ioconfig.max_bin = 255;
@@ -173,32 +172,62 @@ void train(const PointSet &pointSet,
     const std::string &modelFilename){
 
     std::vector<float> gt;
+    std::vector< std::vector<double> > featureRows;
     std::vector< std::vector<double> > featuresData(features.size());
     std::vector< std::vector<int> > featuresIdx(features.size());
     std::vector<std::size_t> count (labels.size(), 0);
+    std::vector<bool> sampled (pointSet.count(), false);
+    std::vector<std::pair<size_t, int> > idxes;
 
-    int c = 0;
     for (size_t i = 0; i < pointSet.count(); i++){
         int g = pointSet.labels[i];
         if (g != LABEL_UNASSIGNED) {
-            gt.push_back(g);
+            size_t idx = pointSet.pointMap[i];
+            if (!sampled[idx]){
+                idxes.push_back(std::make_pair(idx, g));
+                count[std::size_t(g)]++;
+                sampled[idx] = true;
+            }
+        }
+    }
+
+    size_t samplesPerLabel = std::numeric_limits<size_t>::max();
+    for (std::size_t i = 0; i < labels.size(); i++){
+        if (count[i] > 0) samplesPerLabel = std::min(count[i], samplesPerLabel);
+    }
+    samplesPerLabel = std::min<size_t>(samplesPerLabel, 1000000);
+    std::vector<std::size_t> added (labels.size(), 0);
+
+    std::cout << "Samples per label: " << samplesPerLabel << std::endl;
+
+    std::random_shuffle ( idxes.begin(), idxes.end() );
+    
+    int c = 0;
+    for (const auto &p : idxes){
+        size_t idx = p.first;
+        int g = p.second;
+        if (added[std::size_t(g)] < samplesPerLabel){
+            featureRows.emplace_back();
+            featureRows[c].resize(features.size(), 0);
             for (std::size_t f = 0; f < features.size(); f++){
-                featuresData[f].push_back(features[f]->getValue(i));
+                featureRows[c][f] = features[f]->getValue(idx);
+                featuresData[f].push_back(featureRows[c][f]);
                 featuresIdx[f].push_back(c);
             }
-            count[std::size_t(g)]++;
+            gt.push_back(g);
+            added[std::size_t(g)]++;
             c++;
         }
     }
 
     std::cout << "Using " << gt.size() << " inliers:" << std::endl;
-    for (std::size_t i = 0; i < labels.size(); i++)
-        std::cout << " * " << labels[i].getName() << ": " << count[i] << std::endl;
-
+    for (std::size_t i = 0; i < labels.size(); i++){
+        std::cout << " * " << labels[i].getName() << ": " << added[i] << " / " << count[i] << std::endl;
+    }
 
     const size_t numRows = gt.size();
     const size_t numFeats = features.size();
-    const int numClasses = static_cast<int>(labels.size());
+    int numClasses = labels.size();
 
     LightGBM::Config ioconfig;
     ioconfig.num_class = numClasses;
@@ -214,17 +243,9 @@ void train(const PointSet &pointSet,
                                                numRows,
                                                numRows) );
     
-    //#pragma omp parallel
-    {
-        std::vector<double> row(features.size());
-
-        //#pragma omp parallel for schedule(static)
-        for (size_t i = 0; i < numRows; ++i){
-            for (size_t f = 0; f < features.size(); f++)
-                row[f] = featuresData[f][i];
-            
-            dset->PushOneRow(omp_get_thread_num(), i, row);
-        }
+    #pragma omp parallel for schedule(static)
+    for (size_t i = 0; i < numRows; ++i){
+        dset->PushOneRow(omp_get_thread_num(), i, featureRows[i]);
     }
 
     dset->FinishLoad();
@@ -286,57 +307,8 @@ void train(const PointSet &pointSet,
         }
     }
 
-    // Validation stuff
-
-    std::vector<int> predictedClass(numRows);
-    std::vector<double> predVec(numClasses);
-
-    LightGBM::PredictionEarlyStopConfig early_stop_config;
-    auto earlyStop = LightGBM::CreatePredictionEarlyStopInstance("none", early_stop_config);
-
-    booster->InitPredict(booster->GetCurrentIteration() - 1, 0, false);
-
-    std::vector<double> row(features.size());
-    for (int i=0; i < numRows; i++){
-        for (size_t f = 0; f < features.size(); f++)
-            row[f] = featuresData[f][i];
-
-        booster->Predict(row.data(), predVec.data(), &earlyStop);
-        const auto predMax = std::max_element(predVec.begin(), predVec.end());
-        predictedClass[i] = std::distance(predVec.begin(), predMax);
-    }
-
-    // compute error
-    double err = 0;
-    for (int i = 0; i < numRows; i++) {
-        if (predictedClass[i] != gt[i]){
-            err++;
-        }
-    }
-    err /= numRows;
-
-    std::cout << "Training error: " << (err * 100) << "%" << std::endl;
-
-    exit(1);
-/*
-    liblearning::DataView2D<int> label_vector (&(gt[0]), gt.size(), 1);
-    liblearning::DataView2D<float> feature_vector(&(ft[0]), gt.size(), ft.size() / gt.size());
-
-    std::cout << "Training..." << std::endl;
-    rtrees.train(feature_vector, label_vector, liblearning::DataView2D<int>(), generator, 0, false);
-    
-    std::ofstream ofs(modelFilename.c_str(), std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
-    boost::iostreams::filtering_ostream outs;
-    outs.push(boost::iostreams::gzip_compressor());
-    outs.push(ofs);
-    boost::archive::text_oarchive oas(outs);
-    oas << BOOST_SERIALIZATION_NVP(rtrees);
-
-    // TODO: copy what CGAL is doing
-
+    booster->SaveModelToFile(0, 0, 0, modelFilename.c_str());
     std::cout << "Saved " << modelFilename << std::endl;
-    
-    exit(1);*/
 }
 
 void classify(PointSet &pointSet, 
@@ -345,9 +317,52 @@ void classify(PointSet &pointSet,
     const std::vector<Label> &labels,
     bool useColors,
     bool evaluate){
-    
-    
-    exit(1);
+    std::cout << "Loading " << modelFilename << std::endl;
+
+    auto *booster = LightGBM::Boosting::CreateBoosting("gbdt", nullptr);
+    if (!LightGBM::Boosting::LoadFileToBoosting(booster, modelFilename.c_str())){
+        throw std::runtime_error("Cannot open " + modelFilename);
+    }
+    booster->InitPredict(0, 0, false);
+
+    LightGBM::PredictionEarlyStopConfig early_stop_config;
+    auto earlyStop = LightGBM::CreatePredictionEarlyStopInstance("none", early_stop_config);
+
+    std::cout << "Classifying..." << std::endl;
+
+    std::vector<double> probs(labels.size(), 0.);
+    std::vector<double> ft (features.size());
+    size_t correct = 0;
+
+    for (size_t i = 0; i < pointSet.count(); i++ ){
+        size_t idx = pointSet.pointMap[i];
+        for (std::size_t f = 0; f < features.size(); f++){
+           ft[f] = features[f]->getValue(idx);
+        }
+
+        booster->Predict(ft.data(), probs.data(), &earlyStop);
+        const auto maxClass = std::max_element(probs.begin(), probs.end());
+        int bestClass = std::distance(probs.begin(), maxClass);
+
+        auto label = labels[bestClass];
+        if (useColors){
+            auto color = label.getColor();
+            pointSet.colors[i][0] = color.r;
+            pointSet.colors[i][1] = color.g;
+            pointSet.colors[i][2] = color.b;
+        }else{
+            // TODO
+        }
+
+        if (evaluate && pointSet.labels[i] == bestClass){
+            correct++;
+        }
+    }
+
+    if (evaluate){
+        float modelErr = (1.f - static_cast<float>(correct) / static_cast<float>(pointSet.count()));
+        std::cout << "Model error: " << std::setprecision(4) << (modelErr * 100.f) << "%" << std::endl;
+    }
 }
 
 }

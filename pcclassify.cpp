@@ -1,6 +1,7 @@
 #include "common.hpp"
 #include "point_io.hpp"
 #include "randomforest.hpp"
+#include "gbm.hpp"
 
 void help(char *ex){
     std::cout << "Usage: " << ex << std::endl
@@ -31,7 +32,8 @@ int main(int argc, char **argv){
         auto features = getFeatures(scales);
         std::cout << "Features: " << features.size() << std::endl;
 
-        classify(pointSet, modelFile, features, labels, true, false);
+        // classify(pointSet, modelFile, features, labels, true, false);
+        gbm::classify(pointSet, modelFile, features, labels, true, false);
         savePointSet(pointSet, outputFile);
     } catch(std::exception &e){
         std::cerr << "Error: " << e.what() << std::endl;
