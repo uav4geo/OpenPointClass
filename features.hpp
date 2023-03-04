@@ -17,6 +17,8 @@ public:
     void setName(const std::string &name){
         this->name = name + "_" + std::to_string(s->id);
     }
+
+    Scale *getScale() { return s; }
 };
 
 class Omnivariance : public Feature{
@@ -146,7 +148,7 @@ public:
     };
 
     virtual float getValue(size_t i){
-        return s->pSet.points[i][2] - s->heightMin[i];
+        return s->pSet->points[i][2] - s->heightMin[i];
     }
 };
 
@@ -157,7 +159,7 @@ public:
     };
 
     virtual float getValue(size_t i){
-        return s->heightMax[i] - s->pSet.points[i][2];
+        return s->heightMax[i] - s->pSet->points[i][2];
     }
 };
 
@@ -170,9 +172,9 @@ public:
     };
 
     virtual float getValue(size_t i){
-        double r = s->pSet.colors[i][0];
-        double g = s->pSet.colors[i][1];
-        double b = s->pSet.colors[i][2];
+        double r = s->pSet->colors[i][0];
+        double g = s->pSet->colors[i][1];
+        double b = s->pSet->colors[i][2];
         auto hsv = rgb2hsv(r, g, b);
         return hsv[componentIdx];
     }

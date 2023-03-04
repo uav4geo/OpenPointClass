@@ -1,7 +1,10 @@
 #include "common.hpp"
 #include "point_io.hpp"
 #include "randomforest.hpp"
+
+#ifdef WITH_GBM
 #include "gbm.hpp"
+#endif
 
 void help(char *ex){
     std::cout << "Usage: " << ex << std::endl
@@ -26,14 +29,14 @@ int main(int argc, char **argv){
 
         double startResolution = argc >= 5 ? std::atof(argv[4]) : pointSet.spacing(); // meters
         std::cout << "Starting resolution: " << startResolution << std::endl;
-        auto scales = computeScales(NUM_SCALES, pointSet, startResolution);
+        auto scales = computeScales(NUM_SCALES, &pointSet, startResolution);
         std::cout << "Computed " << scales.size() << " scales" << std::endl;
 
         auto features = getFeatures(scales);
         std::cout << "Features: " << features.size() << std::endl;
 
-        // classify(pointSet, modelFile, features, labels, true, false);
-        gbm::classify(pointSet, modelFile, features, labels, true, false);
+        rf::classify(pointSet, modelFile, features, labels, rf::Regularization::LocalSmooth, true, false);
+        // gbm::classify(pointSet, modelFile, features, labels, true, false);
         savePointSet(pointSet, outputFile);
     } catch(std::exception &e){
         std::cerr << "Error: " << e.what() << std::endl;

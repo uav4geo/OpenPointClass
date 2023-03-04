@@ -1,6 +1,6 @@
 #include "scale.hpp"
 
-Scale::Scale(size_t id, PointSet &pSet, double resolution, int kNeighbors, double radius) :
+Scale::Scale(size_t id, PointSet *pSet, double resolution, int kNeighbors, double radius) :
     id(id), pSet(pSet), resolution(resolution), kNeighbors(kNeighbors), radius(radius){
     
 }
@@ -11,16 +11,16 @@ void Scale::init(){
         std::cout << "Init scale " << id << " at " << resolution << " ..." << std::endl;
     }
     if (id == 0){
-        pSet.pointMap.resize(pSet.count());
+        pSet->pointMap.resize(pSet->count());
     }else if (id > 0){
-        eigenValues.resize(pSet.count());
-        eigenVectors.resize(pSet.count());
-        orderAxis.resize(pSet.count());
-        heightMin.resize(pSet.count());
-        heightMax.resize(pSet.count());
+        eigenValues.resize(pSet->count());
+        eigenVectors.resize(pSet->count());
+        orderAxis.resize(pSet->count());
+        heightMin.resize(pSet->count());
+        heightMax.resize(pSet->count());
 
         if (id == 1){
-            avgHsv.resize(pSet.count());
+            avgHsv.resize(pSet->count());
         }
     }
 
@@ -41,8 +41,8 @@ void Scale::build(){
     std::vector<float> sqrDists(kNeighbors);
 
     #pragma omp for
-    for (size_t idx = 0; idx < pSet.count(); idx++){
-        index->knnSearch(&pSet.points[idx][0], kNeighbors, &neighborIds[0], &sqrDists[0]);
+    for (size_t idx = 0; idx < pSet->count(); idx++){
+        index->knnSearch(&pSet->points[idx][0], kNeighbors, &neighborIds[0], &sqrDists[0]);
         Eigen::Vector3f medoid = computeMedoid(neighborIds);
         Eigen::Matrix3d covariance = computeCovariance(neighborIds, medoid);
         solver.computeDirect(covariance);
@@ -97,8 +97,8 @@ void Scale::build(){
         std::vector<nanoflann::ResultItem<size_t, float>> radiusMatches;
 
         #pragma omp for
-        for (size_t idx = 0; idx < pSet.count(); idx++){
-            size_t numMatches = index->radiusSearch(&pSet.points[idx][0], radius, radiusMatches);
+        for (size_t idx = 0; idx < pSet->count(); idx++){
+            size_t numMatches = index->radiusSearch(&pSet->points[idx][0], radius, radiusMatches);
             avgHsv[idx] = {0.f, 0.f, 0.f};
 
             for (size_t i = 0; i < numMatches; i++){
@@ -126,19 +126,19 @@ void Scale::computeScaledSet(){
 
     // Voxel centroid nearest neighbor
     // Roughly from https://raw.githubusercontent.com/PDAL/PDAL/master/filters/VoxelCentroidNearestNeighborFilter.cpp
-    double x0 = pSet.points[0][0];
-    double y0 = pSet.points[0][1];
-    double z0 = pSet.points[0][2];
+    double x0 = pSet->points[0][0];
+    double y0 = pSet->points[0][1];
+    double z0 = pSet->points[0][2];
 
     // Make an initial pass through the input to index indices by
     // row, column, and depth.
     std::map<std::tuple<size_t, size_t, size_t>, std::vector<size_t> > populated_voxel_ids;
 
-    for (size_t id = 0; id < pSet.count(); id++){
+    for (size_t id = 0; id < pSet->count(); id++){
         populated_voxel_ids[std::make_tuple(
-            static_cast<size_t>((pSet.points[id][0] - y0) / resolution),  // r
-            static_cast<size_t>((pSet.points[id][1] - x0) / resolution),  // c
-            static_cast<size_t>((pSet.points[id][2] - z0) / resolution) // d
+            static_cast<size_t>((pSet->points[id][0] - y0) / resolution),  // r
+            static_cast<size_t>((pSet->points[id][1] - x0) / resolution),  // c
+            static_cast<size_t>((pSet->points[id][2] - z0) / resolution) // d
         )].push_back(id);
     }
 
@@ -150,8 +150,8 @@ void Scale::computeScaledSet(){
     for (auto const& t : populated_voxel_ids){
         if (t.second.size() == 1){
             // If there is only one point in the voxel, simply append it.
-            scaledSet.appendPoint(pSet, t.second[0]);
-            if (trackPoints) scaledSet.trackPoint(pSet, t.second[0]);
+            scaledSet.appendPoint(*pSet, t.second[0]);
+            if (trackPoints) scaledSet.trackPoint(*pSet, t.second[0]);
         }else if (t.second.size() == 2){
             // Else if there are only two, they are equidistant to the
             // centroid, so append the one closest to voxel center.
@@ -162,25 +162,25 @@ void Scale::computeScaledSet(){
             double z_center = z0 + (std::get<2>(t.first) + 0.5) * resolution;
 
             // Compute distance from first point to voxel center.
-            double x1 = pSet.points[t.second[0]][0];
-            double y1 = pSet.points[t.second[0]][1];
-            double z1 = pSet.points[t.second[0]][2];
+            double x1 = pSet->points[t.second[0]][0];
+            double y1 = pSet->points[t.second[0]][1];
+            double z1 = pSet->points[t.second[0]][2];
             double d1 = pow(x_center - x1, 2) + pow(y_center - y1, 2) + pow(z_center - z1, 2);
 
             // Compute distance from second point to voxel center.
-            double x2 = pSet.points[t.second[1]][0];
-            double y2 = pSet.points[t.second[1]][1];
-            double z2 = pSet.points[t.second[1]][2];
+            double x2 = pSet->points[t.second[1]][0];
+            double y2 = pSet->points[t.second[1]][1];
+            double z2 = pSet->points[t.second[1]][2];
             double d2 = pow(x_center - x2, 2) + pow(y_center - y2, 2) + pow(z_center - z2, 2);
 
             // Append the closer of the two.
             // TODO: this is probably wrong!
-            if (d1 < d2) scaledSet.appendPoint(pSet, t.second[0]);
-            else scaledSet.appendPoint(pSet, t.second[1]);
+            if (d1 < d2) scaledSet.appendPoint(*pSet, t.second[0]);
+            else scaledSet.appendPoint(*pSet, t.second[1]);
 
             if (trackPoints){
-                scaledSet.trackPoint(pSet, t.second[0]);
-                scaledSet.trackPoint(pSet, t.second[1]);
+                scaledSet.trackPoint(*pSet, t.second[0]);
+                scaledSet.trackPoint(*pSet, t.second[1]);
             }
         } else  {
             // Else there are more than two neighbors, so choose the one
@@ -194,20 +194,20 @@ void Scale::computeScaledSet(){
             size_t pmin = 0;
             double dmin((std::numeric_limits<double>::max)());
             for (auto const& p : t.second){
-                double sqr_dist = pow(centroid[0] - pSet.points[p][0], 2) +
-                                  pow(centroid[1] - pSet.points[p][1], 2) +
-                                  pow(centroid[2] - pSet.points[p][2], 2);
+                double sqr_dist = pow(centroid[0] - pSet->points[p][0], 2) +
+                                  pow(centroid[1] - pSet->points[p][1], 2) +
+                                  pow(centroid[2] - pSet->points[p][2], 2);
                 if (sqr_dist < dmin){
                     dmin = sqr_dist;
                     pmin = p;
                 }
             }
 
-            scaledSet.appendPoint(pSet, pmin);
+            scaledSet.appendPoint(*pSet, pmin);
 
             if (trackPoints){
                 for (auto const &p : t.second){
-                    scaledSet.trackPoint(pSet, p);
+                    scaledSet.trackPoint(*pSet, p);
                 }
             }
         }
@@ -276,9 +276,9 @@ Eigen::Vector3f Scale::computeCentroid(const std::vector<size_t> &pointIds){
             return average + delta_n;
         };
         n++;
-        mx = update(pSet.points[j][0], mx);
-        my = update(pSet.points[j][1], my);
-        mz = update(pSet.points[j][2], mz);
+        mx = update(pSet->points[j][0], mx);
+        my = update(pSet->points[j][1], my);
+        mz = update(pSet->points[j][2], mz);
     }
 
     Eigen::Vector3f centroid;
@@ -287,16 +287,16 @@ Eigen::Vector3f Scale::computeCentroid(const std::vector<size_t> &pointIds){
     return centroid;
 }
 
-std::vector<Scale *> computeScales(size_t numScales, PointSet &pSet, double startResolution){
+std::vector<Scale *> computeScales(size_t numScales, PointSet *pSet, double startResolution){
     std::vector<Scale *> scales(numScales, nullptr);
 
     Scale *base = new Scale(0, pSet, startResolution * std::pow(2.0, 0));
     base->init();
     // base->save("base.ply");
-    pSet = base->pSet;
+    pSet->base = &base->scaledSet;
 
     for (size_t i = 0; i < numScales; i++){
-        scales[i] = new Scale(i + 1, base->scaledSet, startResolution * std::pow(2.0, i));
+        scales[i] = new Scale(i + 1, &base->scaledSet, startResolution * std::pow(2.0, i));
     }
 
     #pragma omp parallel for

@@ -1,7 +1,10 @@
 #include "common.hpp"
 #include "point_io.hpp"
 #include "randomforest.hpp"
+
+#ifdef WITH_GBM
 #include "gbm.hpp"
+#endif
 
 void help(char *ex){
     std::cout << "Usage: " << ex << std::endl
@@ -11,8 +14,6 @@ void help(char *ex){
 }
 
 int main(int argc, char **argv){
-    gbm::test();
-    
     if( argc < 3 ) help(argv[0]);
 
     try {
@@ -24,15 +25,15 @@ int main(int argc, char **argv){
         double startResolution = pointSet.spacing(); // meters
         std::cout << "Starting resolution: " << startResolution << std::endl;
 
-        auto scales = computeScales(NUM_SCALES, pointSet, startResolution);
+        auto scales = computeScales(NUM_SCALES, &pointSet, startResolution);
 
         auto features = getFeatures(scales);
         std::cout << "Features: " << features.size() << std::endl;
 
         auto labels = getTrainingLabels();
 
-        // train(pointSet, features, labels, modelFilename);
-        gbm::train(pointSet, features, labels, modelFilename);
+        rf::train(pointSet, features, labels, modelFilename);
+        // gbm::train(pointSet, features, labels, modelFilename);
 
         const std::string ext = filename.substr(filename.length() - 4);
         const std::string evalFilename = filename.substr(0, filename.length() - 4) + "_eval" + ext;
@@ -40,13 +41,13 @@ int main(int argc, char **argv){
             std::cout << "Evaluating on " << evalFilename << " ..." << std::endl;
             
             auto evalPointSet = readPointSet(evalFilename);
-            auto evalScales = computeScales(NUM_SCALES, evalPointSet, startResolution);
+            auto evalScales = computeScales(NUM_SCALES, &evalPointSet, startResolution);
             std::cout << "Computed " << evalScales.size() << " scales" << std::endl;
             auto evalFeatures = getFeatures(evalScales);
             std::cout << "Features: " << evalFeatures.size() << std::endl;
 
-            // classify(evalPointSet, modelFilename, evalFeatures, labels, true, true);
-            gbm::classify(evalPointSet, modelFilename, evalFeatures, labels, true, true);
+            rf::classify(evalPointSet, modelFilename, evalFeatures, labels, rf::Regularization::LocalSmooth, true, true);
+            // gbm::classify(evalPointSet, modelFilename, evalFeatures, labels, true, true);
             
             savePointSet(evalPointSet, "evaluation.ply");
         }

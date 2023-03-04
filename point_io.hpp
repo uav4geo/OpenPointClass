@@ -25,6 +25,7 @@ struct PointSet {
     std::vector<uint8_t> views;
 
     std::vector<size_t> pointMap;
+    PointSet *base = nullptr;
 
     void *kdTree = nullptr;
 

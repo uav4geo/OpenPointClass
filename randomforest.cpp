@@ -1,6 +1,11 @@
 #include "randomforest.hpp"
 
-void train(const PointSet &pointSet, const std::vector<Feature *> &features, const std::vector<Label> &labels, const std::string &modelFilename){
+namespace rf{
+
+void train(const PointSet &pointSet, 
+          const std::vector<Feature *> &features, 
+          const std::vector<Label> &labels, 
+          const std::string &modelFilename){
   liblearning::RandomForest::ForestParams params;
   params.n_trees   = N_TREES;
   params.max_depth = MAX_DEPTH;
@@ -73,6 +78,7 @@ void classify(PointSet &pointSet,
     const std::string &modelFilename,
     const std::vector<Feature *> &features, 
     const std::vector<Label> &labels,
+    Regularization regularization,
     bool useColors,
     bool evaluate){
   std::cout << "Loading " << modelFilename << std::endl;
@@ -92,35 +98,110 @@ void classify(PointSet &pointSet,
   ias >> BOOST_SERIALIZATION_NVP(rtrees);
 
   std::cout << "Classifying..." << std::endl;
-  std::size_t correct = 0;
+  pointSet.base->labels.resize(pointSet.base->count());
 
-  #pragma omp parallel
-  {
-  std::vector<float> probs(labels.size(), 0.);
-  std::vector<float> ft (features.size());
+  if (regularization == Regularization::None){
+    #pragma omp parallel
+    {
+    std::vector<float> probs(labels.size(), 0.);
+    std::vector<float> ft (features.size());
 
-  #pragma omp for
-  for (size_t i = 0; i < pointSet.count(); i++ ){
-    size_t idx = pointSet.pointMap[i];
+    #pragma omp for
+    for (size_t i = 0; i < pointSet.base->count(); i++ ){
+      for (std::size_t f = 0; f < features.size(); f++){
+        ft[f] = features[f]->getValue(i);
+      }
 
-    for (std::size_t f = 0; f < features.size(); f++){
-      ft[f] = features[f]->getValue(idx);
+      rtrees.evaluate (ft.data(), probs.data());
+
+      // Find highest probability
+      int bestClass = 0;
+      float bestClassVal = 0.f;
+    
+      for (std::size_t j = 0; j < probs.size(); j++){
+        if (probs[j] > bestClassVal){
+          bestClass = j;
+          bestClassVal = probs[j];
+        }
+      }
+
+      pointSet.base->labels[i] = bestClass;
     }
+    } // end pragma omp
 
-    rtrees.evaluate (ft.data(), probs.data());
+  }else if (regularization == Regularization::LocalSmooth){
+    std::vector<std::vector<float> > values (labels.size(), std::vector<float> (pointSet.base->count(), -1.));
+    
+    #pragma omp parallel
+    {
 
-    // Find highest probability
-    int bestClass = 0;
-    float bestClassVal = 0.f;
-   
-    for (std::size_t j = 0; j < probs.size(); j++){
-      if (probs[j] > bestClassVal){
-        bestClass = j;
-        bestClassVal = probs[j];
+    std::vector<float> probs(labels.size(), 0.);
+    std::vector<float> ft (features.size());
+
+    #pragma omp for
+    for (size_t i = 0; i < pointSet.base->count(); i++){
+      for (std::size_t f = 0; f < features.size(); f++){
+        ft[f] = features[f]->getValue(i);
+      }
+
+      rtrees.evaluate (ft.data(), probs.data());
+
+      for(std::size_t j = 0; j < labels.size(); j++){
+        values[j][i] = probs[j];
       }
     }
 
+    }
+
+    std::cout << "Local smoothing..." << std::endl;
+
+    #pragma omp parallel
+    {
+
+    std::vector<nanoflann::ResultItem<size_t, float>> radiusMatches;
+    std::vector<float> mean (values.size(), 0.);
+    auto index = pointSet.base->getIndex<KdTree>();
+
+    const double radius = features[0]->getScale()->radius;
+
+    #pragma omp for
+    for (size_t i = 0; i < pointSet.base->count(); i++){
+      size_t numMatches = index->radiusSearch(&pointSet.base->points[i][0], radius, radiusMatches);
+      std::fill(mean.begin(), mean.end(), 0.);
+
+      for (size_t n = 0; n < numMatches; n++){
+        for (std::size_t j = 0; j < values.size(); ++ j){
+          mean[j] += values[j][radiusMatches[n].first];
+        }
+      }
+
+      int bestClass = 0;
+      float bestClassVal = 0.f;
+      for(std::size_t j = 0; j < mean.size(); j++){
+        mean[j] /= numMatches;
+        if(mean[j] > bestClassVal){
+          bestClassVal = mean[j];
+          bestClass = j;
+        }
+      }
+
+      pointSet.base->labels[i] = bestClass;
+    }
+
+    }
+  }else{
+    throw std::runtime_error("Invalid regularization");
+  }
+
+  std::size_t correct = 0;
+
+  #pragma omp parallel for
+  for (size_t i = 0; i < pointSet.count(); i++){
+    size_t idx = pointSet.pointMap[i];
+
+    int bestClass = pointSet.base->labels[idx];
     auto label = labels[bestClass];
+
     if (useColors){
       auto color = label.getColor();
       pointSet.colors[i][0] = color.r;
@@ -136,14 +217,12 @@ void classify(PointSet &pointSet,
         correct++;
       }
     }
-
-    // TODO: local smoothing?
-  }
-
   }
 
   if (evaluate){
     float modelErr = (1.f - static_cast<float>(correct) / static_cast<float>(pointSet.count()));
     std::cout << "Model error: " << std::setprecision(4) << (modelErr * 100.f) << "%" << std::endl;
   }
+}
+
 }
