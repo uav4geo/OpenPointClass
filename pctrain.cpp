@@ -55,6 +55,7 @@ int main(int argc, char **argv){
 
             rf::classify(*evalPointSet, modelFilename, evalFeatures, labels, rf::Regularization::None, true, true);
             // gbm::classify(evalPointSet, modelFilename, evalFeatures, labels, true, true);
+            savePointSet(*evalPointSet, "evaluation.ply");
         }
     } catch(std::exception &e){
         std::cerr << "Error: " << e.what() << std::endl;
