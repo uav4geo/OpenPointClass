@@ -100,12 +100,8 @@ void classify(PointSet &pointSet,
   std::ifstream ifs(modelFilename.c_str(), std::ios_base::in | std::ios_base::binary);
   if (!ifs.is_open()) throw std::runtime_error("Cannot open " + modelFilename);
   
-  ForestParams params;
-  params.n_trees   = N_TREES;
-  params.max_depth = MAX_DEPTH;
+  RandomForest rtrees;
 
-  RandomForest rtrees(params);
-  
   boost::iostreams::filtering_istream ins;
   ins.push(boost::iostreams::gzip_decompressor());
   ins.push(ifs);
