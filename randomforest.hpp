@@ -25,21 +25,27 @@ typedef liblearning::RandomForest::ForestParams ForestParams;
 typedef liblearning::DataView2D<int> LabelDataView;
 typedef liblearning::DataView2D<float> FeatureDataView;
 
+Regularization parseRegularization(const std::string &regularization);
+
 void train(const std::vector<std::string> filenames,
     double *startResolution,
     int numScales,
     int numTrees,
     int treeDepth,
     double radius,
+    int maxSamplesPerLabel,
     const std::string &modelFilename);
+
+RandomForest *loadForest(const std::string &modelFilename);
 
 void trainForest(const PointSet &pointSet,
           const std::vector<Feature *> &features,
           const std::vector<Label> &labels,
-          RandomForest *rtrees);
+          RandomForest *rtrees,
+          int maxSamplesPerLabel);
 
 void classify(PointSet &pointSet, 
-    const std::string &modelFilename,
+    RandomForest *rtrees,
     const std::vector<Feature *> &features, 
     const std::vector<Label> &labels,
     Regularization regularization = Regularization::None,

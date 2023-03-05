@@ -57,6 +57,12 @@ struct ForestParams {
     size_t n_trees;
     size_t min_samples_per_node;
     float  sample_reduction;
+
+    // not used by RF
+    double resolution; 
+    double radius;
+    int numScales;
+
     ForestParams() :
         n_classes(0),
         n_features(0),
@@ -65,7 +71,10 @@ struct ForestParams {
         max_depth(42),
         n_trees(100),
         min_samples_per_node(5),
-        sample_reduction(0)
+        sample_reduction(0),
+        resolution(-1),
+        radius(0.6),
+        numScales(5)
     {}
     template <typename Archive>
     void serialize(Archive& ar, unsigned /*version*/)
@@ -78,6 +87,9 @@ struct ForestParams {
         ar & BOOST_SERIALIZATION_NVP(n_trees);
         ar & BOOST_SERIALIZATION_NVP(min_samples_per_node);
         ar & BOOST_SERIALIZATION_NVP(sample_reduction);
+        ar & BOOST_SERIALIZATION_NVP(resolution);
+        ar & BOOST_SERIALIZATION_NVP(radius);
+        ar & BOOST_SERIALIZATION_NVP(numScales);
     }
 };
 

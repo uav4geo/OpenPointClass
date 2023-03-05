@@ -2,12 +2,19 @@
 
 namespace rf{
 
+Regularization parseRegularization(const std::string &regularization){
+    if (regularization == "none") return None;
+    else if (regularization == "local_smooth") return LocalSmooth;
+    else throw std::runtime_error("Invalid regularization value: " + regularization);
+}
+
 void train(const std::vector<std::string> filenames,
           double *startResolution,
           int numScales,
           int numTrees,
           int treeDepth,
           double radius,
+          int maxSamplesPerLabel,
           const std::string &modelFilename){
   ForestParams params;
   params.n_trees   = numTrees;
@@ -34,13 +41,17 @@ void train(const std::vector<std::string> filenames,
     auto features = getFeatures(scales);
     std::cout << "Features: " << features.size() << std::endl;
 
-    trainForest(*pointSet, features, labels, &rtrees);
+    trainForest(*pointSet, features, labels, &rtrees, maxSamplesPerLabel);
 
     // Free up memory for next
     for (size_t i = 0; i < scales.size(); i++) delete scales[i];
     for (size_t i = 0; i < features.size(); i++) delete features[i];
     RELEASE_POINTSET(pointSet);
   }
+
+  rtrees.params.resolution = *startResolution;
+  rtrees.params.radius = radius;
+  rtrees.params.numScales = numScales;
 
   std::ofstream ofs(modelFilename.c_str(), std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
   boost::iostreams::filtering_ostream outs;
@@ -55,7 +66,8 @@ void train(const std::vector<std::string> filenames,
 void trainForest(const PointSet &pointSet, 
           const std::vector<Feature *> &features,
           const std::vector<Label> &labels, 
-          RandomForest *rtrees){
+          RandomForest *rtrees,
+          int maxSamplesPerLabel){
 
   AxisAlignedRandomSplitGenerator generator;
   
@@ -81,7 +93,7 @@ void trainForest(const PointSet &pointSet,
   for (std::size_t i = 0; i < labels.size(); i++){
     if (count[i] > 0) samplesPerLabel = std::min(count[i], samplesPerLabel);
   }
-  samplesPerLabel = std::min<size_t>(samplesPerLabel, 1000000);
+  samplesPerLabel = std::min<size_t>(samplesPerLabel, maxSamplesPerLabel);
   std::vector<std::size_t> added (labels.size(), 0);
 
   std::cout << "Samples per label: " << samplesPerLabel << std::endl;
@@ -112,25 +124,31 @@ void trainForest(const PointSet &pointSet,
 
 }
 
+RandomForest *loadForest(const std::string &modelFilename){
+  RandomForest *rtrees = new RandomForest();
+
+  std::cout << "Loading " << modelFilename << std::endl;
+  std::ifstream ifs(modelFilename.c_str(), std::ios_base::in | std::ios_base::binary);
+  if (!ifs.is_open()) throw std::runtime_error("Cannot open " + modelFilename);
+  
+  boost::iostreams::filtering_istream ins;
+  ins.push(boost::iostreams::gzip_decompressor());
+  ins.push(ifs);
+  boost::archive::text_iarchive ias(ins);
+  ias >> BOOST_SERIALIZATION_NVP(*rtrees);
+
+  return rtrees;
+}
+
 void classify(PointSet &pointSet, 
-    const std::string &modelFilename,
+    RandomForest *rtrees,
     const std::vector<Feature *> &features, 
     const std::vector<Label> &labels,
     Regularization regularization,
     bool useColors,
     bool evaluate){
-  std::cout << "Loading " << modelFilename << std::endl;
-  std::ifstream ifs(modelFilename.c_str(), std::ios_base::in | std::ios_base::binary);
-  if (!ifs.is_open()) throw std::runtime_error("Cannot open " + modelFilename);
+
   
-  RandomForest rtrees;
-
-  boost::iostreams::filtering_istream ins;
-  ins.push(boost::iostreams::gzip_decompressor());
-  ins.push(ifs);
-  boost::archive::text_iarchive ias(ins);
-  ias >> BOOST_SERIALIZATION_NVP(rtrees);
-
   std::cout << "Classifying..." << std::endl;
   pointSet.base->labels.resize(pointSet.base->count());
 
@@ -146,7 +164,7 @@ void classify(PointSet &pointSet,
         ft[f] = features[f]->getValue(i);
       }
 
-      rtrees.evaluate (ft.data(), probs.data());
+      rtrees->evaluate (ft.data(), probs.data());
 
       // Find highest probability
       int bestClass = 0;
@@ -178,7 +196,7 @@ void classify(PointSet &pointSet,
         ft[f] = features[f]->getValue(i);
       }
 
-      rtrees.evaluate (ft.data(), probs.data());
+      rtrees->evaluate (ft.data(), probs.data());
 
       for(std::size_t j = 0; j < labels.size(); j++){
         values[j][i] = probs[j];

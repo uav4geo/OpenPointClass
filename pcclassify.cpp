@@ -2,39 +2,61 @@
 #include "point_io.hpp"
 #include "randomforest.hpp"
 
+#include "vendor/cxxopts.hpp"
+
 #ifdef WITH_GBM
 #include "gbm.hpp"
 #endif
 
-void help(char *ex){
-    std::cout << "Usage: " << ex << std::endl
-              << "\t <input point cloud>" << std::endl
-              << "\t <classification model (.bin)>" << std::endl
-              << "\t <output point cloud>" << std::endl
-              << "\t [start resolution]" << std::endl;
-    exit(EXIT_FAILURE);
-}
-
 int main(int argc, char **argv){
-    if( argc < 4 ) help(argv[0]);
+    cxxopts::Options options("pctrain", "Trains a point cloud classification model");
+    options.add_options()
+            ("i,input", "Input point cloud", cxxopts::value<std::string>())
+            ("o,output", "Output point cloud", cxxopts::value<std::string>())
+            ("m,model", "Input classification model", cxxopts::value<std::string>()->default_value("model.bin"))
+            ("r,regularization", "Regularization method (none, local_smooth)", cxxopts::value<std::string>()->default_value("local_smooth"))
+            ("c,color", "Output a colored point cloud instead of a classified one", cxxopts::value<bool>()->default_value("false"))
+            ("h,help", "Print usage")
+        ;
+    options.parse_positional({"input", "output", "model"});
+    options.positional_help("[input point cloud] [output point cloud] [input classification model]");
+    auto result = options.parse(argc, argv);
+    bool showHelp = false;
+
+    if (result.count("help") || !result.count("input") || !result.count("output")) showHelp = true;
+    
+    rf::Regularization regularization = rf::Regularization::None;
+
+    try { 
+        regularization = rf::parseRegularization(result["regularization"].as<std::string>()); 
+    } catch(...) { showHelp = true; }
+
+    if (showHelp){
+        std::cout << options.help() << std::endl;
+        exit(0);
+    }
 
     try {
         // Read points
-        std::string inputFile = std::string(argv[1]);
-        std::string modelFile = std::string(argv[2]);
-        std::string outputFile = std::string(argv[3]);
+        std::string inputFile = result["input"].as<std::string>();
+        std::string modelFile = result["model"].as<std::string>();
+        std::string outputFile = result["output"].as<std::string>();
+
+        rf::RandomForest *rtrees = rf::loadForest(modelFile);
 
         auto labels = getTrainingLabels();
         auto pointSet = readPointSet(inputFile);
 
-        double startResolution = argc >= 5 ? std::atof(argv[4]) : pointSet->spacing(); // meters
+        double startResolution = rtrees->params.resolution;
+        double radius = rtrees->params.radius;
+        int numScales = rtrees->params.numScales;
+
         std::cout << "Starting resolution: " << startResolution << std::endl;
 
-        auto features = getFeatures(computeScales(NUM_SCALES, pointSet, startResolution, RADIUS));
+        auto features = getFeatures(computeScales(numScales, pointSet, startResolution, radius));
         std::cout << "Features: " << features.size() << std::endl;
 
-        rf::classify(*pointSet, modelFile, features, labels, rf::Regularization::LocalSmooth, true, false);
-        // gbm::classify(pointSet, modelFile, features, labels, true, false);
+        rf::classify(*pointSet, rtrees, features, labels, regularization, result["color"].as<bool>(), false);
         savePointSet(*pointSet, outputFile);
     } catch(std::exception &e){
         std::cerr << "Error: " << e.what() << std::endl;

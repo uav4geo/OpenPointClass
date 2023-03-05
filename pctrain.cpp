@@ -18,6 +18,7 @@ int main(int argc, char **argv){
             ("s,scales", "Number of scales to compute", cxxopts::value<int>()->default_value(MKSTR(NUM_SCALES)))
             ("t,trees", "Number of trees to populate for each input point cloud", cxxopts::value<int>()->default_value(MKSTR(N_TREES)))
             ("d,depth", "Maximum depth of trees", cxxopts::value<int>()->default_value(MKSTR(MAX_DEPTH)))
+            ("m,max-samples", "Maximum number of samples per label for each input point cloud", cxxopts::value<int>()->default_value("1000000"))
             ("radius", "Radius size to use for neighbor search (meters)", cxxopts::value<double>()->default_value(MKSTR(RADIUS)))
             ("e,eval", "Labeled point cloud to use for model accuracy evaluation", cxxopts::value<std::string>()->default_value(""))
             ("h,help", "Print usage")
@@ -40,8 +41,9 @@ int main(int argc, char **argv){
         int numTrees = result["trees"].as<int>();
         int treeDepth = result["depth"].as<int>();
         double radius = result["radius"].as<double>();
+        int maxSamplesPerLabel = result["max-samples"].as<int>();
 
-        rf::train(filenames, &startResolution, scales, numTrees, treeDepth, radius, modelFilename);
+        rf::train(filenames, &startResolution, scales, numTrees, treeDepth, radius, maxSamplesPerLabel, modelFilename);
         // gbm::train(pointSet, features, labels, modelFilename);
 
         if (result["eval"].count()){
@@ -55,7 +57,8 @@ int main(int argc, char **argv){
             auto evalFeatures = getFeatures(computeScales(scales, evalPointSet, startResolution, radius));
             std::cout << "Features: " << evalFeatures.size() << std::endl;
 
-            rf::classify(*evalPointSet, modelFilename, evalFeatures, labels, rf::Regularization::None, true, true);
+            rf::RandomForest *rtrees = rf::loadForest(modelFilename);
+            rf::classify(*evalPointSet, rtrees, evalFeatures, labels, rf::Regularization::None, true, true);
             // gbm::classify(evalPointSet, modelFilename, evalFeatures, labels, true, true);
             savePointSet(*evalPointSet, "evaluation_results.ply");
         }
