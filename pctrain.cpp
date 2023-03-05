@@ -19,9 +19,11 @@ int main(int argc, char **argv){
             ("t,trees", "Number of trees to populate for each input point cloud", cxxopts::value<int>()->default_value(MKSTR(N_TREES)))
             ("d,depth", "Maximum depth of trees", cxxopts::value<int>()->default_value(MKSTR(MAX_DEPTH)))
             ("radius", "Radius size to use for neighbor search (meters)", cxxopts::value<double>()->default_value(MKSTR(RADIUS)))
+            ("e,eval", "Labeled point cloud to use for model accuracy evaluation", cxxopts::value<std::string>()->default_value(""))
             ("h,help", "Print usage")
         ;
-    options.parse_positional({"input", "output"});
+    options.parse_positional({"input"});
+    options.positional_help("[labeled point cloud(s)]");
     auto result = options.parse(argc, argv);
     
     if (result.count("help") || !result.count("input")){
@@ -42,20 +44,20 @@ int main(int argc, char **argv){
         rf::train(filenames, &startResolution, scales, numTrees, treeDepth, radius, modelFilename);
         // gbm::train(pointSet, features, labels, modelFilename);
 
-        const std::string lastFile = filenames.back();
-        const std::string ext = lastFile.substr(lastFile.length() - 4);
-        const std::string evalFilename = lastFile.substr(0, lastFile.length() - 4) + "_eval" + ext;
-        if (fileExists(evalFilename)){
+        if (result["eval"].count()){
+            std::string evalFilename = result["eval"].as<std::string>();
             std::cout << "Evaluating on " << evalFilename << " ..." << std::endl;
             
             auto labels = getTrainingLabels();
             auto evalPointSet = readPointSet(evalFilename);
+
+            if (!evalPointSet->hasLabels()) throw std::runtime_error("Evaluation dataset has no labels");
             auto evalFeatures = getFeatures(computeScales(scales, evalPointSet, startResolution, radius));
             std::cout << "Features: " << evalFeatures.size() << std::endl;
 
             rf::classify(*evalPointSet, modelFilename, evalFeatures, labels, rf::Regularization::None, true, true);
             // gbm::classify(evalPointSet, modelFilename, evalFeatures, labels, true, true);
-            savePointSet(*evalPointSet, "evaluation.ply");
+            savePointSet(*evalPointSet, "evaluation_results.ply");
         }
     } catch(std::exception &e){
         std::cerr << "Error: " << e.what() << std::endl;

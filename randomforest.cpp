@@ -20,6 +20,11 @@ void train(const std::vector<std::string> filenames,
     std::cout << "Training on " << filenames[i] << std::endl;
 
     auto pointSet = readPointSet(filenames[i]);
+    if (!pointSet->hasLabels()){
+      std::cout << filenames[i] << " has no labels, skipping..." << std::endl;
+      continue;
+    }
+
     if (*startResolution == -1.0){
         *startResolution = pointSet->spacing(); // meters
         std::cout << "Starting resolution: " << *startResolution << std::endl;
