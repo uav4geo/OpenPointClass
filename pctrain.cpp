@@ -25,7 +25,14 @@ int main(int argc, char **argv){
         ;
     options.parse_positional({"input"});
     options.positional_help("[labeled point cloud(s)]");
-    auto result = options.parse(argc, argv);
+    cxxopts::ParseResult result;
+    try{
+        result = options.parse(argc, argv);
+    }catch(const std::exception &e){
+        std::cerr << e.what() << std::endl;
+        std::cerr << options.help() << std::endl;
+        exit(1);
+    }
     
     if (result.count("help") || !result.count("input")){
         std::cout << options.help() << std::endl;

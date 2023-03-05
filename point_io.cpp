@@ -1,5 +1,6 @@
 #include <random>
 #include <filesystem>
+
 #include "point_io.hpp"
 #include "labels.hpp"
 
@@ -94,12 +95,41 @@ size_t getVertexCount(const std::string& line) {
 }
 
 PointSet* readPointSet(const std::string& filename){
-    std::ifstream reader(filename);
-    
-    PointSet *r = new PointSet();
+    PointSet *r;
+    fs::path p(filename);
+    if (p.extension().string() == ".ply") r = fastPlyReadPointSet(filename);
+    else r = pdalReadPointSet(filename);
 
+    // Re-map labels if needed
+    if (r->hasLabels()){
+        auto mappings = getClassMappings(filename);
+        bool hasMappings = !mappings.empty();
+
+        if (hasMappings){
+            auto trainingCodes = getTrainingCodes();
+            for (size_t idx = 0; idx < r->count(); idx++) {
+                int label = r->labels[idx];
+
+                if (mappings.find(label) != mappings.end()){
+                    label = trainingCodes[mappings[label]];
+                }else{
+                    label = trainingCodes["unassigned"];
+                }
+
+                r->labels[idx] = label;
+            }
+        }
+    }
+
+    return r;
+}
+
+PointSet* fastPlyReadPointSet(const std::string &filename){
+    std::ifstream reader(filename);
     if (!reader.is_open())
         throw std::runtime_error("Cannot open file " + filename);
+
+    PointSet *r = new PointSet();
 
     std::string line;
     std::getline(reader, line);
@@ -234,27 +264,6 @@ PointSet* readPointSet(const std::string& filename){
         }
     }
 
-    // Re-map labels if needed
-    if (hasLabels){
-        auto mappings = getClassMappings(filename);
-        bool hasMappings = !mappings.empty();
-
-        if (hasMappings){
-            auto trainingCodes = getTrainingCodes();
-            for (size_t idx = 0; idx < count; idx++) {
-                int label = r->labels[idx];
-
-                if (mappings.find(label) != mappings.end()){
-                    label = trainingCodes[mappings[label]];
-                }else{
-                    label = trainingCodes["unassigned"];
-                }
-
-                r->labels[idx] = label;
-            }
-        }
-    }
-
     // for (size_t idx = 0; idx < count; idx++) {
     //     std::cout << r->points[idx][0] << " ";
     //     std::cout << r->points[idx][1] << " ";
@@ -277,6 +286,81 @@ PointSet* readPointSet(const std::string& filename){
     return r;
 }
 
+PointSet* pdalReadPointSet(const std::string &filename){
+#ifdef WITH_PDAL
+    std::string labelDimension = "";
+    pdal::StageFactory factory;
+    std::string driver = pdal::StageFactory::inferReaderDriver(filename);
+    if (driver.empty()){
+        throw std::runtime_error("Can't infer point cloud reader from " + filename);
+    }
+
+    PointSet *r = new PointSet();
+    pdal::Stage *s = factory.createStage(driver);
+    pdal::Options opts;
+    opts.add("filename", filename);
+    s->setOptions(opts);
+
+    pdal::PointTable *table = new pdal::PointTable();
+    pdal::PointViewSet pvSet;
+
+    std::cout << "Reading points from " << filename << std::endl;
+
+    s->prepare(*table);
+    pvSet = s->execute(*table);
+
+    r->pointView = *pvSet.begin();
+    pdal::PointViewPtr pView = r->pointView;
+
+    if (pView->empty()) {
+        throw std::runtime_error("No points could be fetched");
+    }
+
+    std::cout << "Number of points: " << pView->size() << std::endl;
+
+    for (auto &d : pView->dims()){
+        std::string dim = pView->dimName(d);
+        if (dim == "Label" || dim == "label" ||
+            dim == "Classification" || dim == "classification" ||
+            dim == "Class" || dim == "class"){
+            labelDimension = dim;
+        }
+    }
+
+    size_t count = pView->size();
+    pdal::PointLayoutPtr layout(table->layout());
+    pdal::Dimension::Id labelId;
+    if (!labelDimension.empty()){
+        std::cout << "Label dimension: " << labelDimension << std::endl;
+        labelId = layout->findDim(labelDimension);
+        r->labels.resize(count);
+    }
+
+    r->points.resize(count);
+    if (layout->hasDim(pdal::Dimension::Id::Red)) r->colors.resize(count);
+
+    for (pdal::PointId idx = 0; idx < count; ++idx) {
+        auto p = pView->point(idx);
+        r->points[idx][0] = p.getFieldAs<double>(pdal::Dimension::Id::X);
+        r->points[idx][1] = p.getFieldAs<double>(pdal::Dimension::Id::Y);
+        r->points[idx][2] = p.getFieldAs<double>(pdal::Dimension::Id::Z);
+
+        r->colors[idx][0] = p.getFieldAs<uint8_t>(pdal::Dimension::Id::Red);
+        r->colors[idx][1] = p.getFieldAs<uint8_t>(pdal::Dimension::Id::Green);
+        r->colors[idx][2] = p.getFieldAs<uint8_t>(pdal::Dimension::Id::Blue);
+
+        if (!labelDimension.empty()){
+            r->labels[idx] = p.getFieldAs<uint8_t>(labelId);
+        }
+    }
+
+    return r;
+#else
+    fs::path p(filename);
+    throw std::runtime_error("Unsupported file extension " + p.extension().string() + ", build program with PDAL support for additional file types support.");
+#endif
+}
+
 void checkHeader(std::ifstream& reader, const std::string &prop){
     std::string line;
     std::getline(reader, line);
@@ -291,6 +375,64 @@ bool hasHeader(const std::string &line, const std::string &prop){
 }
 
 void savePointSet(PointSet &pSet, const std::string &filename){
+    fs::path p(filename);
+    if (p.extension().string() == ".ply") fastPlySavePointSet(pSet, filename);
+    else pdalSavePointSet(pSet, filename);
+}
+
+void pdalSavePointSet(PointSet &pSet, const std::string &filename){
+#ifdef WITH_PDAL
+    pdal::StageFactory factory;
+    std::string driver = pdal::StageFactory::inferWriterDriver(filename);
+    if (driver.empty()){
+        throw std::runtime_error("Can't infer point cloud writer from " + filename);
+    }
+
+    // Sync position, color and label data
+    if (pSet.pointView == nullptr) throw std::runtime_error("pointView is null (should not have happened)");
+    pdal::PointViewPtr pView = pSet.pointView;
+
+    for (pdal::PointId i = 0; i < pSet.count(); i++) {
+        pView->setField(pdal::Dimension::Id::X, i, pSet.points[i][0]);
+        pView->setField(pdal::Dimension::Id::Y, i, pSet.points[i][1]);
+        pView->setField(pdal::Dimension::Id::Z, i, pSet.points[i][2]);
+        
+        if (pSet.hasColors()){
+            pView->setField(pdal::Dimension::Id::Red, i, pSet.colors[i][0]);
+            pView->setField(pdal::Dimension::Id::Green, i, pSet.colors[i][1]);
+            pView->setField(pdal::Dimension::Id::Blue, i, pSet.colors[i][2]);
+        }
+
+        if (pSet.hasLabels()){
+            pView->setField(pdal::Dimension::Id::Classification, i, pSet.labels[i]);
+        }
+    }
+
+    pdal::PointTable table;
+    pdal::BufferReader reader;
+    reader.addView(pView);
+
+    for (auto d : pView->dims()){
+        table.layout()->registerOrAssignDim(pView->dimName(d), pView->dimType(d));
+    }
+
+    pdal::Stage *s = factory.createStage(driver);
+    pdal::Options opts;
+    opts.add("filename", filename);
+    s->setOptions(opts);
+    s->setInput(reader);
+
+    s->prepare(table);
+    s->execute(table);
+
+    std::cout << "Wrote " << filename << std::endl;
+#else
+    fs::path p(filename);
+    throw std::runtime_error("Unsupported file extension " + p.extension().string() + ", build program with PDAL support for additional file types support.");
+#endif
+}
+
+void fastPlySavePointSet(PointSet &pSet, const std::string &filename){
     std::ofstream o(filename, std::ios::binary);
 
     o << "ply" << std::endl;

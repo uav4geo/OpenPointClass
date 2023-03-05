@@ -3,6 +3,14 @@
 
 #include <iostream>
 #include <fstream>
+
+#ifdef WITH_PDAL
+#include <pdal/Options.hpp>
+#include <pdal/PointTable.hpp>
+#include <pdal/StageFactory.hpp>
+#include <pdal/io/BufferReader.hpp>
+#endif
+
 #include "vendor/json/json.hpp"
 #include "vendor/nanoflann/nanoflann.hpp"
 
@@ -30,6 +38,10 @@ struct PointSet {
     PointSet *base = nullptr;
 
     void *kdTree = nullptr;
+
+#ifdef WITH_PDAL
+    pdal::PointViewPtr pointView = nullptr;
+#endif
 
     template <typename T>
     inline T *getIndex(){
@@ -94,8 +106,14 @@ size_t getVertexCount(const std::string& line);
 inline void checkHeader(std::ifstream& reader, const std::string &prop);
 inline bool hasHeader(const std::string &line, const std::string &prop);
 
+PointSet* fastPlyReadPointSet(const std::string &filename);
+PointSet* pdalReadPointSet(const std::string &filename);
 PointSet* readPointSet(const std::string& filename);
+
+void fastPlySavePointSet(PointSet &pSet, const std::string &filename);
+void pdalSavePointSet(PointSet &pSet, const std::string &filename);
 void savePointSet(PointSet &pSet, const std::string &filename);
+
 
 bool fileExists(const std::string &path);
 std::unordered_map<int, std::string> getClassMappings(const std::string &filename);

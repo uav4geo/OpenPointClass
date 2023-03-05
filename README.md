@@ -31,7 +31,7 @@ make -j$(nproc)
 ./pcclassify ./dataset.ply ./classified.ply [model.bin]
 ```
 
-We provide access to a pre-trained model if you don't have access to labeled data to train your own. Please note it was generated using a limited number of samples and it might not work well with all datasets.
+We provide access to a pre-trained model if you don't have access to labeled data. Please note the model was generated using a limited number of samples and it might not work well with all datasets.
 
  * [model.bin]()
 
@@ -76,6 +76,7 @@ See `./pctrain --help`.
 ## Known Issues
 
  - [ ] Gradient Boosted Trees as an alternative to Random Forest are currently broken.
+ - [ ] Some PLY files cannot be read correctly. We only support a subset of the PLY format (for performance reasons) and certain less common variations of the format might give trouble.
 
 ## License
 
