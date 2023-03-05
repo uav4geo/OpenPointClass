@@ -288,16 +288,16 @@ Eigen::Vector3f Scale::computeCentroid(const std::vector<size_t> &pointIds){
     return centroid;
 }
 
-std::vector<Scale *> computeScales(size_t numScales, PointSet *pSet, double startResolution){
+std::vector<Scale *> computeScales(size_t numScales, PointSet *pSet, double startResolution, double radius){
     std::vector<Scale *> scales(numScales, nullptr);
 
-    Scale *base = new Scale(0, pSet, startResolution * std::pow(2.0, 0));
+    Scale *base = new Scale(0, pSet, startResolution * std::pow(2.0, 0), radius);
     base->init();
     // base->save("base.ply");
     pSet->base = base->scaledSet;
 
     for (size_t i = 0; i < numScales; i++){
-        scales[i] = new Scale(i + 1, base->scaledSet, startResolution * std::pow(2.0, i));
+        scales[i] = new Scale(i + 1, base->scaledSet, startResolution * std::pow(2.0, i), radius);
     }
 
     // Save some time on the first scale

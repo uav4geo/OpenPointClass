@@ -2,21 +2,39 @@
 
 namespace rf{
 
-void train(const std::vector<PointSet *> &pointSets,
-          const std::vector<std::vector<Feature *> > &featureSets,
-          const std::vector<Label> &labels, 
+void train(const std::vector<std::string> filenames,
+          double *startResolution,
+          int numScales,
+          int numTrees,
+          int treeDepth,
+          double radius,
           const std::string &modelFilename){
-  if (pointSets.size() != featureSets.size()) throw std::runtime_error("pointSets.size() != featureSets.size()");
-
   ForestParams params;
-  params.n_trees   = N_TREES;
-  params.max_depth = MAX_DEPTH;
-
+  params.n_trees   = numTrees;
+  params.max_depth = treeDepth;
   RandomForest rtrees(params);
 
-  for (size_t i = 0; i < pointSets.size(); i++){
-    std::cout << "Training set " << i << std::endl;
-    trainForest(*pointSets[i], featureSets[i], labels, &rtrees);
+  auto labels = getTrainingLabels();
+
+  for (size_t i = 0; i < filenames.size(); i++){
+    std::cout << "Training on " << filenames[i] << std::endl;
+
+    auto pointSet = readPointSet(filenames[i]);
+    if (*startResolution == -1.0){
+        *startResolution = pointSet->spacing(); // meters
+        std::cout << "Starting resolution: " << *startResolution << std::endl;
+    }
+
+    auto scales = computeScales(numScales, pointSet, *startResolution, radius);
+    auto features = getFeatures(scales);
+    std::cout << "Features: " << features.size() << std::endl;
+
+    trainForest(*pointSet, features, labels, &rtrees);
+
+    // Free up memory for next
+    for (size_t i = 0; i < scales.size(); i++) delete scales[i];
+    for (size_t i = 0; i < features.size(); i++) delete features[i];
+    RELEASE_POINTSET(pointSet);
   }
 
   std::ofstream ofs(modelFilename.c_str(), std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);

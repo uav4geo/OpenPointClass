@@ -16,6 +16,8 @@ struct XYZ{
 
 #define KDTREE_MAX_LEAF 10
 
+#define RELEASE_POINTSET(__POINTER) { if (__POINTER != nullptr) { __POINTER->freeIndex<KdTree>(); delete __POINTER; __POINTER = nullptr; } }
+
 struct PointSet {
     std::vector<std::array<float, 3> > points;
     std::vector<std::array<uint8_t, 3> > colors;
@@ -66,6 +68,18 @@ struct PointSet {
     bool hasLabels() const { return labels.size() > 0; }
 
     double spacing(int kNeighbors = 3);
+
+    template <typename T>
+    void freeIndex(){
+        if (kdTree != nullptr){
+            T* tree = getIndex<T>();
+            delete tree;
+            kdTree = nullptr;
+        }
+    }
+
+    ~PointSet(){
+    }
 private:
     double m_spacing = -1.0;
 };

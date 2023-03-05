@@ -3,7 +3,7 @@
 
 #include "features.hpp"
 #include "labels.hpp"
-#include "common.hpp"
+#include "constants.hpp"
 #include "point_io.hpp"
 
 namespace gbm{

@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include "constants.hpp"
 #include "point_io.hpp"
 #include "randomforest.hpp"
 
@@ -30,7 +30,7 @@ int main(int argc, char **argv){
         double startResolution = argc >= 5 ? std::atof(argv[4]) : pointSet->spacing(); // meters
         std::cout << "Starting resolution: " << startResolution << std::endl;
 
-        auto features = getFeatures(computeScales(NUM_SCALES, pointSet, startResolution));
+        auto features = getFeatures(computeScales(NUM_SCALES, pointSet, startResolution, RADIUS));
         std::cout << "Features: " << features.size() << std::endl;
 
         rf::classify(*pointSet, modelFile, features, labels, rf::Regularization::LocalSmooth, true, false);

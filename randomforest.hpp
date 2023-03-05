@@ -12,7 +12,7 @@
 
 #include "features.hpp"
 #include "labels.hpp"
-#include "common.hpp"
+#include "constants.hpp"
 #include "point_io.hpp"
 
 namespace rf{
@@ -25,9 +25,12 @@ typedef liblearning::RandomForest::ForestParams ForestParams;
 typedef liblearning::DataView2D<int> LabelDataView;
 typedef liblearning::DataView2D<float> FeatureDataView;
 
-void train(const std::vector<PointSet *> &pointSets,
-    const std::vector<std::vector<Feature *> > &features,
-    const std::vector<Label> &labels,
+void train(const std::vector<std::string> filenames,
+    double *startResolution,
+    int numScales,
+    int numTrees,
+    int treeDepth,
+    double radius,
     const std::string &modelFilename);
 
 void trainForest(const PointSet &pointSet,
