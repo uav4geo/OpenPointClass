@@ -1,12 +1,13 @@
-# PCClassify
+# OpenPointClass
 
-This is a work in progress. It currently generates only colored PLY outputs but it can be used for research already.
+A fast, memory efficient free and open source point cloud classifier. It generates an AI model from a set of input point clouds that have been labeled and can subsequently use those models to classify new datasets.
 
 ## Build
 
 Dependencies:
  * Intel TBB
  * Boost System and Serialization
+ * PDAL (optional for LAS/LAZ support)
 
 ```
 mkdir build
