@@ -1,6 +1,14 @@
-# OpenPointClass
+# OpenPointClass (OPC)
 
 A fast, memory efficient free and open source point cloud classifier. It generates an AI model from a set of input point clouds that have been labeled and can subsequently use those models to classify new datasets.
+
+![image](https://user-images.githubusercontent.com/1951843/222988483-2640ec66-7a4f-4bb0-a396-f1de84b46959.png)
+
+![image](https://user-images.githubusercontent.com/1951843/222988854-afd47307-8ded-4c23-a322-f3c718ce70b8.png)
+
+On the default parameters it can classify 15 million points in less than 2 minutes on a 4-core Intel i5, which is faster than any other freely available software we've tried.
+
+It generalizes well to point clouds of varying density and includes a local smoothing regularization method.
 
 ## Build
 
@@ -16,12 +24,16 @@ cmake ..
 make -j$(nproc)
 ```
 
-## Run
+## Usage
 
 ```
-./pctrain ./training.ply ./model.bin
-./pcclassify ./dataset.ply ./model.bin ./classified.ply
+./pctrain ./ground_truth.ply
+./pcclassify ./dataset.ply ./classified.ply [model.bin]
 ```
+
+We provide access to a pre-trained model if you don't have access to labeled data to train your own. Please note it was generated using a limited number of samples and it might not work well with all datasets.
+
+ * [model.bin]()
 
 Training classes are assumed to follow the [ASPRS 1.4 Classification](https://www.asprs.org/wp-content/uploads/2019/03/LAS_1_4_r14.pdf) and to be stored in either a `label`, `class` or `classification` property.
 
@@ -41,18 +53,32 @@ You can re-map classification codes by creating a `<FILE>.json` in the same dire
 }
 ```
 
-## Evaluation
+### Evaluation
 
-You can automatically evaluate model accuracy by placing a `<FILE>_eval.ply` (a matching filename with `_eval` suffix). For example:
+You can check a model accuracy by using the `--eval` argument:
 
-`./pctrain ./training.ply ./model.bin`
+`./pctrain ./ground_truth.ply --eval test.ply`
 
-Will evaluate the model on `training_eval.ply` if it's available.
+You can use [PDAL](https://pdal.io) to conveniently split a dataset into two (one for training, one for evaluation):
 
-You can use PDAL to conveniently split a dataset into two (one for training, one for evaluation):
+`pdal split [--capacity numpoints] input.ply input_split.ply`
 
-`pdal split [--capacity numpoints] input.ply input_split.ply` 
+### Color Output
+
+You can output the results of classification as a colored point cloud by using the `--color` option:
+
+`./pcclassify ./dataset.ply ./classified.ply --color`
+
+### Advanced Options
+
+See `./pctrain --help`.
+
+## Known Issues
+
+ - [ ] Gradient Boosted Trees as an alternative to Random Forest are currently broken.
 
 ## License
 
-AGPLv3
+The software is released under the terms of the AGPLv3
+
+[Contact us](https://uav4geo.com/contact) for other commercial licensing options.
