@@ -58,7 +58,7 @@ You can re-map classification codes by creating a `<FILE>.json` in the same dire
 ### Supported Classes
 
 | Class | Number |
-------------------
+--------|---------
 | ground | 2 |
 | low_vegetation | 3 |
 | medium_vegetation | 4 |
