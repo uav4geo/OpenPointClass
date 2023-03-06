@@ -103,7 +103,6 @@ void Scale::build(){
 
             for (size_t i = 0; i < numMatches; i++){
                 size_t nIdx = radiusMatches[i].first;
-                // TODO: precompute HSV values at read time
                 auto hsv = rgb2hsv(scaledSet->colors[nIdx][0], 
                                 scaledSet->colors[nIdx][1], 
                                 scaledSet->colors[nIdx][2]);

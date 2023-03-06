@@ -254,20 +254,21 @@ void classify(PointSet &pointSet,
     int bestClass = pointSet.base->labels[idx];
     auto label = labels[bestClass];
 
+    if (evaluate){
+      if (pointSet.labels[i] == bestClass){
+        #pragma omp atomic
+        correct++;
+      }
+    }
+
+    // Update point info
     if (useColors){
       auto color = label.getColor();
       pointSet.colors[i][0] = color.r;
       pointSet.colors[i][1] = color.g;
       pointSet.colors[i][2] = color.b;
     }else{
-      // TODO
-    }
-
-    if (evaluate){
-      if (pointSet.labels[i] == bestClass){
-        #pragma omp atomic
-        correct++;
-      }
+      pointSet.labels[i] = label.getAsprsCode();
     }
   }
 

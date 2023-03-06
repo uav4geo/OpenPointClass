@@ -42,6 +42,7 @@ public:
   
   std::string getName() const { return name; } 
   int getTrainingCode() const { return trainingCode; }
+  int getAsprsCode() const { return asprsCode; }
   Color getColor() const { return color; }
 };
 

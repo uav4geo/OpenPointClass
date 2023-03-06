@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(PCClassify VERSION 1.0 LANGUAGES CXX)
+project(opc VERSION 1.0 LANGUAGES CXX)
 
 SET(WITH_GBM OFF CACHE BOOL "Build GBM support")
 SET(WITH_PDAL ON CACHE BOOL "Build PDAL readers support")
@@ -81,19 +81,19 @@ if (WITH_PDAL)
       add_definitions(-DWITH_PDAL)
       set(PDAL_LIB ${PDAL_LIBRARIES})
 endif()
-add_library(pcc OBJECT ${SOURCES})
+add_library(libopc OBJECT ${SOURCES})
 
 if (WITH_GBM)
-      add_dependencies(pcc lightgbm)
+      add_dependencies(libopc lightgbm)
       set(GBM_LIB lib_lightgbm)
 endif()
 
 add_executable(pctrain pctrain.cpp)
 add_executable(pcclassify pcclassify.cpp)
 
-target_link_libraries(pcc ${STDPPFS_LIBRARY} Eigen3::Eigen OpenMP::OpenMP_CXX Boost::iostreams Boost::serialization ${GBM_LIB} ${PDAL_LIB})
-target_link_libraries(pctrain pcc)
-target_link_libraries(pcclassify pcc)
+target_link_libraries(libopc ${STDPPFS_LIBRARY} Eigen3::Eigen OpenMP::OpenMP_CXX Boost::iostreams Boost::serialization ${GBM_LIB} ${PDAL_LIB})
+target_link_libraries(pctrain libopc)
+target_link_libraries(pcclassify libopc)
 
 install(TARGETS pctrain RUNTIME DESTINATION bin)
 install(TARGETS pcclassify RUNTIME DESTINATION bin)

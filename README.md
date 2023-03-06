@@ -1,6 +1,6 @@
 # OpenPointClass (OPC)
 
-A fast, memory efficient free and open source point cloud classifier. It generates an AI model from a set of input point clouds that have been labeled and can subsequently use those models to classify new datasets.
+A fast, memory efficient free and open source point cloud classifier. It generates an AI model from a set of input point clouds that have been labeled and can subsequently use that model to classify new datasets.
 
 ![image](https://user-images.githubusercontent.com/1951843/222988483-2640ec66-7a4f-4bb0-a396-f1de84b46959.png)
 
@@ -8,7 +8,9 @@ A fast, memory efficient free and open source point cloud classifier. It generat
 
 On the default parameters it can classify 15 million points in less than 2 minutes on a 4-core Intel i5, which is faster than any other freely available software we've tried.
 
-It generalizes well to point clouds of varying density and includes a local smoothing regularization method.
+It generalizes well to point clouds of varying density and includes local smoothing regularization methods. 
+
+It supports all point cloud formats supported by [PDAL](https://pdal.io/en/latest/stages/readers.html). When built without PDAL, it supports a subset of the PLY format only, which is optimized for speed.
 
 ## Build
 
@@ -30,6 +32,8 @@ make -j$(nproc)
 ./pctrain ./ground_truth.ply
 ./pcclassify ./dataset.ply ./classified.ply [model.bin]
 ```
+
+The output will be a 
 
 We provide access to a pre-trained model if you don't have access to labeled data. Please note the model was generated using a limited number of samples and it might not work well with all datasets.
 
@@ -75,11 +79,13 @@ See `./pctrain --help`.
 
 ## Known Issues
 
- - [ ] Gradient Boosted Trees as an alternative to Random Forest are currently broken.
- - [ ] Some PLY files cannot be read correctly. We only support a subset of the PLY format (for performance reasons) and certain less common variations of the format might give trouble.
+ * Gradient Boosted Trees as an alternative to Random Forest are currently broken.
+ * We only support a subset of the PLY format (for performance reasons) and certain less common variations of the format might give trouble. Most importantly, the X/Y/Z coordinates must be `float` values when using binary PLY, not `double` or `float64`. We recommend to use LAS/LAZ if higher precision coordinates are needed.
 
 ## License
 
 The software is released under the terms of the AGPLv3
 
 [Contact us](https://uav4geo.com/contact) for other commercial licensing options.
+
+Made with ❤️ by [UAV4GEO](https://uav4geo.com)
