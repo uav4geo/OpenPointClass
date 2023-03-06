@@ -33,8 +33,6 @@ make -j$(nproc)
 ./pcclassify ./dataset.ply ./classified.ply [model.bin]
 ```
 
-The output will be a 
-
 We provide access to a pre-trained model if you don't have access to labeled data. Please note the model was generated using a limited number of samples and it might not work well with all datasets.
 
  * [model.bin](https://github.com/uav4geo/OpenPointClass/releases/download/v1.0.0/model.bin)
