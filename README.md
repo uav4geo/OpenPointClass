@@ -55,6 +55,31 @@ You can re-map classification codes by creating a `<FILE>.json` in the same dire
 }
 ```
 
+### Supported Classes
+
+| Class | Number |
+------------------
+| ground | 2 |
+| low_vegetation | 3 |
+| medium_vegetation | 4 |
+| high_vegetation | 5 |
+| building | 6 |
+| low_point | 7 |
+| water | 9 |
+| rail | 10 |
+| road_surface | 11 |
+| wire_guard | 13 |
+| wire_conductor | 14 |
+| transmission_tower | 15 |
+| wire_structure_connector | 16 |
+| bridge_deck | 17 |
+| high_noise | 18 |
+| overhead_structure | 19 |
+| ignored_ground | 20 |
+| snow | 21 |
+| temporal_exclusion | 22 |
+| vehicle | 64 |
+
 ### Evaluation
 
 You can check a model accuracy by using the `--eval` argument:
