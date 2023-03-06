@@ -9,7 +9,7 @@
 #endif
 
 int main(int argc, char **argv){
-    cxxopts::Options options("pctrain", "Trains a point cloud classification model");
+    cxxopts::Options options("pcclassify", "Classifies a point cloud using a precomputed model");
     options.add_options()
             ("i,input", "Input point cloud", cxxopts::value<std::string>())
             ("o,output", "Output point cloud", cxxopts::value<std::string>())
