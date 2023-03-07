@@ -8,7 +8,7 @@ A fast, memory efficient free and open source point cloud classifier. It generat
 
 On the default parameters it can classify 15 million points in less than 2 minutes on a 4-core Intel i5, which is faster than any other freely available software we've tried.
 
-It generalizes well to point clouds of varying density and includes local smoothing regularization methods. 
+It generalizes well to point clouds of varying density and includes local smoothing regularization methods.
 
 It supports all point cloud formats supported by [PDAL](https://pdal.io/en/latest/stages/readers.html). When built without PDAL, it supports a subset of the PLY format only, which is optimized for speed.
 
@@ -99,6 +99,32 @@ You can output the results of classification as a colored point cloud by using t
 ### Advanced Options
 
 See `./pctrain --help`.
+
+### Docker
+
+You can build a Docker image with the following command:
+
+```bash
+docker build -t uav4geo/openpointclass:latest .
+```
+
+Run the image with the following command:
+
+```bash
+docker run -it --rm -v /dataset-path:/data uav4geo/openpointclass:latest bash
+```
+Where `/dataset-path` is the path to the directory containing the dataset files and the `model.bin` file.
+
+You will be presented with a bash prompt inside the container. You can then run the `pctrain` and `pcclassify` as described above.
+
+Otherwise, you can use the commands directly with the following syntax:
+
+```bash
+docker run -it --rm -v /dataset-path:/data uav4geo/openpointclass:latest pctrain /data/ground_truth.ply
+docker run -it --rm -v /dataset-path:/data uav4geo/openpointclass:latest pcclassify /data/dataset.ply /data/classified.ply /data/model.bin
+```
+
+
 
 ## Known Issues
 
