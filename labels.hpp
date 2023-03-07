@@ -46,8 +46,8 @@ public:
   Color getColor() const { return color; }
 };
 
-std::vector<Label> getLabels();
-std::vector<Label> getTrainingLabels();
+std::vector<Label *> getLabels();
+std::vector<Label *> getTrainingLabels();
 std::unordered_map<std::string, int> getTrainingCodes();
 
 #endif

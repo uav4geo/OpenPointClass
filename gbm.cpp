@@ -346,7 +346,7 @@ void classify(PointSet &pointSet,
 
         auto label = labels[bestClass];
         if (useColors){
-            auto color = label.getColor();
+            auto color = label->getColor();
             pointSet.colors[i][0] = color.r;
             pointSet.colors[i][1] = color.g;
             pointSet.colors[i][2] = color.b;

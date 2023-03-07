@@ -65,7 +65,7 @@ void train(const std::vector<std::string> filenames,
 
 void trainForest(const PointSet &pointSet, 
           const std::vector<Feature *> &features,
-          const std::vector<Label> &labels, 
+          const std::vector<Label *> &labels, 
           RandomForest *rtrees,
           int maxSamplesPerLabel){
 
@@ -114,7 +114,7 @@ void trainForest(const PointSet &pointSet,
   
   std::cout << "Using " << gt.size() << " inliers:" << std::endl;
   for (std::size_t i = 0; i < labels.size(); i++)
-      std::cout << " * " << labels[i].getName() << ": " << added[i] << " / " << count[i] << std::endl;
+      std::cout << " * " << labels[i]->getName() << ": " << added[i] << " / " << count[i] << std::endl;
 
   LabelDataView label_vector (&(gt[0]), gt.size(), 1);
   FeatureDataView feature_vector(&(ft[0]), gt.size(), ft.size() / gt.size());
@@ -143,7 +143,7 @@ RandomForest *loadForest(const std::string &modelFilename){
 void classify(PointSet &pointSet, 
     RandomForest *rtrees,
     const std::vector<Feature *> &features, 
-    const std::vector<Label> &labels,
+    const std::vector<Label *> &labels,
     Regularization regularization,
     bool useColors,
     bool evaluate){
@@ -263,12 +263,12 @@ void classify(PointSet &pointSet,
 
     // Update point info
     if (useColors){
-      auto color = label.getColor();
+      auto color = label->getColor();
       pointSet.colors[i][0] = color.r;
       pointSet.colors[i][1] = color.g;
       pointSet.colors[i][2] = color.b;
     }else{
-      pointSet.labels[i] = label.getAsprsCode();
+      pointSet.labels[i] = label->getAsprsCode();
     }
   }
 
