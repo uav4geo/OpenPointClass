@@ -1,7 +1,5 @@
 FROM ubuntu:22.04 as builder
 
-LABEL Author="Luca Di Leo <ldileo@digipa.it>"
-
 # Prerequisites
 ENV TZ=Europe/Rome
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
@@ -21,6 +19,9 @@ COPY . /opc
 RUN cd /opc && mkdir build && cd build && cmake .. && make -j$(nproc)
 
 FROM ubuntu:22.04 as runner
+
+LABEL Author="Luca Di Leo <ldileo@digipa.it>" \
+      Description="Fast and memory efficient semantic segmentation of 3D point clouds"
 
 # Prerequisites
 ENV TZ=Europe/Rome
