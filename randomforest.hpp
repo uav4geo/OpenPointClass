@@ -40,14 +40,14 @@ RandomForest *loadForest(const std::string &modelFilename);
 
 void trainForest(const PointSet &pointSet,
           const std::vector<Feature *> &features,
-          const std::vector<Label *> &labels,
+          const std::vector<Label> &labels,
           RandomForest *rtrees,
           int maxSamplesPerLabel);
 
 void classify(PointSet &pointSet, 
     RandomForest *rtrees,
     const std::vector<Feature *> &features, 
-    const std::vector<Label *> &labels,
+    const std::vector<Label> &labels,
     Regularization regularization = Regularization::None,
     bool useColors = false,
     bool evaluate = false);
