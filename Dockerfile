@@ -38,6 +38,7 @@ RUN apt-get update && apt-get install -y --fix-missing --no-install-recommends \
 
 COPY --from=builder /opc/build ./build
 
+# Let pcclassify and pctrain be called without ./
 ENV PATH="/build:$PATH"
 
 WORKDIR /build
