@@ -111,8 +111,9 @@ docker build -t uav4geo/openpointclass:latest .
 Run the image with the following command:
 
 ```bash
-docker run -it --rm -v $(pwd):/data uav4geo/openpointclass:latest bash
+docker run -it --rm -v /dataset-path:/data uav4geo/openpointclass:latest bash
 ```
+Where `/dataset-path` is the path to the directory containing the dataset files and the `model.bin` file.
 
 You will be presented with a bash prompt inside the container. You can then run the `pctrain` and `pcclassify` as described above.
 
@@ -123,7 +124,7 @@ docker run -it --rm -v /dataset-path:/data uav4geo/openpointclass:latest pctrain
 docker run -it --rm -v /dataset-path:/data uav4geo/openpointclass:latest pcclassify /data/dataset.ply /data/classified.ply /data/model.bin
 ```
 
-Where `/dataset-path` is the path to the directory containing the dataset files and the `model.bin` file.
+
 
 ## Known Issues
 
