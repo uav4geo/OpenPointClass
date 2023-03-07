@@ -246,6 +246,7 @@ void classify(PointSet &pointSet,
   }
 
   std::size_t correct = 0;
+  if (!pointSet.hasLabels()) pointSet.labels.resize(pointSet.count());
 
   #pragma omp parallel for
   for (size_t i = 0; i < pointSet.count(); i++){
