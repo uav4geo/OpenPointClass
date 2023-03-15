@@ -27,7 +27,6 @@ struct XYZ{
 
 struct PointSet {
     std::vector<std::array<float, 3> > points;
-    std::array<double, 3> offset = {0.0, 0.0, 0.0};
     std::vector<std::array<uint8_t, 3> > colors;
     
     std::vector<std::array<float, 3> > normals;
@@ -78,7 +77,6 @@ struct PointSet {
     bool hasColors() const { return colors.size() > 0; }
     bool hasViews() const { return views.size() > 0; }
     bool hasLabels() const { return labels.size() > 0; }
-    bool hasOffset() const { return offset[0] != 0 && offset[1] != 0 && offset[2] != 0; }
 
     double spacing(int kNeighbors = 3);
 

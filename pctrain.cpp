@@ -56,6 +56,7 @@ int main(int argc, char **argv){
         if (result["eval"].count()){
             std::string evalFilename = result["eval"].as<std::string>();
             std::cout << "Evaluating on " << evalFilename << " ..." << std::endl;
+            rf::RandomForest *rtrees = rf::loadForest(modelFilename);
             
             auto labels = getTrainingLabels();
             auto evalPointSet = readPointSet(evalFilename);
@@ -64,7 +65,6 @@ int main(int argc, char **argv){
             auto evalFeatures = getFeatures(computeScales(scales, evalPointSet, startResolution, radius));
             std::cout << "Features: " << evalFeatures.size() << std::endl;
 
-            rf::RandomForest *rtrees = rf::loadForest(modelFilename);
             rf::classify(*evalPointSet, rtrees, evalFeatures, labels, rf::Regularization::None, true, false, true);
             // gbm::classify(evalPointSet, modelFilename, evalFeatures, labels, true, true);
             savePointSet(*evalPointSet, "evaluation_results.ply");

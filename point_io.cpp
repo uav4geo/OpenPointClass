@@ -85,11 +85,11 @@ size_t getVertexCount(const std::string& line) {
     while (std::getline(iss, token, ' '))
         tokens.push_back(token);
 
-    if (tokens.size() != 3)
-        throw std::invalid_argument("Invalid PLY file");
+    if (tokens.size() < 3)
+        throw std::runtime_error("Invalid PLY file");
 
     if (tokens[0] != "element" && tokens[1] != "vertex")
-        throw std::invalid_argument("Invalid PLY file");
+        throw std::runtime_error("Invalid PLY file");
 
     return std::stoi(tokens[2]);
 }
@@ -133,10 +133,13 @@ PointSet* fastPlyReadPointSet(const std::string &filename){
 
     std::string line;
     std::getline(reader, line);
+    line.erase(std::remove(line.begin(), line.end(), '\r' ), line.end());
+
     if (line != "ply")
-        throw std::runtime_error("Invalid PLY file");
+        throw std::runtime_error("Invalid PLY file (header does not start with ply)");
     
     std::getline(reader, line);
+    line.erase(std::remove(line.begin(), line.end(), '\r' ), line.end());
 
     // We are reading an ascii ply
     bool ascii = line == "format ascii 1.0";
@@ -159,6 +162,8 @@ PointSet* fastPlyReadPointSet(const std::string &filename){
     size_t redIdx = 0, greenIdx = 1, blueIdx = 2;
 
     std::getline(reader, line);
+    line.erase(std::remove(line.begin(), line.end(), '\r' ), line.end());
+
     while (line != "end_header"){
         if (hasHeader(line, "nx") || hasHeader(line, "normal_x") || hasHeader(line, "normalx")) hasNormals = true;
         if (hasHeader(line, "red")){
@@ -181,6 +186,8 @@ PointSet* fastPlyReadPointSet(const std::string &filename){
         
         if (c++ > 100) break;
         std::getline(reader, line);
+        line.erase(std::remove(line.begin(), line.end(), '\r' ), line.end());
+
     }
 
     size_t colorIdxMin = std::min<size_t>(std::min<size_t>(redIdx, greenIdx), blueIdx);
@@ -264,6 +271,7 @@ PointSet* fastPlyReadPointSet(const std::string &filename){
         }
     }
 
+    // std::vector<size_t> classes(255, 0);
     // for (size_t idx = 0; idx < count; idx++) {
     //     std::cout << r->points[idx][0] << " ";
     //     std::cout << r->points[idx][1] << " ";
@@ -279,7 +287,13 @@ PointSet* fastPlyReadPointSet(const std::string &filename){
     //     std::cout << std::endl;
         
     //     if (idx > 9) exit(1);
+    //        classes[std::size_t(r->labels[idx])]++;
     // }
+
+    // for (size_t i = 0; i < classes.size(); i++){
+    //     std::cout << i << ": " << classes[i] << std::endl;
+    // }
+    // exit(1);
 
     reader.close();
 
@@ -329,8 +343,10 @@ PointSet* pdalReadPointSet(const std::string &filename){
 
     size_t count = pView->size();
     pdal::PointLayoutPtr layout(table->layout());
+    bool hasLabels = !labelDimension.empty();
+
     pdal::Dimension::Id labelId;
-    if (!labelDimension.empty()){
+    if (hasLabels){
         std::cout << "Label dimension: " << labelDimension << std::endl;
         labelId = layout->findDim(labelDimension);
         r->labels.resize(count);
@@ -339,25 +355,23 @@ PointSet* pdalReadPointSet(const std::string &filename){
     r->points.resize(count);
     bool hasColors = false;
     bool largeColors = false;
-    if (layout->hasDim(pdal::Dimension::Id::Red)){
+
+    if (layout->hasDim(pdal::Dimension::Id::Green)){
         r->colors.resize(count);
         hasColors = true;
-        largeColors = layout->dimSize(pdal::Dimension::Id::Red) > 1;
+        for (pdal::PointId idx = 0; idx < count; ++idx){
+            if (pView->getFieldAs<uint16_t>(pdal::Dimension::Id::Green, idx) > 255){
+                largeColors = true;
+                break;
+            }
+        }
     } 
     
-    if (count > 0){
-        auto p = pView->point(0);
-        r->offset[0] = p.getFieldAs<double>(pdal::Dimension::Id::X);
-        r->offset[1] = p.getFieldAs<double>(pdal::Dimension::Id::Y);
-        r->offset[2] = p.getFieldAs<double>(pdal::Dimension::Id::Z);
-    }
-
-
     for (pdal::PointId idx = 0; idx < count; ++idx) {
         auto p = pView->point(idx);
-        r->points[idx][0] = static_cast<float>(p.getFieldAs<double>(pdal::Dimension::Id::X) - r->offset[0]);
-        r->points[idx][1] = static_cast<float>(p.getFieldAs<double>(pdal::Dimension::Id::Y) - r->offset[1]);
-        r->points[idx][2] = static_cast<float>(p.getFieldAs<double>(pdal::Dimension::Id::Z) - r->offset[2]);
+        r->points[idx][0] = p.getFieldAs<float>(pdal::Dimension::Id::X);
+        r->points[idx][1] = p.getFieldAs<float>(pdal::Dimension::Id::Y);
+        r->points[idx][2] = p.getFieldAs<float>(pdal::Dimension::Id::Z);
 
         if (hasColors){
             if (largeColors){
@@ -371,10 +385,35 @@ PointSet* pdalReadPointSet(const std::string &filename){
             }
         }
 
-        if (!labelDimension.empty()){
+        if (hasLabels){
             r->labels[idx] = p.getFieldAs<uint8_t>(labelId);
         }
     }
+
+    // std::vector<std::size_t> classes (255, 0);
+    // for (size_t idx = 0; idx < count; idx++) {
+        // std::cout << r->points[idx][0] << " ";
+        // std::cout << r->points[idx][1] << " ";
+        // std::cout << r->points[idx][2] << " ";
+
+        // std::cout << std::to_string(r->colors[idx][0]) << " ";
+        // std::cout << std::to_string(r->colors[idx][1]) << " ";
+        // std::cout << std::to_string(r->colors[idx][2]) << " ";
+
+        // if (hasLabels){
+        //     std::cout << std::to_string(r->labels[idx]) << " ";
+        // }
+        // std::cout << std::endl;
+        
+        // if (idx > 9) exit(1);
+
+    //     classes[std::size_t(r->labels[idx])]++;
+    // }
+
+    // for (size_t i = 0; i < classes.size(); i++){
+    //     std::cout << i << ": " << classes[i] << std::endl;
+    // }
+    // exit(1);
 
     return r;
 #else
@@ -386,6 +425,8 @@ PointSet* pdalReadPointSet(const std::string &filename){
 void checkHeader(std::ifstream& reader, const std::string &prop){
     std::string line;
     std::getline(reader, line);
+    line.erase(std::remove(line.begin(), line.end(), '\r' ), line.end());
+
     if (line.substr(line.length() - prop.length(), prop.length()) != prop){
         throw std::runtime_error("Invalid PLY file (expected 'property * " + prop + "', but found '" + line + "')");
     }
@@ -457,26 +498,9 @@ void fastPlySavePointSet(PointSet &pSet, const std::string &filename){
     o << "format binary_little_endian 1.0" << std::endl;
     o << "comment Generated by PCClassify" << std::endl;
     o << "element vertex " << pSet.count() << std::endl;
-
-    bool hasOffset = pSet.hasOffset();
-    std::vector<std::array<double, 3> > dpoints;
-
-    if (hasOffset){
-        o << "property double x" << std::endl;
-        o << "property double y" << std::endl;
-        o << "property double z" << std::endl;
-
-        dpoints.resize(pSet.count());
-        for (size_t i = 0; i < pSet.count(); i++){
-            for (size_t j = 0; j < 3; j++){
-                dpoints[i][j] = static_cast<double>(pSet.points[i][j]) + pSet.offset[j];
-            }
-        }
-    }else{
-        o << "property float x" << std::endl;
-        o << "property float y" << std::endl;
-        o << "property float z" << std::endl;
-    }
+    o << "property float x" << std::endl;
+    o << "property float y" << std::endl;
+    o << "property float z" << std::endl;
 
     bool hasNormals = pSet.hasNormals();
     bool hasColors = pSet.hasColors();
@@ -503,9 +527,7 @@ void fastPlySavePointSet(PointSet &pSet, const std::string &filename){
     o << "end_header" << std::endl;
 
     for (size_t i = 0; i < pSet.count(); i++){
-        if (hasOffset) o.write(reinterpret_cast<const char*>(&dpoints[i][0]), sizeof(double) * 3);
-        else o.write(reinterpret_cast<const char*>(&pSet.points[i][0]), sizeof(float) * 3);
-
+        o.write(reinterpret_cast<const char*>(&pSet.points[i][0]), sizeof(float) * 3);
         if (hasNormals) o.write(reinterpret_cast<const char*>(&pSet.normals[i][0]), sizeof(float) * 3);
         if (hasColors) o.write(reinterpret_cast<const char*>(&pSet.colors[i][0]), sizeof(uint8_t) * 3);
         if (hasViews) o.write(reinterpret_cast<const char*>(&pSet.views[i]), sizeof(uint8_t));
