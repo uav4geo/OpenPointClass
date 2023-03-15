@@ -16,6 +16,7 @@ int main(int argc, char **argv){
             ("m,model", "Input classification model", cxxopts::value<std::string>()->default_value("model.bin"))
             ("r,regularization", "Regularization method (none, local_smooth)", cxxopts::value<std::string>()->default_value("local_smooth"))
             ("c,color", "Output a colored point cloud instead of a classified one", cxxopts::value<bool>()->default_value("false"))
+            ("u,unclassified", "Only classify points that are labeled as unclassified and leave the others untouched", cxxopts::value<bool>()->default_value("false"))
             ("h,help", "Print usage")
         ;
     options.parse_positional({"input", "output", "model"});
@@ -64,7 +65,7 @@ int main(int argc, char **argv){
         auto features = getFeatures(computeScales(numScales, pointSet, startResolution, radius));
         std::cout << "Features: " << features.size() << std::endl;
 
-        rf::classify(*pointSet, rtrees, features, labels, regularization, result["color"].as<bool>(), false);
+        rf::classify(*pointSet, rtrees, features, labels, regularization, result["color"].as<bool>(), result["unclassified"].as<bool>(), false);
         savePointSet(*pointSet, outputFile);
     } catch(std::exception &e){
         std::cerr << "Error: " << e.what() << std::endl;

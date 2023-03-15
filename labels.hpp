@@ -6,29 +6,8 @@
 #include <unordered_map>
 #include "color.hpp"
 
-// static std::unordered_map<std::string, int> asprsCodes = {
-//     {"unassigned", 1},
-//     {"ground", 2},
-//     {"low_vegetation", 3},
-//     {"medium_vegetation", 4},
-//     {"high_vegetation", 5},
-//     {"building", 6},
-//     {"noise", 7},
-//     {"reserved", 8},
-//     {"water", 9},
-//     {"rail", 10},
-//     {"road_surface", 11},
-//     {"reserved_2", 12},
-//     {"wire_guard", 13},
-//     {"wire_conductor", 14},
-//     {"transmission_tower", 15},
-//     {"wire_connect", 16},
-//     {"bridge_deck", 17},
-//     {"high_noise", 18},
-//     {"vehicle", 64},
-// };
-
 #define LABEL_UNASSIGNED 255
+#define LABEL_UNCLASSIFIED 1
 
 class Label{
 private:

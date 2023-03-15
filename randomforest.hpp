@@ -50,6 +50,7 @@ void classify(PointSet &pointSet,
     const std::vector<Label> &labels,
     Regularization regularization = Regularization::None,
     bool useColors = false,
+    bool unclassifiedOnly = false,
     bool evaluate = false);
 
 }

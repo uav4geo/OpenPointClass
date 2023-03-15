@@ -146,6 +146,7 @@ void classify(PointSet &pointSet,
     const std::vector<Label> &labels,
     Regularization regularization,
     bool useColors,
+    bool unclassifiedOnly,
     bool evaluate){
 
   
@@ -246,7 +247,7 @@ void classify(PointSet &pointSet,
   }
 
   std::size_t correct = 0;
-  if (!useColors) pointSet.labels.resize(pointSet.count());
+  if (!useColors && !pointSet.hasLabels()) pointSet.labels.resize(pointSet.count());
 
   #pragma omp parallel for
   for (size_t i = 0; i < pointSet.count(); i++){
@@ -261,6 +262,10 @@ void classify(PointSet &pointSet,
         correct++;
       }
     }
+
+    // if unclassifiedOnly, do not update points with an existing classification
+    if (unclassifiedOnly && pointSet.hasLabels() 
+        && pointSet.labels[i] != LABEL_UNCLASSIFIED) continue;
 
     // Update point info
     if (useColors){
