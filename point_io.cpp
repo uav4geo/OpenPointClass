@@ -337,7 +337,13 @@ PointSet* pdalReadPointSet(const std::string &filename){
     }
 
     r->points.resize(count);
-    if (layout->hasDim(pdal::Dimension::Id::Red)) r->colors.resize(count);
+    bool hasColors = false;
+    bool largeColors = false;
+    if (layout->hasDim(pdal::Dimension::Id::Red)){
+        r->colors.resize(count);
+        hasColors = true;
+        largeColors = layout->dimSize(pdal::Dimension::Id::Red) > 1;
+    } 
     
     if (count > 0){
         auto p = pView->point(0);
@@ -353,9 +359,17 @@ PointSet* pdalReadPointSet(const std::string &filename){
         r->points[idx][1] = static_cast<float>(p.getFieldAs<double>(pdal::Dimension::Id::Y) - r->offset[1]);
         r->points[idx][2] = static_cast<float>(p.getFieldAs<double>(pdal::Dimension::Id::Z) - r->offset[2]);
 
-        r->colors[idx][0] = p.getFieldAs<uint8_t>(pdal::Dimension::Id::Red);
-        r->colors[idx][1] = p.getFieldAs<uint8_t>(pdal::Dimension::Id::Green);
-        r->colors[idx][2] = p.getFieldAs<uint8_t>(pdal::Dimension::Id::Blue);
+        if (hasColors){
+            if (largeColors){
+                r->colors[idx][0] = static_cast<uint8_t>((p.getFieldAs<double>(pdal::Dimension::Id::Red) / 65535.0) * 255.0);
+                r->colors[idx][1] = static_cast<uint8_t>((p.getFieldAs<double>(pdal::Dimension::Id::Green) / 65535.0) * 255.0);
+                r->colors[idx][2] = static_cast<uint8_t>((p.getFieldAs<double>(pdal::Dimension::Id::Blue) / 65535.0) * 255.0);
+            }else{
+                r->colors[idx][0] = p.getFieldAs<uint8_t>(pdal::Dimension::Id::Red);
+                r->colors[idx][1] = p.getFieldAs<uint8_t>(pdal::Dimension::Id::Green);
+                r->colors[idx][2] = p.getFieldAs<uint8_t>(pdal::Dimension::Id::Blue);
+            }
+        }
 
         if (!labelDimension.empty()){
             r->labels[idx] = p.getFieldAs<uint8_t>(labelId);

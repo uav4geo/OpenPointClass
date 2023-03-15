@@ -3,7 +3,6 @@
 
 #include <iostream>
 #include <fstream>
-
 #ifdef WITH_PDAL
 #include <pdal/Options.hpp>
 #include <pdal/PointTable.hpp>
