@@ -39,7 +39,7 @@ int main(int argc, char **argv){
         exit(0);
     }
 
-//    try {
+    try {
         auto filenames = result["input"].as<std::vector<std::string>>();
         std::string modelFilename = result["output"].as<std::string>();
         
@@ -72,10 +72,10 @@ int main(int argc, char **argv){
             // gbm::classify(evalPointSet, modelFilename, evalFeatures, labels, true, true);
             savePointSet(*evalPointSet, "evaluation_results.ply");
         }
-//    } catch(std::exception &e){
-//        std::cerr << "Error: " << e.what() << std::endl;
-//        exit(EXIT_FAILURE);
-//    }
+    } catch(std::exception &e){
+       std::cerr << "Error: " << e.what() << std::endl;
+       exit(EXIT_FAILURE);
+    }
 
     return 0;
 }
