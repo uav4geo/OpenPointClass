@@ -287,7 +287,7 @@ PointSet* fastPlyReadPointSet(const std::string &filename){
     //     std::cout << std::endl;
         
     //     if (idx > 9) exit(1);
-    //        classes[std::size_t(r->labels[idx])]++;
+    //     classes[std::size_t(r->labels[idx])]++;
     // }
 
     // for (size_t i = 0; i < classes.size(); i++){

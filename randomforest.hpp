@@ -2,10 +2,6 @@
 #define RANDOMFOREST_H
 
 #include <ostream>
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/iostreams/filtering_stream.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
 
 #include "random-forest/node-gini.hpp"
 #include "random-forest/forest.hpp"
@@ -27,18 +23,18 @@ typedef liblearning::DataView2D<float> FeatureDataView;
 
 Regularization parseRegularization(const std::string &regularization);
 
-void train(const std::vector<std::string> filenames,
+RandomForest *train(const std::vector<std::string> filenames,
     double *startResolution,
     int numScales,
     int numTrees,
     int treeDepth,
     double radius,
-    int maxSamplesPerLabel,
-    const std::string &modelFilename);
+    int maxSamplesPerLabel);
 
 RandomForest *loadForest(const std::string &modelFilename);
+void saveForest(RandomForest *rtrees, const std::string &modelFilename);
 
-void trainForest(const PointSet &pointSet,
+RandomForest *trainForest(const PointSet &pointSet,
           const std::vector<Feature *> &features,
           const std::vector<Label> &labels,
           RandomForest *rtrees,

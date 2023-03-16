@@ -16,7 +16,6 @@ It supports all point cloud formats supported by [PDAL](https://pdal.io/en/lates
 
 Dependencies:
  * Intel TBB
- * Boost System and Serialization
  * PDAL (optional for LAS/LAZ support)
 
 ```

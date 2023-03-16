@@ -91,6 +91,34 @@ struct ForestParams {
         ar & BOOST_SERIALIZATION_NVP(radius);
         ar & BOOST_SERIALIZATION_NVP(numScales);
     }
+
+    void write (std::ostream& os){
+      os.write((char*)(&n_classes), sizeof(size_t));
+      os.write((char*)(&n_features), sizeof(size_t));
+      os.write((char*)(&n_samples), sizeof(size_t));
+      os.write((char*)(&n_in_bag_samples), sizeof(size_t));
+      os.write((char*)(&max_depth), sizeof(size_t));
+      os.write((char*)(&n_trees), sizeof(size_t));
+      os.write((char*)(&min_samples_per_node), sizeof(size_t));
+      os.write((char*)(&sample_reduction), sizeof(float));
+      os.write((char*)(&resolution), sizeof(double));
+      os.write((char*)(&radius), sizeof(double));
+      os.write((char*)(&numScales), sizeof(int));
+    }
+
+    void read (std::istream& is){
+      is.read((char*)(&n_classes), sizeof(size_t));
+      is.read((char*)(&n_features), sizeof(size_t));
+      is.read((char*)(&n_samples), sizeof(size_t));
+      is.read((char*)(&n_in_bag_samples), sizeof(size_t));
+      is.read((char*)(&max_depth), sizeof(size_t));
+      is.read((char*)(&n_trees), sizeof(size_t));
+      is.read((char*)(&min_samples_per_node), sizeof(size_t));
+      is.read((char*)(&sample_reduction), sizeof(float));
+      is.read((char*)(&resolution), sizeof(double));
+      is.read((char*)(&radius), sizeof(double));
+      is.read((char*)(&numScales), sizeof(int));
+    }
 };
 
 struct QuadraticSplitter {
@@ -186,9 +214,9 @@ struct AxisAlignedSplitter {
     typedef FeatureClassDataFloat FeatureClassData;
     int feature;
     FeatureType threshold;
-    AxisAlignedSplitter() : feature(-1) {}
+    AxisAlignedSplitter() : feature(-1), threshold(-1) {}
     AxisAlignedSplitter(int feature) : 
-        feature(feature) 
+        feature(feature), threshold(-1)
     {}
     void set_threshold(FeatureType new_threshold) {
         threshold = new_threshold;
@@ -217,6 +245,16 @@ struct AxisAlignedSplitter {
     {
         ar & BOOST_SERIALIZATION_NVP(feature);
         ar & BOOST_SERIALIZATION_NVP(threshold);
+    }
+
+    void write (std::ostream& os){
+      os.write((char*)(&feature), sizeof(int));
+      os.write((char*)(&threshold), sizeof(FeatureType));
+    }
+
+    void read (std::istream& is){
+      is.read((char*)(&feature), sizeof(int));
+      is.read((char*)(&threshold), sizeof(FeatureType));
     }
 };
 

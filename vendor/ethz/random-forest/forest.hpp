@@ -151,6 +151,27 @@ public:
         ar & BOOST_SERIALIZATION_NVP(params);
         ar & BOOST_SERIALIZATION_NVP(trees);
     }
+
+    void write (std::ostream& os){
+      params.write(os);
+
+      std::size_t nb_trees = trees.size();
+      os.write((char*)(&nb_trees), sizeof(std::size_t));
+      for (std::size_t i_tree = 0; i_tree < trees.size(); ++i_tree)
+        trees[i_tree].write(os);
+    }
+
+    void read (std::istream& is){
+      params.read(is);
+
+      std::size_t nb_trees;
+      is.read((char*)(&nb_trees), sizeof(std::size_t));
+      for (std::size_t i = 0; i < nb_trees; ++ i)
+      {
+        trees.push_back (new TreeType(&params));
+        trees.back().read(is);
+      }  
+    }
 };
 
 }

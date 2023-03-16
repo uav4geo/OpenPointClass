@@ -24,7 +24,7 @@ add_compile_options(-march=native)
 endif()
 
 find_package(OpenMP REQUIRED)
-find_package(Boost COMPONENTS iostreams serialization)
+# find_package(Boost COMPONENTS iostreams serialization)
 find_package(Eigen3 REQUIRED)
 if (WITH_PDAL)
       find_package(PDAL)
@@ -91,7 +91,7 @@ endif()
 add_executable(pctrain pctrain.cpp)
 add_executable(pcclassify pcclassify.cpp)
 
-target_link_libraries(libopc ${STDPPFS_LIBRARY} Eigen3::Eigen OpenMP::OpenMP_CXX Boost::iostreams Boost::serialization ${GBM_LIB} ${PDAL_LIB})
+target_link_libraries(libopc ${STDPPFS_LIBRARY} Eigen3::Eigen OpenMP::OpenMP_CXX ${GBM_LIB} ${PDAL_LIB})
 target_link_libraries(pctrain libopc)
 target_link_libraries(pcclassify libopc)
 

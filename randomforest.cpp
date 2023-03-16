@@ -8,18 +8,17 @@ Regularization parseRegularization(const std::string &regularization){
     else throw std::runtime_error("Invalid regularization value: " + regularization);
 }
 
-void train(const std::vector<std::string> filenames,
+RandomForest *train(const std::vector<std::string> filenames,
           double *startResolution,
           int numScales,
           int numTrees,
           int treeDepth,
           double radius,
-          int maxSamplesPerLabel,
-          const std::string &modelFilename){
+          int maxSamplesPerLabel){
   ForestParams params;
   params.n_trees   = numTrees;
   params.max_depth = treeDepth;
-  RandomForest rtrees(params);
+  RandomForest* rtrees = new RandomForest(params);
 
   auto labels = getTrainingLabels();
 
@@ -41,7 +40,7 @@ void train(const std::vector<std::string> filenames,
     auto features = getFeatures(scales);
     std::cout << "Features: " << features.size() << std::endl;
 
-    trainForest(*pointSet, features, labels, &rtrees, maxSamplesPerLabel);
+    trainForest(*pointSet, features, labels, rtrees, maxSamplesPerLabel);
 
     // Free up memory for next
     for (size_t i = 0; i < scales.size(); i++) delete scales[i];
@@ -49,21 +48,21 @@ void train(const std::vector<std::string> filenames,
     RELEASE_POINTSET(pointSet);
   }
 
-  rtrees.params.resolution = *startResolution;
-  rtrees.params.radius = radius;
-  rtrees.params.numScales = numScales;
+  rtrees->params.resolution = *startResolution;
+  rtrees->params.radius = radius;
+  rtrees->params.numScales = numScales;
 
+  return rtrees;
+}
+
+void saveForest(RandomForest *rtrees, const std::string &modelFilename){
   std::ofstream ofs(modelFilename.c_str(), std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
-  boost::iostreams::filtering_ostream outs;
-  outs.push(boost::iostreams::gzip_compressor());
-  outs.push(ofs);
-  boost::archive::text_oarchive oas(outs);
-  oas << BOOST_SERIALIZATION_NVP(rtrees);
+  rtrees->write(ofs);
 
   std::cout << "Saved " << modelFilename << std::endl;
 }
 
-void trainForest(const PointSet &pointSet, 
+RandomForest *trainForest(const PointSet &pointSet, 
           const std::vector<Feature *> &features,
           const std::vector<Label> &labels, 
           RandomForest *rtrees,
@@ -121,7 +120,7 @@ void trainForest(const PointSet &pointSet,
 
   std::cout << "Training..." << std::endl;
   rtrees->train(feature_vector, label_vector, LabelDataView(), generator, 0, false, false);
-
+  return rtrees;
 }
 
 RandomForest *loadForest(const std::string &modelFilename){
@@ -130,12 +129,7 @@ RandomForest *loadForest(const std::string &modelFilename){
   std::cout << "Loading " << modelFilename << std::endl;
   std::ifstream ifs(modelFilename.c_str(), std::ios_base::in | std::ios_base::binary);
   if (!ifs.is_open()) throw std::runtime_error("Cannot open " + modelFilename);
-  
-  boost::iostreams::filtering_istream ins;
-  ins.push(boost::iostreams::gzip_decompressor());
-  ins.push(ifs);
-  boost::archive::text_iarchive ias(ins);
-  ias >> BOOST_SERIALIZATION_NVP(*rtrees);
+  rtrees->read(ifs);
 
   return rtrees;
 }
