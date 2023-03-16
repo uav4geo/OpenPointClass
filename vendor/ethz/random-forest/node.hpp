@@ -1,9 +1,8 @@
 #ifndef LIBLEARNING_RANDOMFORESTS_NODE_H
 #define LIBLEARNING_RANDOMFORESTS_NODE_H 
+#include <memory>
 #include "../dataview.h"
 #include "common-libraries.hpp"
-#include <boost/serialization/scoped_ptr.hpp>
-#include <boost/serialization/vector.hpp>
 #if VERBOSE_NODE_LEARNING
 #include <cstdio>
 #endif
@@ -22,8 +21,8 @@ public:
     ParamType const* params;
     Splitter splitter;
     
-    boost::scoped_ptr<Derived> left;
-    boost::scoped_ptr<Derived> right;
+    std::unique_ptr<Derived> left;
+    std::unique_ptr<Derived> right;
     std::vector<float> node_dist;
 
     Node() : is_leaf(true), n_samples(0), depth(-1), params(0) {}
@@ -200,19 +199,6 @@ public:
         // train left and right side of split
         left->train (samples, labels, sample_idxes + offset_left,  n_samples_left,  split_generator, gen);
         right->train(samples, labels, sample_idxes + offset_right, n_samples_right, split_generator, gen);
-    } 
-
-    template <typename Archive>
-    void serialize(Archive& ar, unsigned /*version*/)
-    {
-        ar & BOOST_SERIALIZATION_NVP(is_leaf);
-        ar & BOOST_SERIALIZATION_NVP(n_samples);
-        ar & BOOST_SERIALIZATION_NVP(depth);
-        ar & BOOST_SERIALIZATION_NVP(params);
-        ar & BOOST_SERIALIZATION_NVP(splitter);
-        ar & BOOST_SERIALIZATION_NVP(node_dist);
-        ar & BOOST_SERIALIZATION_NVP(left);
-        ar & BOOST_SERIALIZATION_NVP(right);
     }
 
     void write (std::ostream& os){

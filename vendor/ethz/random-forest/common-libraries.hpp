@@ -2,25 +2,10 @@
 #define LIBLEARNING_RANDOMFOREST_COMMON_LIBRARIES_H
 #include <algorithm>
 #include <numeric>
+#include <unordered_set>
+#include <random>
 #include <limits>
 #include <list>
-#include <boost/version.hpp>
-#include <boost/bind.hpp>
-#include <boost/foreach.hpp>
-#include <boost/ptr_container/ptr_vector.hpp>
-#include <boost/random/mersenne_twister.hpp>
-#if BOOST_VERSION >= 104700
-#  include <boost/random/uniform_int_distribution.hpp>
-#else 
-#  include <boost/random/uniform_int.hpp>
-#endif
-#include <boost/random/uniform_01.hpp>
-#include <boost/random/normal_distribution.hpp>
-#include <boost/serialization/vector.hpp>
-#include <boost/scoped_ptr.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/make_shared.hpp>
-#include <boost/unordered_set.hpp>
 #include <iostream>
 #include <cstdio>
 
@@ -34,19 +19,12 @@ inline void init_feature_class_data(FeatureClassDataFloat& data, int /*n_classes
 {
     data.resize(n_samples);
 }
-typedef boost::unordered_set<int> FeatureSet;
+typedef std::unordered_set<int> FeatureSet;
 
-#if BOOST_VERSION >= 104700
-typedef boost::random::uniform_int_distribution<> UniformIntDist;
-typedef boost::random::normal_distribution<> NormalDist;
-typedef boost::random::mt19937 RandomGen;
-typedef boost::random::uniform_01<> UnitDist;
-#else 
-typedef boost::uniform_int<> UniformIntDist;
-typedef boost::normal_distribution<> NormalDist;
-typedef boost::uniform_01<> UnitDist;
-typedef boost::mt19937 RandomGen;
-#endif
+typedef std::uniform_int_distribution<> UniformIntDist;
+typedef std::normal_distribution<> NormalDist;
+typedef std::mt19937 RandomGen;
+typedef std::uniform_real_distribution<float> UnitDist;
 
 struct ForestParams { 
     size_t n_classes;
@@ -76,21 +54,6 @@ struct ForestParams {
         radius(0.6),
         numScales(5)
     {}
-    template <typename Archive>
-    void serialize(Archive& ar, unsigned /*version*/)
-    {
-        ar & BOOST_SERIALIZATION_NVP(n_classes);
-        ar & BOOST_SERIALIZATION_NVP(n_features);
-        ar & BOOST_SERIALIZATION_NVP(n_samples);
-        ar & BOOST_SERIALIZATION_NVP(n_in_bag_samples);
-        ar & BOOST_SERIALIZATION_NVP(max_depth);
-        ar & BOOST_SERIALIZATION_NVP(n_trees);
-        ar & BOOST_SERIALIZATION_NVP(min_samples_per_node);
-        ar & BOOST_SERIALIZATION_NVP(sample_reduction);
-        ar & BOOST_SERIALIZATION_NVP(resolution);
-        ar & BOOST_SERIALIZATION_NVP(radius);
-        ar & BOOST_SERIALIZATION_NVP(numScales);
-    }
 
     void write (std::ostream& os){
       os.write((char*)(&n_classes), sizeof(size_t));
@@ -163,13 +126,6 @@ struct QuadraticSplitter {
             data_points[i_sample] = std::make_pair(sample_fval, sample_class);
         }
     }
-    template <typename Archive>
-    void serialize(Archive& ar, unsigned /*version*/)
-    {
-        ar & BOOST_SERIALIZATION_NVP(n_features);
-        ar & BOOST_SERIALIZATION_NVP(w);
-        ar & BOOST_SERIALIZATION_NVP(threshold);
-    }
 };
 
 struct LinearSplitter {
@@ -200,12 +156,6 @@ struct LinearSplitter {
                                                    samples.row_pointer(sample_idx), 0.0f);
             data_points[i_sample] = std::make_pair(sample_fval, sample_class);
         }
-    }
-    template <typename Archive>
-    void serialize(Archive& ar, unsigned /*version*/)
-    {
-        ar & BOOST_SERIALIZATION_NVP(w);
-        ar & BOOST_SERIALIZATION_NVP(threshold);
     }
 };
 
@@ -239,12 +189,6 @@ struct AxisAlignedSplitter {
             FeatureType sample_fval = samples(sample_idx, feature);
             data_points[i_sample] = std::make_pair(sample_fval, sample_class);
         }
-    }
-    template <typename Archive>
-    void serialize(Archive& ar, unsigned /*version*/)
-    {
-        ar & BOOST_SERIALIZATION_NVP(feature);
-        ar & BOOST_SERIALIZATION_NVP(threshold);
     }
 
     void write (std::ostream& os){

@@ -2,7 +2,6 @@
 #define LIBLEARNING_RANDOMFOREST_TREE_H 
 #include "../dataview.h"
 #include "common-libraries.hpp"
-#include <boost/serialization/scoped_ptr.hpp>
 
 namespace liblearning {
 namespace RandomForest {
@@ -13,7 +12,7 @@ public:
     typedef NodeT NodeType;
     typedef typename NodeType::ParamType ParamType;
     typedef typename NodeType::FeatureType FeatureType;
-    boost::scoped_ptr<NodeT> root_node;
+    std::unique_ptr<NodeT> root_node;
     ParamType const* params;
 
     Tree() : params(0) {}
@@ -97,12 +96,6 @@ public:
         return n_common/sqrt((n_common + n_1)*(n_common + n_2));
     }
 #endif
-    template <typename Archive>
-    void serialize(Archive& ar, unsigned /*version*/)
-    {
-        ar & BOOST_SERIALIZATION_NVP(params);
-        ar & BOOST_SERIALIZATION_NVP(root_node);
-    }
 
     void write (std::ostream& os){
       root_node->write(os);

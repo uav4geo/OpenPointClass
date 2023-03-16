@@ -37,7 +37,7 @@ public:
         double best_loss = std::numeric_limits<double>::infinity();
         float best_thresh = 0;
 
-        UnitDist fraction_dist;
+        UnitDist fraction_dist(0.0, 1.0);
         classes_l.assign(params->n_classes, 0);
         classes_r.assign(params->n_classes, 0);
         double n_l = 0;
@@ -67,12 +67,6 @@ public:
             }
         }
         return std::make_pair(best_thresh, best_loss);
-    }
-
-    template <typename Archive>
-    void serialize(Archive& ar, unsigned /* version */)
-    {
-        ar & boost::serialization::make_nvp("base",  boost::serialization::base_object< Node< NodeGini<Splitter>, ForestParams, Splitter > >(*this));
     }
 };
 

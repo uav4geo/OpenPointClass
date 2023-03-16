@@ -24,7 +24,6 @@ add_compile_options(-march=native)
 endif()
 
 find_package(OpenMP REQUIRED)
-# find_package(Boost COMPONENTS iostreams serialization)
 find_package(Eigen3 REQUIRED)
 if (WITH_PDAL)
       find_package(PDAL)

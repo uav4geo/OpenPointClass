@@ -1,8 +1,8 @@
 #ifndef LIBLEARNING_RANDOMFOREST_FOREST_H
 #define LIBLEARNING_RANDOMFOREST_FOREST_H 
+#include <memory>
 #include "common-libraries.hpp"
 #include "tree.hpp"
-#include <boost/ptr_container/serialize_ptr_vector.hpp>
 #if VERBOSE_TREE_PROGRESS
 #include <cstdio>
 #endif
@@ -21,7 +21,7 @@ public:
     std::vector<uint8_t> was_oob_data;
     DataView2D<uint8_t> was_oob;
 
-    boost::ptr_vector< Tree<NodeT> > trees;
+    std::vector<std::shared_ptr<Tree<NodeT> > > trees;
 
     RandomForest() {}
     RandomForest(ParamType const& params) : params(params) {}
@@ -75,7 +75,7 @@ public:
             std::printf("Training tree %zu/%zu, max depth %zu\n", i_tree+1, params.n_trees, params.max_depth);
 #endif
             // new tree
-            auto tree = new TreeType(&params);
+            auto tree = std::make_shared<TreeType>(&params);
             trees.push_back(tree);
             // initialize random generator with sequential seeds (one for each
             // tree)
@@ -110,7 +110,7 @@ public:
         std::fill_n(results, params.n_classes, 0);
         // accumulate votes of the trees
         for (size_t i_tree = 0; i_tree < trees.size(); ++i_tree) {
-            float const* tree_result = trees[i_tree].evaluate(sample);
+            float const* tree_result = trees[i_tree]->evaluate(sample);
             for (size_t i_cls = 0; i_cls < params.n_classes; ++i_cls) {
                 results[i_cls] += tree_result[i_cls];
             }
@@ -145,20 +145,13 @@ public:
         return sum/trees.size();
     }
 #endif
-    template <typename Archive>
-    void serialize(Archive& ar, unsigned /* version */)
-    {
-        ar & BOOST_SERIALIZATION_NVP(params);
-        ar & BOOST_SERIALIZATION_NVP(trees);
-    }
-
     void write (std::ostream& os){
       params.write(os);
 
       std::size_t nb_trees = trees.size();
       os.write((char*)(&nb_trees), sizeof(std::size_t));
       for (std::size_t i_tree = 0; i_tree < trees.size(); ++i_tree)
-        trees[i_tree].write(os);
+        trees[i_tree]->write(os);
     }
 
     void read (std::istream& is){
@@ -168,8 +161,8 @@ public:
       is.read((char*)(&nb_trees), sizeof(std::size_t));
       for (std::size_t i = 0; i < nb_trees; ++ i)
       {
-        trees.push_back (new TreeType(&params));
-        trees.back().read(is);
+        trees.push_back (std::make_shared<TreeType>(&params));
+        trees.back()->read(is);
       }  
     }
 };
