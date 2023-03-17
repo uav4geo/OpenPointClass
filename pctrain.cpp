@@ -16,9 +16,9 @@ int main(int argc, char **argv){
             ("o,output", "Output model", cxxopts::value<std::string>()->default_value("model.bin"))
             ("r,resolution", "Resolution of the first scale (-1 = estimate automatically)", cxxopts::value<double>()->default_value("-1"))
             ("s,scales", "Number of scales to compute", cxxopts::value<int>()->default_value(MKSTR(NUM_SCALES)))
-            ("t,trees", "Number of trees to populate for each input point cloud", cxxopts::value<int>()->default_value(MKSTR(N_TREES)))
+            ("t,trees", "Number of trees in the forest", cxxopts::value<int>()->default_value(MKSTR(N_TREES)))
             ("d,depth", "Maximum depth of trees", cxxopts::value<int>()->default_value(MKSTR(MAX_DEPTH)))
-            ("m,max-samples", "Maximum number of samples per label for each input point cloud", cxxopts::value<int>()->default_value("1000000"))
+            ("m,max-samples", "Maximum number of samples for each input point cloud", cxxopts::value<int>()->default_value("1000000"))
             ("radius", "Radius size to use for neighbor search (meters)", cxxopts::value<double>()->default_value(MKSTR(RADIUS)))
             ("e,eval", "Labeled point cloud to use for model accuracy evaluation", cxxopts::value<std::string>()->default_value(""))
             ("h,help", "Print usage")
@@ -48,9 +48,9 @@ int main(int argc, char **argv){
         int numTrees = result["trees"].as<int>();
         int treeDepth = result["depth"].as<int>();
         double radius = result["radius"].as<double>();
-        int maxSamplesPerLabel = result["max-samples"].as<int>();
+        int maxSamples = result["max-samples"].as<int>();
 
-        rf::RandomForest *rtrees = rf::train(filenames, &startResolution, scales, numTrees, treeDepth, radius, maxSamplesPerLabel);
+        rf::RandomForest *rtrees = rf::train(filenames, &startResolution, scales, numTrees, treeDepth, radius, maxSamples);
         rf::saveForest(rtrees, modelFilename);
         delete rtrees;
 

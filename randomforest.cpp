@@ -14,17 +14,19 @@ RandomForest *train(const std::vector<std::string> filenames,
           int numTrees,
           int treeDepth,
           double radius,
-          int maxSamplesPerLabel){
+          int maxSamples){
   ForestParams params;
   params.n_trees   = numTrees;
   params.max_depth = treeDepth;
   RandomForest* rtrees = new RandomForest(params);
+  AxisAlignedRandomSplitGenerator generator;
 
   auto labels = getTrainingLabels();
+  std::vector<int> gt;
+  std::vector<float> ft;
 
   for (size_t i = 0; i < filenames.size(); i++){
-    std::cout << "Training on " << filenames[i] << std::endl;
-
+    std::cout << "Processing " << filenames[i] << std::endl;
     auto pointSet = readPointSet(filenames[i]);
     if (!pointSet->hasLabels()){
       std::cout << filenames[i] << " has no labels, skipping..." << std::endl;
@@ -40,13 +42,67 @@ RandomForest *train(const std::vector<std::string> filenames,
     auto features = getFeatures(scales);
     std::cout << "Features: " << features.size() << std::endl;
 
-    trainForest(*pointSet, features, labels, rtrees, maxSamplesPerLabel);
+    std::vector<std::size_t> count (labels.size(), 0);
+    std::vector<bool> sampled (pointSet->count(), false);
+    std::vector<std::pair<size_t, int> > idxes;
 
+    for (size_t i = 0; i < pointSet->count(); i++){
+      int g = pointSet->labels[i];
+      if (g != LABEL_UNASSIGNED) {
+          size_t idx = pointSet->pointMap[i];
+          if (!sampled[idx]){
+            idxes.push_back(std::make_pair(idx, g));
+            count[std::size_t(g)]++;
+            sampled[idx] = true;
+          }
+      }
+    }
+
+    size_t totalSamples = 0;
+    std::vector<size_t> samplesPerLabel(count.size(), 0);
+    for (size_t i = 0; i < count.size(); i++) totalSamples += count[i];
+    if (totalSamples == 0) return rtrees;
+
+    // Allocate samples based on their relative distribution
+    for (size_t i = 0; i < samplesPerLabel.size(); i++){
+      float perc = static_cast<float>(count[i]) / static_cast<float>(totalSamples);
+      samplesPerLabel[i] = std::min<size_t>(
+                                std::ceil<size_t>(
+                                  perc * static_cast<float>(std::min<size_t>(maxSamples, totalSamples))
+                                ), 
+                                count[i]);
+    }
+
+    std::vector<std::size_t> added (labels.size(), 0);
+    std::random_shuffle ( idxes.begin(), idxes.end() );
+
+    for (const auto &p : idxes){
+      size_t idx = p.first;
+      int g = p.second;
+      if (added[std::size_t(g)] < samplesPerLabel[std::size_t(g)]){
+        for (std::size_t f = 0; f < features.size(); f++){
+          ft.push_back(features[f]->getValue(idx));
+        }
+        gt.push_back(g);
+        added[std::size_t(g)]++;
+      }
+    }
+
+    for (std::size_t i = 0; i < labels.size(); i++)
+      std::cout << " * " << labels[i].getName() << ": " << added[i] << " / " << count[i] << std::endl;
+    
     // Free up memory for next
     for (size_t i = 0; i < scales.size(); i++) delete scales[i];
     for (size_t i = 0; i < features.size(); i++) delete features[i];
     RELEASE_POINTSET(pointSet);
   }
+
+  LabelDataView label_vector (&(gt[0]), gt.size(), 1);
+  FeatureDataView feature_vector(&(ft[0]), gt.size(), ft.size() / gt.size());
+
+  std::cout << "Using " << gt.size() << " inliers" << std::endl;
+  std::cout << "Training..." << std::endl;
+  rtrees->train(feature_vector, label_vector, LabelDataView(), generator, 0, false, false);
 
   rtrees->params.resolution = *startResolution;
   rtrees->params.radius = radius;
@@ -60,67 +116,6 @@ void saveForest(RandomForest *rtrees, const std::string &modelFilename){
   rtrees->write(ofs);
 
   std::cout << "Saved " << modelFilename << std::endl;
-}
-
-RandomForest *trainForest(const PointSet &pointSet, 
-          const std::vector<Feature *> &features,
-          const std::vector<Label> &labels, 
-          RandomForest *rtrees,
-          int maxSamplesPerLabel){
-
-  AxisAlignedRandomSplitGenerator generator;
-  
-  std::vector<int> gt;
-  std::vector<float> ft;
-  std::vector<std::size_t> count (labels.size(), 0);
-  std::vector<bool> sampled (pointSet.count(), false);
-  std::vector<std::pair<size_t, int> > idxes;
-
-  for (size_t i = 0; i < pointSet.count(); i++){
-    int g = pointSet.labels[i];
-    if (g != LABEL_UNASSIGNED) {
-        size_t idx = pointSet.pointMap[i];
-        if (!sampled[idx]){
-          idxes.push_back(std::make_pair(idx, g));
-          count[std::size_t(g)]++;
-          sampled[idx] = true;
-        }
-    }
-  }
-
-  size_t samplesPerLabel = std::numeric_limits<size_t>::max();
-  for (std::size_t i = 0; i < labels.size(); i++){
-    if (count[i] > 0) samplesPerLabel = std::min(count[i], samplesPerLabel);
-  }
-  samplesPerLabel = std::min<size_t>(samplesPerLabel, maxSamplesPerLabel);
-  std::vector<std::size_t> added (labels.size(), 0);
-
-  std::cout << "Samples per label: " << samplesPerLabel << std::endl;
-
-  std::random_shuffle ( idxes.begin(), idxes.end() );
-
-  for (const auto &p : idxes){
-    size_t idx = p.first;
-    int g = p.second;
-    if (added[std::size_t(g)] < samplesPerLabel){
-      for (std::size_t f = 0; f < features.size(); f++){
-        ft.push_back(features[f]->getValue(idx));
-      }
-      gt.push_back(g);
-      added[std::size_t(g)]++;
-    }
-  }
-  
-  std::cout << "Using " << gt.size() << " inliers:" << std::endl;
-  for (std::size_t i = 0; i < labels.size(); i++)
-      std::cout << " * " << labels[i].getName() << ": " << added[i] << " / " << count[i] << std::endl;
-
-  LabelDataView label_vector (&(gt[0]), gt.size(), 1);
-  FeatureDataView feature_vector(&(ft[0]), gt.size(), ft.size() / gt.size());
-
-  std::cout << "Training..." << std::endl;
-  rtrees->train(feature_vector, label_vector, LabelDataView(), generator, 0, false, false);
-  return rtrees;
 }
 
 RandomForest *loadForest(const std::string &modelFilename){
