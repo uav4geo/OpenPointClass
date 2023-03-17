@@ -53,6 +53,8 @@ int main(int argc, char **argv){
         std::string inputFile = result["input"].as<std::string>();
         std::string modelFile = result["model"].as<std::string>();
         std::string outputFile = result["output"].as<std::string>();
+        std::vector<int> skip = {};
+        if (result.count("skip")) skip = result["skip"].as<std::vector<int>>();
 
         rf::RandomForest *rtrees = rf::loadForest(modelFile);
 
@@ -61,7 +63,6 @@ int main(int argc, char **argv){
 
         double startResolution = rtrees->params.resolution;
         double radius = rtrees->params.radius;
-        
         int numScales = rtrees->params.numScales;
 
         std::cout << "Starting resolution: " << startResolution << std::endl;
@@ -70,7 +71,7 @@ int main(int argc, char **argv){
         std::cout << "Features: " << features.size() << std::endl;
 
         rf::classify(*pointSet, rtrees, features, labels, regularization, 
-            result["reg-radius"].as<double>(), result["color"].as<bool>(), result["unclassified"].as<bool>(), result["eval"].as<bool>(), result["skip"].as<std::vector<int>>());
+            result["reg-radius"].as<double>(), result["color"].as<bool>(), result["unclassified"].as<bool>(), result["eval"].as<bool>(), skip);
         savePointSet(*pointSet, outputFile);
     } catch(std::exception &e){
         std::cerr << "Error: " << e.what() << std::endl;
