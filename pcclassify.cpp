@@ -15,8 +15,10 @@ int main(int argc, char **argv){
             ("o,output", "Output point cloud", cxxopts::value<std::string>())
             ("m,model", "Input classification model", cxxopts::value<std::string>()->default_value("model.bin"))
             ("r,regularization", "Regularization method (none, local_smooth)", cxxopts::value<std::string>()->default_value("local_smooth"))
+            ("reg-radius", "Regularization radius (meters)", cxxopts::value<double>()->default_value("2.5"))
             ("c,color", "Output a colored point cloud instead of a classified one", cxxopts::value<bool>()->default_value("false"))
             ("u,unclassified", "Only classify points that are labeled as unclassified and leave the others untouched", cxxopts::value<bool>()->default_value("false"))
+            ("s,skip", "Do not apply these classification labels (comma separated) and leave them as-is", cxxopts::value<std::vector<int>>())
             ("e,eval", "If the input point cloud is labeled, enable accuracy evaluation", cxxopts::value<bool>()->default_value("false"))
             ("h,help", "Print usage")
         ;
@@ -59,6 +61,7 @@ int main(int argc, char **argv){
 
         double startResolution = rtrees->params.resolution;
         double radius = rtrees->params.radius;
+        
         int numScales = rtrees->params.numScales;
 
         std::cout << "Starting resolution: " << startResolution << std::endl;
@@ -66,7 +69,8 @@ int main(int argc, char **argv){
         auto features = getFeatures(computeScales(numScales, pointSet, startResolution, radius));
         std::cout << "Features: " << features.size() << std::endl;
 
-        rf::classify(*pointSet, rtrees, features, labels, regularization, result["color"].as<bool>(), result["unclassified"].as<bool>(), result["eval"].as<bool>());
+        rf::classify(*pointSet, rtrees, features, labels, regularization, 
+            result["reg-radius"].as<double>(), result["color"].as<bool>(), result["unclassified"].as<bool>(), result["eval"].as<bool>(), result["skip"].as<std::vector<int>>());
         savePointSet(*pointSet, outputFile);
     } catch(std::exception &e){
         std::cerr << "Error: " << e.what() << std::endl;

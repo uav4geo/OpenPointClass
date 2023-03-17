@@ -134,9 +134,11 @@ void classify(PointSet &pointSet,
     const std::vector<Feature *> &features, 
     const std::vector<Label> &labels,
     Regularization regularization,
+    double regRadius,
     bool useColors,
     bool unclassifiedOnly,
-    bool evaluate){
+    bool evaluate,
+    const std::vector<int> &skip){
 
   
   std::cout << "Classifying..." << std::endl;
@@ -205,11 +207,9 @@ void classify(PointSet &pointSet,
     std::vector<float> mean (values.size(), 0.);
     auto index = pointSet.base->getIndex<KdTree>();
 
-    const double radius = features[0]->getScale()->radius;
-
     #pragma omp for schedule(dynamic, 1)
     for (size_t i = 0; i < pointSet.base->count(); i++){
-      size_t numMatches = index->radiusSearch(&pointSet.base->points[i][0], radius, radiusMatches);
+      size_t numMatches = index->radiusSearch(&pointSet.base->points[i][0], regRadius, radiusMatches);
       std::fill(mean.begin(), mean.end(), 0.);
 
       for (size_t n = 0; n < numMatches; n++){
@@ -238,6 +238,11 @@ void classify(PointSet &pointSet,
 
   std::size_t correct = 0;
   if (!useColors && !pointSet.hasLabels()) pointSet.labels.resize(pointSet.count());
+  std::vector<bool> skipMap(255, false);
+  for (size_t i = 0; i < skip.size(); i++){
+    size_t skipClass = skip[i];
+    if (skipClass >= 0 && skipClass <= 255) skipMap[skipClass] = true;
+  }
 
   #pragma omp parallel for
   for (size_t i = 0; i < pointSet.count(); i++){
@@ -257,6 +262,9 @@ void classify(PointSet &pointSet,
     if (unclassifiedOnly && pointSet.hasLabels() 
         && pointSet.labels[i] != LABEL_UNCLASSIFIED) continue;
 
+    const int asprsCode = label.getAsprsCode();
+    if (skipMap[asprsCode]) continue;
+
     // Update point info
     if (useColors){
       auto color = label.getColor();
@@ -264,7 +272,7 @@ void classify(PointSet &pointSet,
       pointSet.colors[i][1] = color.g;
       pointSet.colors[i][2] = color.b;
     }else{
-      pointSet.labels[i] = label.getAsprsCode();
+      pointSet.labels[i] = asprsCode;
     }
   }
 

@@ -68,7 +68,7 @@ int main(int argc, char **argv){
             auto evalFeatures = getFeatures(computeScales(scales, evalPointSet, startResolution, radius));
             std::cout << "Features: " << evalFeatures.size() << std::endl;
 
-            rf::classify(*evalPointSet, rtrees, evalFeatures, labels, rf::Regularization::None, true, false, true);
+            rf::classify(*evalPointSet, rtrees, evalFeatures, labels, rf::Regularization::None, 2.5f, true, false, true);
             // gbm::classify(evalPointSet, modelFilename, evalFeatures, labels, true, true);
             savePointSet(*evalPointSet, "evaluation_results.ply");
         }
