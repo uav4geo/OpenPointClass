@@ -58,28 +58,20 @@ RandomForest *train(const std::vector<std::string> filenames,
       }
     }
 
-    size_t totalSamples = 0;
-    std::vector<size_t> samplesPerLabel(count.size(), 0);
-    for (size_t i = 0; i < count.size(); i++) totalSamples += count[i];
-    if (totalSamples == 0) return rtrees;
-
-    // Allocate samples based on their relative distribution
-    for (size_t i = 0; i < samplesPerLabel.size(); i++){
-      float perc = static_cast<float>(count[i]) / static_cast<float>(totalSamples);
-      samplesPerLabel[i] = std::min<size_t>(
-                                std::ceil<size_t>(
-                                  perc * static_cast<float>(std::min<size_t>(maxSamples, totalSamples))
-                                ), 
-                                count[i]);
+    size_t samplesPerLabel = std::numeric_limits<size_t>::max();
+    for (std::size_t i = 0; i < labels.size(); i++){
+      if (count[i] > 0) samplesPerLabel = std::min(count[i], samplesPerLabel);
     }
-
+    samplesPerLabel = std::min<size_t>(samplesPerLabel, maxSamples);
     std::vector<std::size_t> added (labels.size(), 0);
+
+    std::cout << "Samples per label: " << samplesPerLabel << std::endl;
     std::random_shuffle ( idxes.begin(), idxes.end() );
 
     for (const auto &p : idxes){
       size_t idx = p.first;
       int g = p.second;
-      if (added[std::size_t(g)] < samplesPerLabel[std::size_t(g)]){
+      if (added[std::size_t(g)] < samplesPerLabel){
         for (std::size_t f = 0; f < features.size(); f++){
           ft.push_back(features[f]->getValue(idx));
         }
