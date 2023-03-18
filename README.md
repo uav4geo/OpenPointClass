@@ -2,7 +2,7 @@
 
 A fast, memory efficient free and open source point cloud classifier. It generates an AI model from a set of input point clouds that have been labeled and can subsequently use that model to classify new datasets.
 
-![image](https://user-images.githubusercontent.com/1951843/222988483-2640ec66-7a4f-4bb0-a396-f1de84b46959.png)
+![image](https://user-images.githubusercontent.com/1951843/226082918-296e183a-964f-4564-86ad-c56764e2e090.png)
 
 ![image](https://user-images.githubusercontent.com/1951843/222988854-afd47307-8ded-4c23-a322-f3c718ce70b8.png)
 
