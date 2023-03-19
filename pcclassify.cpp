@@ -1,5 +1,6 @@
 #include "constants.hpp"
 #include "point_io.hpp"
+#include "classifier.hpp"
 #include "randomforest.hpp"
 
 #include "vendor/cxxopts.hpp"
@@ -37,10 +38,10 @@ int main(int argc, char **argv){
 
     if (result.count("help") || !result.count("input") || !result.count("output")) showHelp = true;
     
-    rf::Regularization regularization = rf::Regularization::None;
+    Regularization regularization = Regularization::None;
 
     try { 
-        regularization = rf::parseRegularization(result["regularization"].as<std::string>()); 
+        regularization = parseRegularization(result["regularization"].as<std::string>()); 
     } catch(...) { showHelp = true; }
 
     if (showHelp){

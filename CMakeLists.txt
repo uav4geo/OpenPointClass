@@ -71,7 +71,7 @@ endif()
 include_directories(${EIGEN3_INCLUDE_DIR})
 include_directories(vendor/ethz)
 
-set(SOURCES scale.cpp point_io.cpp randomforest.cpp features.cpp color.cpp labels.cpp)
+set(SOURCES classifier.cpp scale.cpp point_io.cpp randomforest.cpp features.cpp color.cpp labels.cpp)
 if (WITH_GBM)
       list(APPEND SOURCES gbm.cpp)
       add_definitions(-DWITH_GBM)

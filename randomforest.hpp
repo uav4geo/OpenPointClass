@@ -6,14 +6,9 @@
 #include "random-forest/node-gini.hpp"
 #include "random-forest/forest.hpp"
 
-#include "features.hpp"
-#include "labels.hpp"
-#include "constants.hpp"
-#include "point_io.hpp"
+#include "classifier.hpp"
 
 namespace rf{
-
-enum Regularization { None, LocalSmooth};
 
 typedef liblearning::RandomForest::RandomForest< liblearning::RandomForest::NodeGini<liblearning::RandomForest::AxisAlignedSplitter> > RandomForest;
 typedef liblearning::RandomForest::AxisAlignedRandomSplitGenerator AxisAlignedRandomSplitGenerator;
@@ -21,7 +16,6 @@ typedef liblearning::RandomForest::ForestParams ForestParams;
 typedef liblearning::DataView2D<int> LabelDataView;
 typedef liblearning::DataView2D<float> FeatureDataView;
 
-Regularization parseRegularization(const std::string &regularization);
 
 RandomForest *train(const std::vector<std::string> filenames,
     double *startResolution,

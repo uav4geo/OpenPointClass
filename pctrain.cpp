@@ -1,5 +1,6 @@
 #include "constants.hpp"
 #include "point_io.hpp"
+#include "classifier.hpp"
 #include "randomforest.hpp"
 
 #include "vendor/cxxopts.hpp"
@@ -50,16 +51,18 @@ int main(int argc, char **argv){
         double radius = result["radius"].as<double>();
         int maxSamples = result["max-samples"].as<int>();
 
-        rf::RandomForest *rtrees = rf::train(filenames, &startResolution, scales, numTrees, treeDepth, radius, maxSamples);
-        rf::saveForest(rtrees, modelFilename);
-        delete rtrees;
+        // rf::RandomForest *rtrees = rf::train(filenames, &startResolution, scales, numTrees, treeDepth, radius, maxSamples);
+        // rf::saveForest(rtrees, modelFilename);
+        // delete rtrees;
 
-        // gbm::train(pointSet, features, labels, modelFilename);
+        gbm::Boosting *booster = gbm::train(filenames, &startResolution, scales, numTrees, treeDepth, radius, maxSamples);
+        gbm::saveBooster(booster, modelFilename);
 
         if (result["eval"].count()){
             std::string evalFilename = result["eval"].as<std::string>();
             std::cout << "Evaluating on " << evalFilename << " ..." << std::endl;
-            rtrees = rf::loadForest(modelFilename);
+            // rtrees = rf::loadForest(modelFilename);
+            booster = gbm::loadBooster(modelFilename);
             
             auto labels = getTrainingLabels();
             auto evalPointSet = readPointSet(evalFilename);
@@ -68,8 +71,8 @@ int main(int argc, char **argv){
             auto evalFeatures = getFeatures(computeScales(scales, evalPointSet, startResolution, radius));
             std::cout << "Features: " << evalFeatures.size() << std::endl;
 
-            rf::classify(*evalPointSet, rtrees, evalFeatures, labels, rf::Regularization::None, 2.5f, true, false, true);
-            // gbm::classify(evalPointSet, modelFilename, evalFeatures, labels, true, true);
+            // rf::classify(*evalPointSet, rtrees, evalFeatures, labels, Regularization::None, 2.5f, true, false, true);
+            gbm::classify(*evalPointSet, booster, evalFeatures, labels, Regularization::None, 2.5f, true, false, true);
             savePointSet(*evalPointSet, "evaluation_results.ply");
         }
     } catch(std::exception &e){
