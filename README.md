@@ -21,7 +21,7 @@ Dependencies:
 ```
 mkdir build
 cd build
-cmake ..
+cmake .. [-DWITH_GBT=ON]
 make -j$(nproc)
 ```
 
