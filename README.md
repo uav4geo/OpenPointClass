@@ -98,7 +98,7 @@ You can output the results of classification as a colored point cloud by using t
 
 ### Classifier Types
 
-`pctrain` can generate AI models using either random forest (default) or gradient boosted trees:
+`pctrain` can generate AI models using either random forests (default) or gradient boosted trees:
 
 `./pctrain -c gbt [...]`
 
