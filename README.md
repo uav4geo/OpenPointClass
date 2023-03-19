@@ -96,6 +96,12 @@ You can output the results of classification as a colored point cloud by using t
 
 `./pcclassify ./dataset.ply ./classified.ply --color`
 
+### Classifier Types
+
+`pctrain` can generate AI models using either random forest (default) or gradient boosted trees:
+
+`./pctrain -c gbt [...]`
+
 ### Advanced Options
 
 See `./pctrain --help`.
@@ -124,11 +130,8 @@ docker run -it --rm -v /dataset-path:/data uav4geo/openpointclass:latest pctrain
 docker run -it --rm -v /dataset-path:/data uav4geo/openpointclass:latest pcclassify /data/dataset.ply /data/classified.ply /data/model.bin
 ```
 
-
-
 ## Known Issues
 
- * Gradient Boosted Trees as an alternative to Random Forest are currently broken.
  * We only support a subset of the PLY format (for performance reasons) and certain less common variations of the format might give trouble. Most importantly, the X/Y/Z coordinates must be `float` values when using binary PLY, not `double` or `float64`. We recommend to use LAS/LAZ if higher precision coordinates are needed.
 
 ## License

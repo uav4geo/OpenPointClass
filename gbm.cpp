@@ -66,6 +66,7 @@ Boosting* train(const std::vector<std::string> filenames,
 
     dset->FinishLoad();
 
+/*
     for(int j = 0; j < numFeats; j++){
         const auto nbins = dset->FeatureBinMapper(j)->num_bin();
         // std::cout << features[j]->getName() << std::endl;
@@ -74,6 +75,7 @@ Boosting* train(const std::vector<std::string> filenames,
         std::cout << "   " << dset->FeatureBinMapper(j)->BinToValue(nbins-2) << " ";
         std::cout << std::endl;
     }
+*/
 
     if (!dset->SetFloatField("label", gt.data(), numRows)) {
         throw std::runtime_error("Error setting label");
@@ -89,6 +91,10 @@ Boosting* train(const std::vector<std::string> filenames,
     // tree params
     boostConfig.num_leaves = 16;
     boostConfig.learning_rate = 0.2;
+
+    std::stringstream ss;
+    ss << *startResolution << " " <<  radius << " " << numScales;
+    boostConfig.data = ss.str();
 
     LightGBM::Config objConfig;
     objConfig.num_class = numClass;
@@ -113,10 +119,8 @@ Boosting* train(const std::vector<std::string> filenames,
     // booster->AddValidDataset(dset.get(), LightGBM::Common::ConstPtrInVectorWrapper<LightGBM::Metric>(trainMetrics));
 
     for (int i = 0; i < boostConfig.num_iterations; i++){
-        std::cout << "Iteration " << (i+1) << std::endl;
-
         auto scores = booster->GetEvalAt(0);
-        for(auto &v: scores) std::cout << "Score: " << v << std::endl;
+        for(auto &v: scores) std::cout << "Iteration " << (i+1) << " score: " << v << std::endl;
 
         if (booster->TrainOneIter(nullptr, nullptr)){
             std::cout << "Breaking.." << std::endl;
@@ -142,6 +146,19 @@ Boosting *loadBooster(const std::string &modelFilename){
 void saveBooster(Boosting *booster, const std::string &modelFilename){
     booster->SaveModelToFile(0, 0, 0, modelFilename.c_str());
     std::cout << "Saved " << modelFilename << std::endl;
+}
+
+BoosterParams extractBoosterParams(Boosting *booster){
+    json j = json::parse(booster->GetLoadedParam());
+    if (!j.contains("data") || j["data"].get<std::string>().empty()) throw std::runtime_error("Invalid booster model (data params missing?)");
+
+    std::stringstream ss(j["data"].get<std::string>());
+    BoosterParams p;
+    ss >> p.resolution;
+    ss >> p.radius;
+    ss >> p.numScales;
+    return p;
+    
 }
 
 void classify(PointSet &pointSet, 

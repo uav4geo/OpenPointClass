@@ -5,7 +5,7 @@
 
 #include "vendor/cxxopts.hpp"
 
-#ifdef WITH_GBM
+#ifdef WITH_GBT
 #include "gbm.hpp"
 #endif
 
@@ -57,22 +57,56 @@ int main(int argc, char **argv){
         std::vector<int> skip = {};
         if (result.count("skip")) skip = result["skip"].as<std::vector<int>>();
 
-        rf::RandomForest *rtrees = rf::loadForest(modelFile);
+        ClassifierType ctype = fingerprint(modelFile);
+        #ifndef WITH_GBT
+        if (ctype == GradientBoostedTrees) throw std::runtime_error(modelFile + " is a GBT model but GBT support has not been built (try building with -DWITH_GBT=ON)") << std::endl;
+        #endif
+
+        std::cout << "Model: " << (ctype == RandomForest ? "Random Forest" : "Gradient Boosted Trees") << std::endl;
+        rf::RandomForest *rtrees;
+        #ifdef WITH_GBT
+        gbm::Boosting *booster;
+        #endif
+
+        double startResolution;
+        double radius;
+        int numScales;
+
+        if (ctype == RandomForest){
+            rtrees = rf::loadForest(modelFile);
+            startResolution = rtrees->params.resolution;
+            radius = rtrees->params.radius;
+            numScales = rtrees->params.numScales;
+        }
+        #ifdef WITH_GBT
+        else{
+            booster = gbm::loadBooster(modelFile);
+            gbm::BoosterParams p = gbm::extractBoosterParams(booster);
+            startResolution = p.resolution;
+            radius = p.radius;
+            numScales = p.numScales;
+        }
+        #endif
 
         auto labels = getTrainingLabels();
         auto pointSet = readPointSet(inputFile);
-
-        double startResolution = rtrees->params.resolution;
-        double radius = rtrees->params.radius;
-        int numScales = rtrees->params.numScales;
 
         std::cout << "Starting resolution: " << startResolution << std::endl;
 
         auto features = getFeatures(computeScales(numScales, pointSet, startResolution, radius));
         std::cout << "Features: " << features.size() << std::endl;
 
-        rf::classify(*pointSet, rtrees, features, labels, regularization, 
-            result["reg-radius"].as<double>(), result["color"].as<bool>(), result["unclassified"].as<bool>(), result["eval"].as<bool>(), skip);
+        if (ctype == RandomForest){
+            rf::classify(*pointSet, rtrees, features, labels, regularization, 
+                result["reg-radius"].as<double>(), result["color"].as<bool>(), result["unclassified"].as<bool>(), result["eval"].as<bool>(), skip);
+        }
+        #ifdef WITH_GBT
+        else{
+            gbm::classify(*pointSet, booster, features, labels, regularization, 
+                result["reg-radius"].as<double>(), result["color"].as<bool>(), result["unclassified"].as<bool>(), result["eval"].as<bool>(), skip);
+        }
+        #endif
+        
         savePointSet(*pointSet, outputFile);
     } catch(std::exception &e){
         std::cerr << "Error: " << e.what() << std::endl;

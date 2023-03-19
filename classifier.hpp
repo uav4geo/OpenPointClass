@@ -10,6 +10,9 @@
 enum Regularization { None, LocalSmooth};
 Regularization parseRegularization(const std::string &regularization);
 
+enum ClassifierType { RandomForest, GradientBoostedTrees };
+ClassifierType fingerprint(const std::string &modelFile);
+
 template <typename F, typename I>
 void getTrainingData(const std::vector<std::string> filenames,
           double *startResolution,

@@ -5,7 +5,7 @@
 
 #include "vendor/cxxopts.hpp"
 
-#ifdef WITH_GBM
+#ifdef WITH_GBT
 #include "gbm.hpp"
 #endif
 
@@ -22,6 +22,7 @@ int main(int argc, char **argv){
             ("m,max-samples", "Approximate maximum number of samples for each input point cloud", cxxopts::value<int>()->default_value("100000"))
             ("radius", "Radius size to use for neighbor search (meters)", cxxopts::value<double>()->default_value(MKSTR(RADIUS)))
             ("e,eval", "Labeled point cloud to use for model accuracy evaluation", cxxopts::value<std::string>()->default_value(""))
+            ("c,classifier", "Which classifier type to use (rf = Random Forest, gbt = Gradient Boosted Trees)", cxxopts::value<std::string>()->default_value("rf"))
             ("h,help", "Print usage")
         ;
     options.parse_positional({"input"});
@@ -50,19 +51,55 @@ int main(int argc, char **argv){
         int treeDepth = result["depth"].as<int>();
         double radius = result["radius"].as<double>();
         int maxSamples = result["max-samples"].as<int>();
+        std::string classifier = result["classifier"].as<std::string>();
 
-        // rf::RandomForest *rtrees = rf::train(filenames, &startResolution, scales, numTrees, treeDepth, radius, maxSamples);
-        // rf::saveForest(rtrees, modelFilename);
-        // delete rtrees;
+        if (classifier != "rf" && classifier != "gbt"){
+            std::cout << options.help() << std::endl;
+            exit(1);
+        }
 
-        gbm::Boosting *booster = gbm::train(filenames, &startResolution, scales, numTrees, treeDepth, radius, maxSamples);
-        gbm::saveBooster(booster, modelFilename);
+        #ifndef WITH_GBT
+        if (classifier == "gbt"){
+            std::cerr << "Gradient Boosted Trees support has not been built (try building with -DWITH_GBT=ON)" << std::endl;
+            exit(1);
+        }
+        #endif 
+
+        std::cout << "Using " << (classifier == "rf" ? "Random Forest" : "Gradient Boosted Trees") << std::endl;
+    
+        if (classifier == "rf"){
+            rf::RandomForest *rtrees = rf::train(filenames, &startResolution, scales, numTrees, treeDepth, radius, maxSamples);
+            rf::saveForest(rtrees, modelFilename);
+            delete rtrees;
+        }
+
+        #ifdef WITH_GBT
+        else if (classifier == "gbt"){
+            gbm::Boosting *booster = gbm::train(filenames, &startResolution, scales, numTrees, treeDepth, radius, maxSamples);
+            gbm::saveBooster(booster, modelFilename);
+        }
+        #endif
 
         if (result["eval"].count()){
             std::string evalFilename = result["eval"].as<std::string>();
             std::cout << "Evaluating on " << evalFilename << " ..." << std::endl;
-            // rtrees = rf::loadForest(modelFilename);
-            booster = gbm::loadBooster(modelFilename);
+
+            ClassifierType ctype = fingerprint(modelFilename);
+
+            rf::RandomForest *rtrees;
+            #ifdef WITH_GBT
+            gbm::Boosting *booster;
+            #endif
+
+            if (ctype == RandomForest){
+                rtrees = rf::loadForest(modelFilename);
+            }
+            
+            #ifdef WITH_GBT
+            else{
+                booster = gbm::loadBooster(modelFilename);
+            }
+            #endif
             
             auto labels = getTrainingLabels();
             auto evalPointSet = readPointSet(evalFilename);
@@ -71,8 +108,16 @@ int main(int argc, char **argv){
             auto evalFeatures = getFeatures(computeScales(scales, evalPointSet, startResolution, radius));
             std::cout << "Features: " << evalFeatures.size() << std::endl;
 
-            // rf::classify(*evalPointSet, rtrees, evalFeatures, labels, Regularization::None, 2.5f, true, false, true);
-            gbm::classify(*evalPointSet, booster, evalFeatures, labels, Regularization::None, 2.5f, true, false, true);
+            if (ctype == RandomForest){
+                rf::classify(*evalPointSet, rtrees, evalFeatures, labels, Regularization::None, 2.5f, true, false, true);
+            }
+
+            #ifdef WITH_GBT
+            else{
+                gbm::classify(*evalPointSet, booster, evalFeatures, labels, Regularization::None, 2.5f, true, false, true);
+            }
+            #endif
+
             savePointSet(*evalPointSet, "evaluation_results.ply");
         }
     } catch(std::exception &e){
