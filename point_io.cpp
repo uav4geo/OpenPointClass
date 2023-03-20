@@ -118,6 +118,12 @@ PointSet* readPointSet(const std::string& filename){
 
                 r->labels[idx] = label;
             }
+        }else{
+            auto asprs2TrainCodes = getAsprs2TrainCodes();
+            for (size_t idx = 0; idx < r->count(); idx++) {
+                int label = r->labels[idx];
+                r->labels[idx] = asprs2TrainCodes[label];
+            }
         }
     }
 

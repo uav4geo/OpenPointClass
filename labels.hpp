@@ -28,5 +28,7 @@ public:
 std::vector<Label> getLabels();
 std::vector<Label> getTrainingLabels();
 std::unordered_map<std::string, int> getTrainingCodes();
+std::unordered_map<int, int> getAsprs2TrainCodes();
+std::unordered_map<int, int> getTrain2AsprsCodes();
 
 #endif

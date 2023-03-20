@@ -54,3 +54,33 @@ std::unordered_map<std::string, int> getTrainingCodes(){
 
     return out;
 }
+
+std::unordered_map<int, int> getAsprs2TrainCodes(){
+    std::unordered_map<int, int> out;
+
+    auto labels = getLabels();
+    for (auto l : labels){
+        out[l.getAsprsCode()] = l.getTrainingCode();
+    }
+
+    for (int i = 0; i < 255; i++){
+        if (out.find(i) == out.end()) out[i] = LABEL_UNASSIGNED;
+    }
+
+    return out;
+}
+
+std::unordered_map<int, int> getTrain2AsprsCodes(){
+    std::unordered_map<int, int> out;
+
+    auto labels = getLabels();
+    for (auto l : labels){
+        out[l.getTrainingCode()] = l.getAsprsCode();
+    }
+
+    for (int i = 0; i < 255; i++){
+        if (out.find(i) == out.end()) out[i] = 1;
+    }
+
+    return out;
+}

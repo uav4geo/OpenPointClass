@@ -206,6 +206,8 @@ void classifyData(PointSet &pointSet,
     if (skipClass >= 0 && skipClass <= 255) skipMap[skipClass] = true;
   }
 
+  auto train2asprsCodes = getTrain2AsprsCodes();
+
   #pragma omp parallel for
   for (long long int i = 0; i < pointSet.count(); i++){
     size_t idx = pointSet.pointMap[i];
@@ -220,21 +222,28 @@ void classifyData(PointSet &pointSet,
       }
     }
 
+    bool update = true;
+    bool hasLabels = pointSet.hasLabels();
+
     // if unclassifiedOnly, do not update points with an existing classification
-    if (unclassifiedOnly && pointSet.hasLabels() 
-        && pointSet.labels[i] != LABEL_UNCLASSIFIED) continue;
+    if (unclassifiedOnly && hasLabels 
+        && pointSet.labels[i] != LABEL_UNCLASSIFIED) update = false;
 
     const int asprsCode = label.getAsprsCode();
-    if (skipMap[asprsCode]) continue;
+    if (skipMap[asprsCode]) update = false;
 
-    // Update point info
-    if (useColors){
-      auto color = label.getColor();
-      pointSet.colors[i][0] = color.r;
-      pointSet.colors[i][1] = color.g;
-      pointSet.colors[i][2] = color.b;
-    }else{
-      pointSet.labels[i] = asprsCode;
+    if (update){
+      if (useColors){
+        auto color = label.getColor();
+        pointSet.colors[i][0] = color.r;
+        pointSet.colors[i][1] = color.g;
+        pointSet.colors[i][2] = color.b;
+      }else{
+        pointSet.labels[i] = asprsCode;
+      }
+    }else if (hasLabels){
+      // We revert training codes back to ASPRS
+      pointSet.labels[i] = train2asprsCodes[pointSet.labels[i]];
     }
   }
 
