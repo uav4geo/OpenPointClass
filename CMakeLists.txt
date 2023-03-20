@@ -52,6 +52,9 @@ if (WITH_GBT)
 
       # TODO: test on Windows, macOS
       set(LIGHTGBM_LIB_PATH "${LIGHTGBM_PREFIX}/lib/lib_lightgbm.a")
+      if (WIN32)
+            set(LIGHTGBM_LIB_PATH "${LIGHTGBM_PREFIX}/lib/lib_lightgbm.lib")
+      endif()
       add_definitions(-DMM_MALLOC)
 
       if (NOT EXISTS ${LIGHTGBM_INCLUDE_DIRECTORY})
@@ -60,6 +63,7 @@ if (WITH_GBT)
       if (NOT EXISTS ${LIGHTGBM_LIB_PATH})
             file(WRITE ${LIGHTGBM_LIB_PATH} "")
       endif()
+
       set_target_properties(lib_lightgbm PROPERTIES
             IMPORTED_LOCATION ${LIGHTGBM_LIB_PATH}
             INTERFACE_INCLUDE_DIRECTORIES ${LIGHTGBM_INCLUDE_DIRECTORY}
@@ -84,7 +88,7 @@ add_library(libopc OBJECT ${SOURCES})
 
 if (WITH_GBT)
       add_dependencies(libopc lightgbm)
-      set(GBM_LIB lib_lightgbm)
+      set(GBM_LIB ${LIGHTGBM_LIB_PATH})
 endif()
 
 add_executable(pctrain pctrain.cpp)
