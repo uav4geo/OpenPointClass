@@ -3,6 +3,10 @@ project(opc VERSION 1.0 LANGUAGES CXX)
 
 SET(WITH_GBT OFF CACHE BOOL "Build GBT support")
 SET(WITH_PDAL ON CACHE BOOL "Build PDAL readers support")
+SET(BUILD_PCTRAIN ON CACHE BOOL "Build pctrain")
+SET(BUILD_PCCLASSIFY ON CACHE BOOL "Build pcclassify")
+
+
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING
@@ -91,12 +95,22 @@ if (WITH_GBT)
       set(GBM_LIB ${LIGHTGBM_LIB_PATH})
 endif()
 
+if (BUILD_PCTRAIN)
 add_executable(pctrain pctrain.cpp)
+endif()
+
+if (BUILD_PCCLASSIFY)
 add_executable(pcclassify pcclassify.cpp)
+endif()
 
 target_link_libraries(libopc ${STDPPFS_LIBRARY} Eigen3::Eigen OpenMP::OpenMP_CXX ${GBM_LIB} ${PDAL_LIB})
-target_link_libraries(pctrain libopc)
-target_link_libraries(pcclassify libopc)
 
+if (BUILD_PCTRAIN)
+target_link_libraries(pctrain libopc)
 install(TARGETS pctrain RUNTIME DESTINATION bin)
+endif()
+
+if (BUILD_PCCLASSIFY)
+target_link_libraries(pcclassify libopc)
 install(TARGETS pcclassify RUNTIME DESTINATION bin)
+endif()
