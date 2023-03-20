@@ -66,7 +66,10 @@ void getTrainingData(const std::vector<std::string> filenames,
     std::vector<std::size_t> added (labels.size(), 0);
 
     std::cout << "Samples per label: " << samplesPerLabel << std::endl;
-    std::random_shuffle ( idxes.begin(), idxes.end() );
+
+    std::random_device rd;
+    std::mt19937 ranGen(rd());
+    std::shuffle ( idxes.begin(), idxes.end(), ranGen);
 
     for (const auto &p : idxes){
       size_t idx = p.first;
@@ -108,7 +111,7 @@ void classifyData(PointSet &pointSet,
     std::vector<T> ft (features.size());
 
     #pragma omp for
-    for (size_t i = 0; i < pointSet.base->count(); i++ ){
+    for (long long int i = 0; i < pointSet.base->count(); i++ ){
       for (std::size_t f = 0; f < features.size(); f++){
         ft[f] = features[f]->getValue(i);
       }
@@ -141,7 +144,7 @@ void classifyData(PointSet &pointSet,
     std::vector<T> ft (features.size());
 
     #pragma omp for
-    for (size_t i = 0; i < pointSet.base->count(); i++){
+    for (long long int i = 0; i < pointSet.base->count(); i++){
       for (std::size_t f = 0; f < features.size(); f++){
         ft[f] = features[f]->getValue(i);
       }
@@ -165,7 +168,7 @@ void classifyData(PointSet &pointSet,
     auto index = pointSet.base->getIndex<KdTree>();
 
     #pragma omp for schedule(dynamic, 1)
-    for (size_t i = 0; i < pointSet.base->count(); i++){
+    for (long long int i = 0; i < pointSet.base->count(); i++){
       size_t numMatches = index->radiusSearch(&pointSet.base->points[i][0], regRadius, radiusMatches);
       std::fill(mean.begin(), mean.end(), 0.);
 
@@ -202,7 +205,7 @@ void classifyData(PointSet &pointSet,
   }
 
   #pragma omp parallel for
-  for (size_t i = 0; i < pointSet.count(); i++){
+  for (long long int i = 0; i < pointSet.count(); i++){
     size_t idx = pointSet.pointMap[i];
 
     int bestClass = pointSet.base->labels[idx];

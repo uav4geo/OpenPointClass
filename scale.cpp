@@ -41,7 +41,7 @@ void Scale::build(){
     std::vector<float> sqrDists(kNeighbors);
 
     #pragma omp for
-    for (size_t idx = 0; idx < pSet->count(); idx++){
+    for (long long int idx = 0; idx < pSet->count(); idx++){
         index->knnSearch(&pSet->points[idx][0], kNeighbors, &neighborIds[0], &sqrDists[0]);
         Eigen::Vector3f medoid = computeMedoid(neighborIds);
         Eigen::Matrix3d covariance = computeCovariance(neighborIds, medoid);
@@ -81,8 +81,8 @@ void Scale::build(){
                               scaledSet->points[i][1],
                               scaledSet->points[i][2]);
             Eigen::Vector3f n = (p - medoid);
-            double v00 = n.dot(eigenVectors[idx].col(2));
-            double v01 = n.dot(eigenVectors[idx].col(1));
+            float v00 = n.dot(eigenVectors[idx].col(2));
+            float v01 = n.dot(eigenVectors[idx].col(1));
             orderAxis[idx](0,0) += v00;
             orderAxis[idx](0,1) += v01;
             orderAxis[idx](1,0) += v00 * v00;
@@ -97,8 +97,8 @@ void Scale::build(){
         std::vector<nanoflann::ResultItem<size_t, float>> radiusMatches;
 
         #pragma omp for
-        for (size_t idx = 0; idx < pSet->count(); idx++){
-            size_t numMatches = index->radiusSearch(&pSet->points[idx][0], radius, radiusMatches);
+        for (long long int idx = 0; idx < pSet->count(); idx++){
+            size_t numMatches = index->radiusSearch(&pSet->points[idx][0], static_cast<float>(radius), radiusMatches);
             avgHsv[idx] = {0.f, 0.f, 0.f};
 
             for (size_t i = 0; i < numMatches; i++){
@@ -235,14 +235,14 @@ Eigen::Matrix3d Scale::computeCovariance(const std::vector<size_t> &neighborIds,
 }
 
 Eigen::Vector3f Scale::computeMedoid(const std::vector<size_t> &neighborIds){
-    double mx, my, mz;
+    float mx, my, mz;
     mx = my = mz = 0.0;
-    double minDist = std::numeric_limits<double>::max();
+    float minDist = std::numeric_limits<float>::max();
     for (size_t const &i : neighborIds){
-        double sum = 0.0;
-        double xi = scaledSet->points[i][0];
-        double yi = scaledSet->points[i][1];
-        double zi = scaledSet->points[i][2];
+        float sum = 0.0;
+        float xi = scaledSet->points[i][0];
+        float yi = scaledSet->points[i][1];
+        float zi = scaledSet->points[i][2];
 
         for (size_t const &j : neighborIds){
             sum += pow(xi - scaledSet->points[j][0], 2) +
@@ -265,12 +265,12 @@ Eigen::Vector3f Scale::computeMedoid(const std::vector<size_t> &neighborIds){
 }
 
 Eigen::Vector3f Scale::computeCentroid(const std::vector<size_t> &pointIds){
-    double mx, my, mz;
+    float mx, my, mz;
     mx = my = mz = 0.0;
     size_t n = 0;
     for (auto const& j : pointIds){
-        auto update = [&n](double value, double average){
-            double delta, delta_n;
+        auto update = [&n](float value, float average){
+            float delta, delta_n;
             delta = value - average;
             delta_n = delta / n;
             return average + delta_n;
@@ -303,11 +303,11 @@ std::vector<Scale *> computeScales(size_t numScales, PointSet *pSet, double star
     scales[0]->scaledSet = base->scaledSet;
 
     #pragma omp parallel for
-    for (size_t i = 0; i < numScales; i++){
+    for (int i = 0; i < numScales; i++){
         scales[i]->init();
     }
 
-    for (size_t i = 0; i < numScales; i++){
+    for (int i = 0; i < numScales; i++){
         scales[i]->build();
         // scales[i]->save("scale_" + std::to_string(i + 1) + ".ply");
     }
