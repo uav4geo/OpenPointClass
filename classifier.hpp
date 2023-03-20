@@ -124,8 +124,7 @@ void classifyData(PointSet &pointSet,
       int bestClass = 0;
       T bestClassVal = 0.;
     
-      // Start from 1 (skip ignored class)
-      for (std::size_t j = 1; j < probs.size(); j++){
+      for (std::size_t j = 0; j < probs.size(); j++){
         if (probs[j] > bestClassVal){
           bestClass = j;
           bestClassVal = probs[j];
@@ -182,7 +181,7 @@ void classifyData(PointSet &pointSet,
 
       int bestClass = 0;
       T bestClassVal = 0.f;
-      for(std::size_t j = 1; j < mean.size(); j++){
+      for(std::size_t j = 0; j < mean.size(); j++){
         mean[j] /= numMatches;
         if(mean[j] > bestClassVal){
           bestClassVal = mean[j];

@@ -7,7 +7,7 @@
 #include "color.hpp"
 
 #define LABEL_UNASSIGNED 255
-#define LABEL_UNCLASSIFIED 1
+#define LABEL_UNCLASSIFIED 0
 
 class Label{
 private:
