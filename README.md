@@ -12,6 +12,14 @@ It generalizes well to point clouds of varying density and includes local smooth
 
 It supports all point cloud formats supported by [PDAL](https://pdal.io/en/latest/stages/readers.html). When built without PDAL, it supports a subset of the PLY format only, which is optimized for speed.
 
+## Install
+
+If you're on Windows, you have two choices:
+ * [Purchase](http://sites.fastspring.com/masseranolabs/product/openpointclassforwindows) the program for Windows and support the project ❤️
+ * Build the program from sources (see instructions below)
+
+If you're on macOS/Linux you currently need to build from sources (see instructions below).
+
 ## Build
 
 Dependencies:
