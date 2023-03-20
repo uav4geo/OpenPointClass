@@ -15,11 +15,11 @@ double PointSet::spacing(int kNeighbors){
     size_t SAMPLES = std::min<size_t>(np, 10000);
     int count = kNeighbors + 1;
 
-    std::unordered_map<uint64_t, size_t> dist_map;
+    std::unordered_map<size_t, size_t> dist_map;
 
     std::random_device rd;
     std::mt19937_64 gen(rd());
-    std::uniform_int_distribution<uint64_t> randomDis(
+    std::uniform_int_distribution<size_t> randomDis(
         std::numeric_limits<size_t>::min(),
         np - 1
     );
@@ -37,7 +37,7 @@ double PointSet::spacing(int kNeighbors){
         }
         sum /= static_cast<float>(kNeighbors);
 
-        uint64_t k = std::ceil(sum * 100);
+        size_t k = static_cast<size_t>(std::ceil(sum * 100));
 
         if (dist_map.find(k) == dist_map.end()){
             dist_map[k] = 1;
@@ -46,8 +46,8 @@ double PointSet::spacing(int kNeighbors){
         }
     }
 
-    uint64_t max_val = std::numeric_limits<uint64_t>::min();
-    int d = 0;
+    size_t max_val = std::numeric_limits<size_t>::min();
+    size_t d = 0;
     for (auto it : dist_map){
         if (it.second > max_val){
             d = it.first;
@@ -244,7 +244,6 @@ PointSet* fastPlyReadPointSet(const std::string &filename){
     }else{
 
         // Read points
-        XYZ p;
         uint8_t color[3];
 
         for (size_t i = 0; i < count; i++) {

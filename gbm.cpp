@@ -60,7 +60,7 @@ Boosting* train(const std::vector<std::string> filenames,
                                                numRows) );
     
     #pragma omp parallel for schedule(static)
-    for (size_t i = 0; i < numRows; ++i){
+    for (long long int i = 0; i < numRows; ++i){
         dset->PushOneRow(omp_get_thread_num(), i, featureRows[i]);
     }
 

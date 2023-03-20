@@ -66,17 +66,17 @@ public:
             was_oob = DataView2D<uint8_t>(&was_oob_data[0], n_idxes, params.n_trees);
         }
 
-        #pragma omp parallel
-        {
-        #pragma omp single nowait
-        {
+        int idxOff = trees.size();
         for (size_t i_tree = 0; i_tree < params.n_trees; ++i_tree) {
-#if VERBOSE_TREE_PROGRESS
-            std::printf("Training tree %zu/%zu, max depth %zu\n", i_tree+1, params.n_trees, params.max_depth);
-#endif
             // new tree
             auto tree = std::make_shared<TreeType>(&params);
             trees.push_back(tree);
+        }
+
+        #pragma omp parallel for
+        for (long long int i_tree = 0; i_tree < params.n_trees; ++i_tree) {
+            // new tree
+            auto tree = trees[i_tree + idxOff];
             // initialize random generator with sequential seeds (one for each
             // tree)
             RandomGen gen(seed_start + i_tree);
@@ -89,20 +89,8 @@ public:
                     was_oob(random_idx, i_tree) = 0;
                 }
             }
-#ifdef TREE_GRAPHVIZ_STREAM
-            TREE_GRAPHVIZ_STREAM << "digraph Tree {" << std::endl;
-#endif
             // Train the tree
-            #pragma omp task
-            {
             tree->train(samples, labels, &in_bag_samples[0], in_bag_samples.size(), split_generator, gen);
-            }
-#ifdef TREE_GRAPHVIZ_STREAM
-            TREE_GRAPHVIZ_STREAM << "}" << std::endl << std::endl;
-#endif
-        }
-        }
-        #pragma omp taskwait
         }
     }
     int evaluate(FeatureType const* sample, float* results) {
