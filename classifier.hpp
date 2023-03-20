@@ -2,6 +2,8 @@
 #define CLASSIFIER_H
 
 #include <vector>
+#include <random>
+
 #include "features.hpp"
 #include "labels.hpp"
 #include "constants.hpp"
