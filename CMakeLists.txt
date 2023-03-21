@@ -59,7 +59,10 @@ if (WITH_GBT)
       if (WIN32)
             set(LIGHTGBM_LIB_PATH "${LIGHTGBM_PREFIX}/lib/lib_lightgbm.lib")
       endif()
+
+      if( NOT ((${CMAKE_SYSTEM_PROCESSOR} STREQUAL "aarch64") OR (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm64")) )
       add_definitions(-DMM_MALLOC)
+      endif()
 
       if (NOT EXISTS ${LIGHTGBM_INCLUDE_DIRECTORY})
             file(MAKE_DIRECTORY ${LIGHTGBM_INCLUDE_DIRECTORY})
