@@ -4,6 +4,7 @@ FROM ubuntu:22.04 as builder
 ENV TZ=Europe/Rome
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN apt-get update && apt install -y --fix-missing --no-install-recommends \
+    git \
     build-essential \
     software-properties-common \
     cmake \
