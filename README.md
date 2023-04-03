@@ -63,6 +63,12 @@ You can re-map classification codes by creating a `<FILE>.json` in the same dire
 }
 ```
 
+You can also use the `--classes` flag to limit training to a subset of the ASPRS classes:
+
+```
+./pctrain ./ground_truth.laz --classes 2,5,6
+```
+
 ### Supported Classes
 
 | Class | Number |

@@ -21,13 +21,15 @@ namespace gbm{
 
 typedef LightGBM::Boosting Boosting;
 
-Boosting* train(const std::vector<std::string> filenames,
+Boosting* train(const std::vector<std::string> &filenames,
     double *startResolution,
     int numScales,
     int numTrees,
     int treeDepth,
     double radius,
-    int maxSamples);
+    int maxSamples,
+    const std::vector<int> &classes
+    );
 
 struct BoosterParams{
     double resolution;

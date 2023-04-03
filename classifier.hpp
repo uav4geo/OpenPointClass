@@ -16,14 +16,27 @@ enum ClassifierType { RandomForest, GradientBoostedTrees };
 ClassifierType fingerprint(const std::string &modelFile);
 
 template <typename F, typename I>
-void getTrainingData(const std::vector<std::string> filenames,
+void getTrainingData(const std::vector<std::string> &filenames,
           double *startResolution,
           int numScales,
           double radius,
           int maxSamples,
+          const std::vector<int> &asprsClasses,
           F storeFeatures,
           I init){
   auto labels = getTrainingLabels();
+
+  bool trainSubset = asprsClasses.size() > 0;
+  std::array<bool, 255> trainClass;
+
+  if (trainSubset){
+    trainClass.fill(false);
+
+    auto asprsToTrain = getAsprs2TrainCodes();
+    for (auto &c : asprsClasses){
+      trainClass[asprsToTrain[c]] = true;
+    }
+  }
 
   for (size_t i = 0; i < filenames.size(); i++){
     std::cout << "Processing " << filenames[i] << std::endl;
@@ -51,6 +64,8 @@ void getTrainingData(const std::vector<std::string> filenames,
     for (size_t i = 0; i < pointSet->count(); i++){
       int g = pointSet->labels[i];
       if (g != LABEL_UNASSIGNED) {
+          if (trainSubset && !trainClass[g]) continue;
+
           size_t idx = pointSet->pointMap[i];
           if (!sampled[idx]){
             idxes.push_back(std::make_pair(idx, g));

@@ -23,6 +23,7 @@ int main(int argc, char **argv){
             ("radius", "Radius size to use for neighbor search (meters)", cxxopts::value<double>()->default_value(MKSTR(RADIUS)))
             ("e,eval", "Labeled point cloud to use for model accuracy evaluation", cxxopts::value<std::string>()->default_value(""))
             ("c,classifier", "Which classifier type to use (rf = Random Forest, gbt = Gradient Boosted Trees)", cxxopts::value<std::string>()->default_value("rf"))
+            ("classes", "Train only these classification classes (comma separated IDs)", cxxopts::value<std::vector<int>>())
             ("h,help", "Print usage")
         ;
     options.parse_positional({"input"});
@@ -52,6 +53,8 @@ int main(int argc, char **argv){
         double radius = result["radius"].as<double>();
         int maxSamples = result["max-samples"].as<int>();
         std::string classifier = result["classifier"].as<std::string>();
+        std::vector<int> classes = {};
+        if (result.count("classes")) classes = result["classes"].as<std::vector<int>>();
 
         if (classifier != "rf" && classifier != "gbt"){
             std::cout << options.help() << std::endl;
@@ -68,14 +71,14 @@ int main(int argc, char **argv){
         std::cout << "Using " << (classifier == "rf" ? "Random Forest" : "Gradient Boosted Trees") << std::endl;
     
         if (classifier == "rf"){
-            rf::RandomForest *rtrees = rf::train(filenames, &startResolution, scales, numTrees, treeDepth, radius, maxSamples);
+            rf::RandomForest *rtrees = rf::train(filenames, &startResolution, scales, numTrees, treeDepth, radius, maxSamples, classes);
             rf::saveForest(rtrees, modelFilename);
             delete rtrees;
         }
 
         #ifdef WITH_GBT
         else if (classifier == "gbt"){
-            gbm::Boosting *booster = gbm::train(filenames, &startResolution, scales, numTrees, treeDepth, radius, maxSamples);
+            gbm::Boosting *booster = gbm::train(filenames, &startResolution, scales, numTrees, treeDepth, radius, maxSamples, classes);
             gbm::saveBooster(booster, modelFilename);
         }
         #endif

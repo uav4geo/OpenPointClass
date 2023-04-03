@@ -2,13 +2,14 @@
 
 namespace rf{
 
-RandomForest *train(const std::vector<std::string> filenames,
+RandomForest *train(const std::vector<std::string> &filenames,
           double *startResolution,
           int numScales,
           int numTrees,
           int treeDepth,
           double radius,
-          int maxSamples){
+          int maxSamples,
+          const std::vector<int> &classes){
   ForestParams params;
   params.n_trees   = numTrees;
   params.max_depth = treeDepth;
@@ -18,7 +19,7 @@ RandomForest *train(const std::vector<std::string> filenames,
   std::vector<float> ft;
   std::vector<int> gt;
 
-  getTrainingData(filenames, startResolution, numScales, radius, maxSamples,
+  getTrainingData(filenames, startResolution, numScales, radius, maxSamples, classes,
     [&ft, &gt](std::vector<Feature *> &features, size_t idx, int g){
       for (std::size_t f = 0; f < features.size(); f++){
           ft.push_back(features[f]->getValue(idx));

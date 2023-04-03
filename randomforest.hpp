@@ -17,13 +17,14 @@ typedef liblearning::DataView2D<int> LabelDataView;
 typedef liblearning::DataView2D<float> FeatureDataView;
 
 
-RandomForest *train(const std::vector<std::string> filenames,
+RandomForest *train(const std::vector<std::string> &filenames,
     double *startResolution,
     int numScales,
     int numTrees,
     int treeDepth,
     double radius,
-    int maxSamples);
+    int maxSamples,
+    const std::vector<int> &classes);
 
 RandomForest *loadForest(const std::string &modelFilename);
 void saveForest(RandomForest *rtrees, const std::string &modelFilename);
