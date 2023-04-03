@@ -28,7 +28,7 @@ std::vector<Label> getLabels(){
     l.push_back(Label("snow", 18, 21, Color(207, 207, 207)));
     l.push_back(Label("temporal_exclusion", 19, 22, Color(128, 220, 128)));
 
-    l.push_back(Label("vehicle", 20, 64, Color(255, 255, 0)));
+    l.push_back(Label("human_made_object", 20, 64, Color(255, 255, 0)));
 
     
     return l;

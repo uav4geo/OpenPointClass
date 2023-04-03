@@ -93,7 +93,8 @@ You can also use the `--classes` flag to limit training to a subset of the ASPRS
 | ignored_ground | 20 |
 | snow | 21 |
 | temporal_exclusion | 22 |
-| vehicle | 64 |
+| human_made_object | 64 |
+
 
 ### Evaluation
 
