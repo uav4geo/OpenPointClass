@@ -59,7 +59,7 @@ int main(int argc, char **argv){
 
         ClassifierType ctype = fingerprint(modelFile);
         #ifndef WITH_GBT
-        if (ctype == GradientBoostedTrees) throw std::runtime_error(modelFile + " is a GBT model but GBT support has not been built (try building with -DWITH_GBT=ON)") << std::endl;
+        if (ctype == GradientBoostedTrees) throw std::runtime_error(modelFile + " is a GBT model but GBT support has not been built (try building with -DWITH_GBT=ON)");
         #endif
 
         std::cout << "Model: " << (ctype == RandomForest ? "Random Forest" : "Gradient Boosted Trees") << std::endl;
