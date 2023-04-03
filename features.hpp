@@ -12,6 +12,8 @@ public:
     Feature(Scale *s) : s(s){};
 
     virtual float getValue(size_t i) = 0;
+    virtual ~Feature() = default;
+
     std::string getName() const { return name; }
 
     void setName(const std::string &name){
