@@ -24,7 +24,9 @@ if (NOT WIN32 AND NOT APPLE)
 endif()
 
 if((CMAKE_CXX_COMPILER_ID MATCHES "Clang") OR (CMAKE_CXX_COMPILER_ID MATCHES "GNU"))
-add_compile_options(-march=native)
+      if( NOT ((${CMAKE_SYSTEM_PROCESSOR} STREQUAL "aarch64") OR (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm64")) )
+            add_compile_options(-march=native)
+      endif()
 endif()
 
 find_package(OpenMP REQUIRED)
