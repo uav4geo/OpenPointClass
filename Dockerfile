@@ -17,7 +17,7 @@ RUN apt-get update && apt install -y --fix-missing --no-install-recommends \
 COPY . /opc
 
 # Run build
-RUN cd /opc && mkdir build && cd build && cmake .. && make -j$(nproc)
+RUN cd /opc && mkdir build && cd build && cmake -DWITH_GBT=ON .. && make -j$(nproc)
 
 FROM ubuntu:22.04 as runner
 
