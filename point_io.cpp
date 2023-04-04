@@ -303,38 +303,24 @@ PointSet* fastPlyReadPointSet(const std::string &filename){
     return r;
 }
 
-PointSet* pdalReadPointSet(const std::string &filename){
+
 #ifdef WITH_PDAL
-    std::string labelDimension = "";
-    pdal::StageFactory factory;
-    std::string driver = pdal::StageFactory::inferReaderDriver(filename);
-    if (driver.empty()){
-        throw std::runtime_error("Can't infer point cloud reader from " + filename);
+PointSet* extractPDALPointView(pdal::PointViewPtr pView)
+{
+    PointSet* r(new PointSet());
+
+   if (!pView)
+    {
+        throw std::runtime_error("Unable to fetch any views from pipeline!");
     }
-
-    PointSet *r = new PointSet();
-    pdal::Stage *s = factory.createStage(driver);
-    pdal::Options opts;
-    opts.add("filename", filename);
-    s->setOptions(opts);
-
-    pdal::PointTable *table = new pdal::PointTable();
-    pdal::PointViewSet pvSet;
-
-    std::cout << "Reading points from " << filename << std::endl;
-
-    s->prepare(*table);
-    pvSet = s->execute(*table);
-
-    r->pointView = *pvSet.begin();
-    pdal::PointViewPtr pView = r->pointView;
 
     if (pView->empty()) {
         throw std::runtime_error("No points could be fetched");
     }
 
     std::cout << "Number of points: " << pView->size() << std::endl;
-
+    
+    std::string labelDimension("");
     for (auto &d : pView->dims()){
         std::string dim = pView->dimName(d);
         if (dim == "Label" || dim == "label" ||
@@ -344,8 +330,8 @@ PointSet* pdalReadPointSet(const std::string &filename){
         }
     }
 
-    size_t count = pView->size();
-    pdal::PointLayoutPtr layout(table->layout());
+    pdal::point_count_t count = pView->size();
+    pdal::PointLayoutPtr layout(pView->table().layout());
     bool hasLabels = !labelDimension.empty();
 
     pdal::Dimension::Id labelId;
@@ -356,11 +342,12 @@ PointSet* pdalReadPointSet(const std::string &filename){
     }
 
     r->points.resize(count);
+    r->colors.resize(count);
     bool hasColors = false;
     bool largeColors = false;
 
     if (layout->hasDim(pdal::Dimension::Id::Green)){
-        r->colors.resize(count);
+
         hasColors = true;
         for (pdal::PointId idx = 0; idx < count; ++idx){
             if (pView->getFieldAs<uint16_t>(pdal::Dimension::Id::Green, idx) > 255){
@@ -392,33 +379,75 @@ PointSet* pdalReadPointSet(const std::string &filename){
             r->labels[idx] = p.getFieldAs<uint8_t>(labelId);
         }
     }
-
-    // std::vector<std::size_t> classes (255, 0);
-    // for (size_t idx = 0; idx < count; idx++) {
-        // std::cout << r->points[idx][0] << " ";
-        // std::cout << r->points[idx][1] << " ";
-        // std::cout << r->points[idx][2] << " ";
-
-        // std::cout << std::to_string(r->colors[idx][0]) << " ";
-        // std::cout << std::to_string(r->colors[idx][1]) << " ";
-        // std::cout << std::to_string(r->colors[idx][2]) << " ";
-
-        // if (hasLabels){
-        //     std::cout << std::to_string(r->labels[idx]) << " ";
-        // }
-        // std::cout << std::endl;
-        
-        // if (idx > 9) exit(1);
-
-    //     classes[std::size_t(r->labels[idx])]++;
-    // }
-
-    // for (size_t i = 0; i < classes.size(); i++){
-    //     std::cout << i << ": " << classes[i] << std::endl;
-    // }
-    // exit(1);
-
     return r;
+}
+PointSet* fastPDALPipeline(const std::string &filename)
+{
+    using namespace pdal;
+
+    PipelineManager manager;
+    manager.readPipeline(filename);
+    std::vector<std::string> allowedDimNames = { "X", "Y", "Z", "Classification", "Red","Green","Blue"};
+
+    manager.pointTable().layout()->setAllowedDims(allowedDimNames);
+    if (!manager.hasReader())
+        throw std::runtime_error("PDAL pipeline has no reader. Halting!");
+
+    // Wipe off any writers
+    std::vector<Stage*> leaves = manager.leaves();
+    for (auto& stage: leaves)
+    {
+        if (pdal::Utils::startsWith(stage->getName(), "writers."))
+            manager.destroyStage(stage);
+    }
+    point_count_t count = manager.execute();
+    std::cout << "executed PDAL pipeline with " << count << " points " << std::endl;
+
+    pdal::PointViewSet pvSet = manager.views();
+    PointViewPtr pView = *pvSet.begin();
+
+    return extractPDALPointView(pView);
+}
+
+
+
+#endif
+
+PointSet* pdalReadPointSet(const std::string &filename){
+#ifdef WITH_PDAL
+
+    PointSet* r(nullptr);
+
+    fs::path p(filename);
+    if (p.extension().string() == ".json") 
+    {
+        r = fastPDALPipeline(filename);
+        return r;
+    }
+
+    std::string labelDimension("");
+    pdal::StageFactory factory;
+    std::string driver = pdal::StageFactory::inferReaderDriver(filename);
+    if (driver.empty()){
+        throw std::runtime_error("Can't infer point cloud reader from " + filename);
+    }
+
+    pdal::Stage *s = factory.createStage(driver);
+    pdal::Options opts;
+    opts.add("filename", filename);
+    s->setOptions(opts);
+
+    pdal::PointTable *table = new pdal::PointTable();
+    pdal::PointViewSet pvSet;
+
+    std::cout << "Reading points from " << filename << std::endl;
+
+    s->prepare(*table);
+    pvSet = s->execute(*table);
+
+    pdal::PointViewPtr pView = *pvSet.begin();
+
+    return extractPDALPointView(pView);
 #else
     fs::path p(filename);
     throw std::runtime_error("Unsupported file extension " + p.extension().string() + ", build program with PDAL support for additional file types support.");
@@ -542,7 +571,7 @@ void fastPlySavePointSet(PointSet &pSet, const std::string &filename){
 }
 
 std::unordered_map<int, std::string> getClassMappings(const std::string &filename){
-    fs::path p(filename);
+    fs::path p("somepath");
     std::string jsonFile = p.replace_filename(p.filename().replace_extension(".json")).string();
     
     // Need to drop _eval filename suffix?
