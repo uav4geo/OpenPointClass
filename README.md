@@ -1,4 +1,4 @@
-# OpenPointClass (OPC)
+# OpenPointClass - Fast Semantic Segmentation of 3D Point Clouds
 
 A fast, memory efficient free and open source point cloud classifier. It generates an AI model from a set of input point clouds that have been labeled and can subsequently use that model to classify new datasets.
 
