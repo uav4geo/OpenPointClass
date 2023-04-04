@@ -10,6 +10,7 @@ protected:
     Scale *s = nullptr;
 public:
     Feature(Scale *s) : s(s){};
+    virtual ~Feature(){};
 
     virtual float getValue(size_t i) = 0;
     std::string getName() const { return name; }

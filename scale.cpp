@@ -130,15 +130,17 @@ void Scale::computeScaledSet(){
         double y0 = pSet->points[0][1];
         double z0 = pSet->points[0][2];
 
+        typedef std::make_signed<std::size_t>::type ssize_t;
+
         // Make an initial pass through the input to index indices by
         // row, column, and depth.
-        std::map<std::tuple<size_t, size_t, size_t>, std::vector<size_t> > populated_voxel_ids;
+        std::map<std::tuple<ssize_t, ssize_t, ssize_t>, std::vector<size_t> > populated_voxel_ids;
 
         for (size_t id = 0; id < pSet->count(); id++){
             populated_voxel_ids[std::make_tuple(
-                static_cast<size_t>((pSet->points[id][0] - y0) / resolution),  // r
-                static_cast<size_t>((pSet->points[id][1] - x0) / resolution),  // c
-                static_cast<size_t>((pSet->points[id][2] - z0) / resolution) // d
+                static_cast<ssize_t>((pSet->points[id][0] - y0) / resolution),  // r
+                static_cast<ssize_t>((pSet->points[id][1] - x0) / resolution),  // c
+                static_cast<ssize_t>((pSet->points[id][2] - z0) / resolution) // d
             )].push_back(id);
         }
 
@@ -165,14 +167,13 @@ void Scale::computeScaledSet(){
                 double x1 = pSet->points[t.second[0]][0];
                 double y1 = pSet->points[t.second[0]][1];
                 double z1 = pSet->points[t.second[0]][2];
-                double d1 = pow(x_center - x1, 2) + pow(y_center - y1, 2) + pow(z_center - z1, 2);
-
+                double d1 = std::pow<double>(x_center - x1, 2) + std::pow<double>(y_center - y1, 2) + std::pow<double>(z_center - z1, 2);
                 // Compute distance from second point to voxel center.
                 double x2 = pSet->points[t.second[1]][0];
                 double y2 = pSet->points[t.second[1]][1];
                 double z2 = pSet->points[t.second[1]][2];
-                double d2 = pow(x_center - x2, 2) + pow(y_center - y2, 2) + pow(z_center - z2, 2);
-
+                double d2 = std::pow<double>(x_center - x2, 2) + std::pow<double>(y_center - y2, 2) + std::pow<double>(z_center - z2, 2);
+                
                 // Append the closer of the two.
                 if (d1 < d2) scaledSet->appendPoint(*pSet, t.second[0]);
                 else scaledSet->appendPoint(*pSet, t.second[1]);
@@ -193,9 +194,9 @@ void Scale::computeScaledSet(){
                 size_t pmin = 0;
                 double dmin((std::numeric_limits<double>::max)());
                 for (auto const& p : t.second){
-                    double sqr_dist = pow(centroid[0] - pSet->points[p][0], 2) +
-                                    pow(centroid[1] - pSet->points[p][1], 2) +
-                                    pow(centroid[2] - pSet->points[p][2], 2);
+                    double sqr_dist = std::pow<double>(centroid[0] - pSet->points[p][0], 2) +
+                                    std::pow<double>(centroid[1] - pSet->points[p][1], 2) +
+                                    std::pow<double>(centroid[2] - pSet->points[p][2], 2);
                     if (sqr_dist < dmin){
                         dmin = sqr_dist;
                         pmin = p;
@@ -245,9 +246,9 @@ Eigen::Vector3f Scale::computeMedoid(const std::vector<size_t> &neighborIds){
         float zi = scaledSet->points[i][2];
 
         for (size_t const &j : neighborIds){
-            sum += pow(xi - scaledSet->points[j][0], 2) +
-                   pow(yi - scaledSet->points[j][1], 2) +
-                   pow(zi - scaledSet->points[j][2], 2);
+            sum += std::pow<double>(xi - scaledSet->points[j][0], 2) +
+                   std::pow<double>(yi - scaledSet->points[j][1], 2) +
+                   std::pow<double>(zi - scaledSet->points[j][2], 2);
         }
 
         if (sum < minDist){
@@ -290,13 +291,13 @@ Eigen::Vector3f Scale::computeCentroid(const std::vector<size_t> &pointIds){
 std::vector<Scale *> computeScales(size_t numScales, PointSet *pSet, double startResolution, double radius){
     std::vector<Scale *> scales(numScales, nullptr);
 
-    Scale *base = new Scale(0, pSet, startResolution * std::pow(2.0, 0), 10, radius);
+    Scale *base = new Scale(0, pSet, startResolution * std::pow<double>(2.0, 0), 10, radius);
     base->init();
     // base->save("base.ply");
     pSet->base = base->scaledSet;
 
     for (size_t i = 0; i < numScales; i++){
-        scales[i] = new Scale(i + 1, base->scaledSet, startResolution * std::pow(2.0, i), 10, radius);
+        scales[i] = new Scale(i + 1, base->scaledSet, startResolution * std::pow<double>(2.0, i), 10, radius);
     }
 
     // Save some time on the first scale
