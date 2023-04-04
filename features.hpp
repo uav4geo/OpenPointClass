@@ -13,7 +13,6 @@ public:
     virtual ~Feature(){};
 
     virtual float getValue(size_t i) = 0;
-    virtual ~Feature() = default;
 
     std::string getName() const { return name; }
 
