@@ -1,4 +1,4 @@
-# OpenPointClass (OPC)
+# OpenPointClass - Fast Semantic Segmentation of 3D Point Clouds
 
 A fast, memory efficient free and open source point cloud classifier. It generates an AI model from a set of input point clouds that have been labeled and can subsequently use that model to classify new datasets.
 
@@ -149,6 +149,10 @@ docker run -it --rm -v /dataset-path:/data uav4geo/openpointclass:latest pcclass
 ## Known Issues
 
  * We only support a subset of the PLY format (for performance reasons) and certain less common variations of the format might give trouble. Most importantly, the X/Y/Z coordinates must be `float` values when using binary PLY, not `double` or `float64`. We recommend to use LAS/LAZ if higher precision coordinates are needed.
+
+## Contributing
+
+We welcome contributions! Please note that we ask contributors to sign a [CLA](https://github.com/uav4geo/OpenPointClass/blob/main/CLA.md) before we merge contributions to OpenPointClass.
 
 ## License
 

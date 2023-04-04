@@ -1,4 +1,4 @@
-UAV4GEO ("UAV4GEO") must have a Contributor License Agreement ("CLA") on file that has been signed by each Contributor.It does not change your rights to use your own Contributions for any other purpose.
+UAV4GEO ("UAV4GEO") asks to have a Contributor License Agreement ("CLA") on file signed by each Contributor of OpenPointClass. It does not change your rights to use your own Contributions for any other purpose.
 
 You accept and agree to the following terms and conditions for your Contributions submitted to UAV4GEO. Except for the license granted here to UAV4GEO and recipients of software distributed by UAV4GEO, You reserve all right, title, and interest in and to your Contributions.
 
