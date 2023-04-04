@@ -10,7 +10,7 @@ protected:
     Scale *s = nullptr;
 public:
     Feature(Scale *s) : s(s){};
-    virtual ~Feature(){};
+    virtual ~Feature()=default;
 
     virtual float getValue(size_t i) = 0;
 
