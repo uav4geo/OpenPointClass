@@ -1,9 +1,9 @@
 #include "features.hpp"
 
-std::vector<Feature *> getFeatures(const std::vector<Scale *> &scales){
+std::vector<Feature *> getFeatures(const std::vector<Scale *> &scales) {
     std::vector<Feature *> feats;
 
-    for (size_t i = 0; i < scales.size(); i++){
+    for (size_t i = 0; i < scales.size(); i++) {
         // Covariance
         feats.push_back(reinterpret_cast<Feature *>(new Omnivariance(scales[i])));
         feats.push_back(reinterpret_cast<Feature *>(new Eigenentropy(scales[i])));
@@ -13,7 +13,7 @@ std::vector<Feature *> getFeatures(const std::vector<Scale *> &scales){
         feats.push_back(reinterpret_cast<Feature *>(new SurfaceVariation(scales[i])));
         feats.push_back(reinterpret_cast<Feature *>(new Scatter(scales[i])));
         feats.push_back(reinterpret_cast<Feature *>(new Verticality(scales[i])));
-        
+
         // Moments
         feats.push_back(reinterpret_cast<Feature *>(new OrderAxis(scales[i], 1, 1)));
         feats.push_back(reinterpret_cast<Feature *>(new OrderAxis(scales[i], 1, 2)));
@@ -24,9 +24,9 @@ std::vector<Feature *> getFeatures(const std::vector<Scale *> &scales){
         feats.push_back(reinterpret_cast<Feature *>(new VerticalRange(scales[i])));
         feats.push_back(reinterpret_cast<Feature *>(new HeightBelow(scales[i])));
         feats.push_back(reinterpret_cast<Feature *>(new HeightAbove(scales[i])));
-        
+
         // Color (using data from first scale only)
-        for (size_t c = 0; c < 3; c++){
+        for (size_t c = 0; c < 3; c++) {
             feats.push_back(reinterpret_cast<Feature *>(new PointColor(scales[0], c)));
             feats.push_back(reinterpret_cast<Feature *>(new NeighborhoodColors(scales[0], c)));
         }
