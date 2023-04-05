@@ -6,7 +6,7 @@
 #include "color.hpp"
 #include "constants.hpp"
 
-struct Scale{
+struct Scale {
     size_t id;
     PointSet *pSet;
     PointSet *scaledSet;
@@ -30,7 +30,7 @@ struct Scale{
     void build();
 
     Scale(size_t id, PointSet *pSet, double resolution, int kNeighbors = 10, double radius = RADIUS);
-    ~Scale(){
+    ~Scale() {
         RELEASE_POINTSET(scaledSet);
     }
 };

@@ -17,11 +17,11 @@
 
 using json = nlohmann::json;
 
-namespace gbm{
+namespace gbm {
 
 typedef LightGBM::Boosting Boosting;
 
-Boosting* train(const std::vector<std::string> &filenames,
+Boosting *train(const std::vector<std::string> &filenames,
     double *startResolution,
     int numScales,
     int numTrees,
@@ -29,9 +29,9 @@ Boosting* train(const std::vector<std::string> &filenames,
     double radius,
     int maxSamples,
     const std::vector<int> &classes
-    );
+);
 
-struct BoosterParams{
+struct BoosterParams {
     double resolution;
     double radius;
     int numScales;
@@ -42,9 +42,9 @@ void saveBooster(Boosting *booster, const std::string &modelFilename);
 
 BoosterParams extractBoosterParams(Boosting *booster);
 
-void classify(PointSet &pointSet, 
+void classify(PointSet &pointSet,
     Boosting *booster,
-    const std::vector<Feature *> &features, 
+    const std::vector<Feature *> &features,
     const std::vector<Label> &labels,
     Regularization regularization = Regularization::None,
     double regRadius = 2.5f,

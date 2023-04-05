@@ -8,7 +8,7 @@
 
 #include "classifier.hpp"
 
-namespace rf{
+namespace rf {
 
 typedef liblearning::RandomForest::RandomForest< liblearning::RandomForest::NodeGini<liblearning::RandomForest::AxisAlignedSplitter> > RandomForest;
 typedef liblearning::RandomForest::AxisAlignedRandomSplitGenerator AxisAlignedRandomSplitGenerator;
@@ -29,9 +29,9 @@ RandomForest *train(const std::vector<std::string> &filenames,
 RandomForest *loadForest(const std::string &modelFilename);
 void saveForest(RandomForest *rtrees, const std::string &modelFilename);
 
-void classify(PointSet &pointSet, 
+void classify(PointSet &pointSet,
     RandomForest *rtrees,
-    const std::vector<Feature *> &features, 
+    const std::vector<Feature *> &features,
     const std::vector<Label> &labels,
     Regularization regularization = Regularization::None,
     double regRadius = 2.5f,
