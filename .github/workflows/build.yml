@@ -1,0 +1,18 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+# We dont have tests yet, so we can just build
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: sudo apt-get update && apt install -y --fix-missing --no-install-recommends git build-essential software-properties-common cmake libtbb-dev libboost-system-dev libboost-serialization-dev libpdal-dev libeigen3-dev
+      - name: Build
+        run: mkdir build && cd build && cmake -DWITH_GBT=ON .. && make -j$(nproc)
