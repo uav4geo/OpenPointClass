@@ -62,7 +62,7 @@ cmake --build . --config Release --target ALL_BUILD -- /maxcpucount:14
 
 We provide access to a pre-trained model if you don't have access to labeled data. Please note the model was generated using a limited number of samples and it might not work well with all datasets.
 
- * [model.bin](https://github.com/uav4geo/OpenPointClass/releases/download/v1.1.1/model.zip)
+ * [model.bin](https://github.com/uav4geo/OpenPointClass/releases/download/v1.1.3/vehicles-vegetation-buildings.zip)
 
 Training classes are assumed to follow the [ASPRS 1.4 Classification](https://www.asprs.org/wp-content/uploads/2019/03/LAS_1_4_r14.pdf) and to be stored in either a `label`, `class` or `classification` property.
 
