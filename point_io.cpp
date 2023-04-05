@@ -19,7 +19,7 @@ double PointSet::spacing(int kNeighbors) {
 
     std::random_device rd;
     std::mt19937_64 gen(rd());
-    const std::uniform_int_distribution<size_t> randomDis(
+    std::uniform_int_distribution<size_t> randomDis(
         std::numeric_limits<size_t>::min(),
         np - 1
     );
