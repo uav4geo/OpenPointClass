@@ -27,11 +27,30 @@ Dependencies:
  * Eigen
  * PDAL (optional for LAS/LAZ support)
 
+### Linux
+
 ```
 mkdir build
 cd build
 cmake .. [-DWITH_GBT=ON]
 make -j$(nproc)
+```
+
+### Windows
+
+You will need [Visual Studio](https://visualstudio.microsoft.com/it/downloads/), [CMake](https://cmake.org/download/) and [VCPKG](https://vcpkg.io/en/getting-started.html).
+
+Install required packages with VCPKG:
+
+```
+vcpkg install eigen3 tbb pdal
+```
+Replace `<VCPKG_PATH>` with the path to your VCPKG installation in the following commands:
+```
+mkdir build
+cd build
+cmake [-DWITH_GBT=ON] -DCMAKE_TOOLCHAIN_FILE=<VCPKG_PATH>/scripts/buildsystems/vcpkg.cmake ..
+cmake --build . --config Release --target ALL_BUILD -- /maxcpucount:14
 ```
 
 ## Usage
