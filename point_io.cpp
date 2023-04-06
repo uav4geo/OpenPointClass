@@ -402,6 +402,10 @@ PointSet* fastPDALPipeline(const std::string &filename)
     }
     point_count_t count = manager.execute();
     std::cout << "executed PDAL pipeline with " << count << " points " << std::endl;
+    if (!count)
+    {
+        throw std::runtime_error("PDAL pipeline excuted returned 0 points!");
+    }
 
     pdal::PointViewSet pvSet = manager.views();
     PointViewPtr pView = *pvSet.begin();
@@ -483,11 +487,22 @@ void pdalSavePointSet(PointSet &pSet, const std::string &filename){
         throw std::runtime_error("Can't infer point cloud writer from " + filename);
     }
 
-    // Sync position, color and label data
-    if (pSet.pointView == nullptr) throw std::runtime_error("pointView is null (should not have happened)");
-    pdal::PointViewPtr pView = pSet.pointView;
 
+    pdal::PointTable table;
+    std::vector<pdal::Dimension::Id> dims = { pdal::Dimension::Id::X,
+                                              pdal::Dimension::Id::Y,
+                                              pdal::Dimension::Id::Z,
+                                              pdal::Dimension::Id::Classification,
+                                              pdal::Dimension::Id::Red,
+                                              pdal::Dimension::Id::Green,
+                                              pdal::Dimension::Id::Blue
+                                              };
+    table.layout()->registerDims(dims);
+    pdal::PointViewPtr pView(new pdal::PointView(table));
     for (pdal::PointId i = 0; i < pSet.count(); i++) {
+        pView->setField(pdal::Dimension::Id::X, i, pSet.points[i][0]);
+        pView->setField(pdal::Dimension::Id::Y, i, pSet.points[i][1]);
+        pView->setField(pdal::Dimension::Id::Z, i, pSet.points[i][2]);
         if (pSet.hasColors()){
             pView->setField(pdal::Dimension::Id::Red, i, pSet.colors[i][0]);
             pView->setField(pdal::Dimension::Id::Green, i, pSet.colors[i][1]);
@@ -499,13 +514,8 @@ void pdalSavePointSet(PointSet &pSet, const std::string &filename){
         }
     }
 
-    pdal::PointTable table;
     pdal::BufferReader reader;
     reader.addView(pView);
-
-    for (auto d : pView->dims()){
-        table.layout()->registerOrAssignDim(pView->dimName(d), pView->dimType(d));
-    }
 
     pdal::Stage *s = factory.createStage(driver);
     pdal::Options opts;
