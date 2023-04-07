@@ -8,6 +8,7 @@
 #include "labels.hpp"
 #include "constants.hpp"
 #include "point_io.hpp"
+#include "statistics.hpp"
 
 enum Regularization { None, LocalSmooth };
 Regularization parseRegularization(const std::string &regularization);
@@ -15,18 +16,19 @@ Regularization parseRegularization(const std::string &regularization);
 enum ClassifierType { RandomForest, GradientBoostedTrees };
 ClassifierType fingerprint(const std::string &modelFile);
 
+
 template <typename F, typename I>
 void getTrainingData(const std::vector<std::string> &filenames,
     double *startResolution,
-    int numScales,
-    double radius,
-    int maxSamples,
+    const int numScales,
+    const double radius,
+    const int maxSamples,
     const std::vector<int> &asprsClasses,
     F storeFeatures,
     I init) {
-    auto labels = getTrainingLabels();
+    const auto labels = getTrainingLabels();
 
-    bool trainSubset = asprsClasses.size() > 0;
+    const bool trainSubset = asprsClasses.size() > 0;
     std::array<bool, 255> trainClass;
 
     if (trainSubset) {
@@ -69,7 +71,7 @@ void getTrainingData(const std::vector<std::string> &filenames,
                 size_t idx = pointSet->pointMap[i];
                 if (!sampled[idx]) {
                     idxes.push_back(std::make_pair(idx, g));
-                    count[std::size_t(g)]++;
+                    count[static_cast<std::size_t>(g)]++;
                     sampled[idx] = true;
                 }
             }
@@ -91,9 +93,9 @@ void getTrainingData(const std::vector<std::string> &filenames,
         for (const auto &p : idxes) {
             size_t idx = p.first;
             int g = p.second;
-            if (added[std::size_t(g)] < samplesPerLabel) {
+            if (added[static_cast<std::size_t>(g)] < samplesPerLabel) {
                 storeFeatures(features, idx, g);
-                added[std::size_t(g)]++;
+                added[static_cast<std::size_t>(g)]++;
             }
         }
 
@@ -112,12 +114,13 @@ void classifyData(PointSet &pointSet,
     F evaluateFunc,
     const std::vector<Feature *> &features,
     const std::vector<Label> &labels,
-    Regularization regularization,
-    double regRadius,
-    bool useColors,
-    bool unclassifiedOnly,
-    bool evaluate,
+    const Regularization regularization,
+    const double regRadius,
+    const bool useColors,
+    const bool unclassifiedOnly,
+    const bool evaluate,
     const std::vector<int> &skip) {
+
     std::cout << "Classifying..." << std::endl;
     pointSet.base->labels.resize(pointSet.base->count());
 
@@ -182,7 +185,7 @@ void classifyData(PointSet &pointSet,
 
             std::vector<nanoflann::ResultItem<size_t, float>> radiusMatches;
             std::vector<T> mean(values.size(), 0.);
-            auto index = pointSet.base->getIndex<KdTree>();
+            const auto index = pointSet.base->getIndex<KdTree>();
 
             #pragma omp for schedule(dynamic, 1)
             for (long long int i = 0; i < pointSet.base->count(); i++) {
@@ -214,32 +217,37 @@ void classifyData(PointSet &pointSet,
         throw std::runtime_error("Invalid regularization");
     }
 
-    std::size_t correct = 0;
+    //std::size_t correct = 0;
     if (!useColors && !pointSet.hasLabels()) pointSet.labels.resize(pointSet.count());
     std::vector<bool> skipMap(255, false);
     for (size_t i = 0; i < skip.size(); i++) {
-        size_t skipClass = skip[i];
+        const int skipClass = skip[i];
         if (skipClass >= 0 && skipClass <= 255) skipMap[skipClass] = true;
     }
 
     auto train2asprsCodes = getTrain2AsprsCodes();
+        
+    std::vector<int> trainCodes(labels.size());
+    for (size_t i = 0; i < labels.size(); i++)
+    {
+        trainCodes[i] = labels[i].getTrainingCode();
+    }
+
+    Statistics stats(trainCodes);
 
     #pragma omp parallel for
     for (long long int i = 0; i < pointSet.count(); i++) {
-        size_t idx = pointSet.pointMap[i];
+        const size_t idx = pointSet.pointMap[i];
 
-        int bestClass = pointSet.base->labels[idx];
+        const int bestClass = pointSet.base->labels[idx];
         auto label = labels[bestClass];
 
         if (evaluate) {
-            if (pointSet.labels[i] == bestClass) {
-                #pragma omp atomic
-                correct++;
-            }
+            stats.updateStatistics(bestClass, pointSet.labels[i]);
         }
 
         bool update = true;
-        bool hasLabels = pointSet.hasLabels();
+        const bool hasLabels = pointSet.hasLabels();
 
         // if unclassifiedOnly, do not update points with an existing classification
         if (unclassifiedOnly && hasLabels
@@ -250,7 +258,7 @@ void classifyData(PointSet &pointSet,
 
         if (update) {
             if (useColors) {
-                auto color = label.getColor();
+                const auto color = label.getColor();
                 pointSet.colors[i][0] = color.r;
                 pointSet.colors[i][1] = color.g;
                 pointSet.colors[i][2] = color.b;
@@ -266,8 +274,14 @@ void classifyData(PointSet &pointSet,
     }
 
     if (evaluate) {
-        float modelErr = (1.f - static_cast<float>(correct) / static_cast<float>(pointSet.count()));
-        std::cout << "Model error: " << std::setprecision(4) << (modelErr * 100.f) << "%" << std::endl;
+
+        auto [overallAccuracy, labelsAccuracy, avgIou, f1Scores, avgF1] = stats.getStatistics();
+
+        std::cout << "Statistics:" << std::endl;
+        std::cout << "  Overall accuracy: " << std::setprecision(4) << overallAccuracy << std::endl;
+        std::cout << "  Average IOU: " << std::setprecision(4) << avgIou << std::endl;
+        std::cout << "  Average F1: " << std::setprecision(4) << avgF1 << std::endl;
+
     }
 }
 

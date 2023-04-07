@@ -73,10 +73,10 @@ struct PointSet {
         src.pointMap[idx] = points.size() - 1;
     }
 
-    bool hasNormals() const { return normals.size() > 0; }
-    bool hasColors() const { return colors.size() > 0; }
-    bool hasViews() const { return views.size() > 0; }
-    bool hasLabels() const { return labels.size() > 0; }
+    bool hasNormals() const { return !normals.empty(); }
+    bool hasColors() const { return !colors.empty(); }
+    bool hasViews() const { return !views.empty(); }
+    bool hasLabels() const { return !labels.empty(); }
 
     double spacing(int kNeighbors = 3);
 

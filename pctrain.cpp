@@ -22,6 +22,8 @@ int main(int argc, char **argv) {
         ("m,max-samples", "Approximate maximum number of samples for each input point cloud", cxxopts::value<int>()->default_value("100000"))
         ("radius", "Radius size to use for neighbor search (meters)", cxxopts::value<double>()->default_value(MKSTR(RADIUS)))
         ("e,eval", "Labeled point cloud to use for model accuracy evaluation", cxxopts::value<std::string>()->default_value(""))
+        ("eval-cloud-file", "Write evaluation results cloud to ply file", cxxopts::value<std::string>()->default_value(""))
+        ("eval-stats-file", "Write evaluation statistics to json file", cxxopts::value<std::string>()->default_value(""))
         ("c,classifier", "Which classifier type to use (rf = Random Forest, gbt = Gradient Boosted Trees)", cxxopts::value<std::string>()->default_value("rf"))
         ("classes", "Train only these classification classes (comma separated IDs)", cxxopts::value<std::vector<int>>())
         ("h,help", "Print usage")
@@ -122,7 +124,11 @@ int main(int argc, char **argv) {
             }
             #endif
 
-            savePointSet(*evalPointSet, "evaluation_results.ply");
+            if (result["eval-cloud-file"].count())
+            {   const auto evalCloudFile = result["eval-cloud-file"].as<std::string>();
+                savePointSet(*evalPointSet, evalCloudFile);
+            }
+
         }
     }
     catch (std::exception &e) {

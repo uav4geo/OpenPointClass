@@ -86,7 +86,7 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 include_directories(vendor/ethz)
 
 set(SOURCES classifier.cpp scale.cpp point_io.cpp randomforest.cpp features.cpp color.cpp labels.cpp)
-set(HEADERS classifier.hpp scale.hpp point_io.hpp randomforest.hpp features.hpp color.hpp labels.hpp)
+set(HEADERS classifier.hpp scale.hpp point_io.hpp randomforest.hpp features.hpp color.hpp labels.hpp statistics.hpp)
 
 if (WITH_GBT)
     list(APPEND SOURCES gbm.cpp)

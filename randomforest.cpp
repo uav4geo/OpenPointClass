@@ -10,6 +10,7 @@ RandomForest *train(const std::vector<std::string> &filenames,
     const double radius,
     const int maxSamples,
     const std::vector<int> &classes) {
+
     ForestParams params;
     params.n_trees = numTrees;
     params.max_depth = treeDepth;
