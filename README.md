@@ -171,6 +171,6 @@ docker run -it --rm -v /dataset-path:/data uav4geo/openpointclass:latest pcclass
 
 ## License
 
-The software is released under the terms of the AGPLv3
+The software is released under the terms of the LGPL 2.1
 
 Made with ❤️ by [UAV4GEO](https://uav4geo.com)
