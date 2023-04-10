@@ -27,11 +27,30 @@ Dependencies:
  * Eigen
  * PDAL (optional for LAS/LAZ support)
 
+### Linux
+
 ```
 mkdir build
 cd build
 cmake .. [-DWITH_GBT=ON]
 make -j$(nproc)
+```
+
+### Windows
+
+You will need [Visual Studio](https://visualstudio.microsoft.com/it/downloads/), [CMake](https://cmake.org/download/) and [VCPKG](https://vcpkg.io/en/getting-started.html).
+
+Install required packages with VCPKG:
+
+```
+vcpkg install eigen3 tbb pdal
+```
+Replace `<VCPKG_PATH>` with the path to your VCPKG installation in the following commands:
+```
+mkdir build
+cd build
+cmake [-DWITH_GBT=ON] -DCMAKE_TOOLCHAIN_FILE=<VCPKG_PATH>/scripts/buildsystems/vcpkg.cmake ..
+cmake --build . --config Release --target ALL_BUILD -- /maxcpucount:14
 ```
 
 ## Usage
@@ -43,7 +62,7 @@ make -j$(nproc)
 
 We provide access to a pre-trained model if you don't have access to labeled data. Please note the model was generated using a limited number of samples and it might not work well with all datasets.
 
- * [model.bin](https://github.com/uav4geo/OpenPointClass/releases/download/v1.1.1/model.zip)
+ * [model.bin](https://github.com/uav4geo/OpenPointClass/releases/download/v1.1.3/vehicles-vegetation-buildings.zip)
 
 Training classes are assumed to follow the [ASPRS 1.4 Classification](https://www.asprs.org/wp-content/uploads/2019/03/LAS_1_4_r14.pdf) and to be stored in either a `label`, `class` or `classification` property.
 
@@ -150,14 +169,8 @@ docker run -it --rm -v /dataset-path:/data uav4geo/openpointclass:latest pcclass
 
  * We only support a subset of the PLY format (for performance reasons) and certain less common variations of the format might give trouble. Most importantly, the X/Y/Z coordinates must be `float` values when using binary PLY, not `double` or `float64`. We recommend to use LAS/LAZ if higher precision coordinates are needed.
 
-## Contributing
-
-We welcome contributions! Please note that we ask contributors to sign a [CLA](https://github.com/uav4geo/OpenPointClass/blob/main/CLA.md) before we merge contributions to OpenPointClass.
-
 ## License
 
-The software is released under the terms of the AGPLv3
-
-[Contact us](https://uav4geo.com/contact) for other commercial licensing options.
+The software is released under the terms of the LGPL 2.1
 
 Made with ❤️ by [UAV4GEO](https://uav4geo.com)

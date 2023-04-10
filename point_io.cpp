@@ -6,14 +6,14 @@
 
 namespace fs = std::filesystem;
 
-double PointSet::spacing(int kNeighbors){
+double PointSet::spacing(int kNeighbors) {
     if (m_spacing != -1) return m_spacing;
 
-    auto index = getIndex<KdTree>();
+    const auto index = getIndex<KdTree>();
 
-    size_t np = count();
-    size_t SAMPLES = std::min<size_t>(np, 10000);
-    int count = kNeighbors + 1;
+    const size_t np = count();
+    const size_t SAMPLES = std::min<size_t>(np, 10000);
+    const int count = kNeighbors + 1;
 
     std::unordered_map<size_t, size_t> dist_map;
 
@@ -27,29 +27,30 @@ double PointSet::spacing(int kNeighbors){
     std::vector<size_t> indices(count);
     std::vector<float> sqr_dists(count);
 
-    for (size_t i = 0; i < SAMPLES; ++i){
+    for (size_t i = 0; i < SAMPLES; ++i) {
         const size_t idx = randomDis(gen);
-        index->knnSearch(&points[idx][0], count, &indices[0], &sqr_dists[0]);
+        index->knnSearch(points[idx].data(), count, indices.data(), sqr_dists.data());
 
         float sum = 0.0;
-        for (size_t j = 1; j < kNeighbors; ++j){
+        for (size_t j = 1; j < kNeighbors; ++j) {
             sum += std::sqrt(sqr_dists[j]);
         }
         sum /= static_cast<float>(kNeighbors);
 
-        size_t k = static_cast<size_t>(std::ceil(sum * 100));
+        auto k = static_cast<size_t>(std::ceil(sum * 100));
 
-        if (dist_map.find(k) == dist_map.end()){
+        if (dist_map.find(k) == dist_map.end()) {
             dist_map[k] = 1;
-        }else{
+        }
+        else {
             dist_map[k] += 1;
         }
     }
 
     size_t max_val = std::numeric_limits<size_t>::min();
     size_t d = 0;
-    for (auto it : dist_map){
-        if (it.second > max_val){
+    for (const auto it : dist_map) {
+        if (it.second > max_val) {
             d = it.first;
             max_val = it.second;
         }
@@ -59,7 +60,7 @@ double PointSet::spacing(int kNeighbors){
     return m_spacing;
 }
 
-std::string getVertexLine(std::ifstream& reader){
+std::string getVertexLine(std::ifstream &reader) {
     std::string line;
 
     // Skip comments
@@ -75,7 +76,7 @@ std::string getVertexLine(std::ifstream& reader){
     } while (true);
 }
 
-size_t getVertexCount(const std::string& line) {
+size_t getVertexCount(const std::string &line) {
 
     // Split line into tokens
     std::vector<std::string> tokens;
@@ -94,31 +95,33 @@ size_t getVertexCount(const std::string& line) {
     return std::stoi(tokens[2]);
 }
 
-PointSet* readPointSet(const std::string& filename){
+PointSet *readPointSet(const std::string &filename) {
     PointSet *r;
-    fs::path p(filename);
+    const fs::path p(filename);
     if (p.extension().string() == ".ply") r = fastPlyReadPointSet(filename);
     else r = pdalReadPointSet(filename);
 
     // Re-map labels if needed
-    if (r->hasLabels()){
+    if (r->hasLabels()) {
         auto mappings = getClassMappings(filename);
-        bool hasMappings = !mappings.empty();
+        const bool hasMappings = !mappings.empty();
 
-        if (hasMappings){
+        if (hasMappings) {
             auto trainingCodes = getTrainingCodes();
             for (size_t idx = 0; idx < r->count(); idx++) {
                 int label = r->labels[idx];
 
-                if (mappings.find(label) != mappings.end()){
+                if (mappings.find(label) != mappings.end()) {
                     label = trainingCodes[mappings[label]];
-                }else{
+                }
+                else {
                     label = trainingCodes["unassigned"];
                 }
 
                 r->labels[idx] = label;
             }
-        }else{
+        }
+        else {
             auto asprs2TrainCodes = getAsprs2TrainCodes();
             for (size_t idx = 0; idx < r->count(); idx++) {
                 int label = r->labels[idx];
@@ -130,26 +133,26 @@ PointSet* readPointSet(const std::string& filename){
     return r;
 }
 
-PointSet* fastPlyReadPointSet(const std::string &filename){
+PointSet *fastPlyReadPointSet(const std::string &filename) {
     std::ifstream reader(filename, std::ios::binary);
     if (!reader.is_open())
         throw std::runtime_error("Cannot open file " + filename);
 
-    PointSet *r = new PointSet();
+    auto *r = new PointSet();
 
     std::string line;
     std::getline(reader, line);
-    line.erase(std::remove(line.begin(), line.end(), '\r' ), line.end());
+    line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
 
     if (line != "ply")
         throw std::runtime_error("Invalid PLY file (header does not start with ply)");
-    
+
     std::getline(reader, line);
-    line.erase(std::remove(line.begin(), line.end(), '\r' ), line.end());
+    line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
 
     // We are reading an ascii ply
     bool ascii = line == "format ascii 1.0";
-    
+
     const auto vertexLine = getVertexLine(reader);
     const auto count = getVertexCount(vertexLine);
 
@@ -163,24 +166,24 @@ PointSet* fastPlyReadPointSet(const std::string &filename){
     bool hasViews = false;
     bool hasNormals = false;
     bool hasColors = false;
-    std::string labelDim = "";
+    std::string labelDim;
 
     size_t redIdx = 0, greenIdx = 1, blueIdx = 2;
 
     std::getline(reader, line);
-    line.erase(std::remove(line.begin(), line.end(), '\r' ), line.end());
+    line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
 
-    while (line != "end_header"){
+    while (line != "end_header") {
         if (hasHeader(line, "nx") || hasHeader(line, "normal_x") || hasHeader(line, "normalx")) hasNormals = true;
-        if (hasHeader(line, "red")){
+        if (hasHeader(line, "red")) {
             hasColors = true;
             redIdx = c;
         }
-        if (hasHeader(line, "green")){
+        if (hasHeader(line, "green")) {
             hasColors = true;
             greenIdx = c;
         }
-        if (hasHeader(line, "blue")){
+        if (hasHeader(line, "blue")) {
             hasColors = true;
             blueIdx = c;
         }
@@ -189,10 +192,10 @@ PointSet* fastPlyReadPointSet(const std::string &filename){
         if (hasHeader(line, "label")) labelDim = "label";
         if (hasHeader(line, "classification")) labelDim = "classification";
         if (hasHeader(line, "class")) labelDim = "class";
-        
+
         if (c++ > 100) break;
         std::getline(reader, line);
-        line.erase(std::remove(line.begin(), line.end(), '\r' ), line.end());
+        line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
     }
 
     size_t colorIdxMin = std::min<size_t>(std::min<size_t>(redIdx, greenIdx), blueIdx);
@@ -202,7 +205,7 @@ PointSet* fastPlyReadPointSet(const std::string &filename){
     if (redIdx + greenIdx + blueIdx != 3) throw std::runtime_error("red/green/blue properties need to be contiguous");
 
     bool hasLabels = !labelDim.empty();
-        
+
     r->points.resize(count);
     if (hasNormals) r->normals.resize(count);
     if (hasColors) r->colors.resize(count);
@@ -216,19 +219,19 @@ PointSet* fastPlyReadPointSet(const std::string &filename){
     // std::cout << std::endl;
 
     // Read points
-    if (ascii){
+    if (ascii) {
         uint16_t buf;
 
         for (size_t i = 0; i < count; i++) {
-            reader >> r->points[i][0] 
-                   >> r->points[i][1]
-                   >> r->points[i][2];
-            if (hasNormals){
+            reader >> r->points[i][0]
+                >> r->points[i][1]
+                >> r->points[i][2];
+            if (hasNormals) {
                 reader >> r->normals[i][0]
                     >> r->normals[i][1]
                     >> r->normals[i][2];
             }
-            if (hasColors){
+            if (hasColors) {
                 reader >> buf;
                 r->colors[i][redIdx] = static_cast<uint8_t>(buf);
                 reader >> buf;
@@ -236,40 +239,41 @@ PointSet* fastPlyReadPointSet(const std::string &filename){
                 reader >> buf;
                 r->colors[i][blueIdx] = static_cast<uint8_t>(buf);
             }
-            if (hasViews){
+            if (hasViews) {
                 reader >> buf;
                 r->views[i] = static_cast<uint8_t>(buf);
             }
-            if (hasLabels){
+            if (hasLabels) {
                 reader >> buf;
                 r->labels[i] = static_cast<uint8_t>(buf);
             }
         }
-    }else{
+    }
+    else {
 
         // Read points
         uint8_t color[3];
 
         for (size_t i = 0; i < count; i++) {
-            reader.read(reinterpret_cast<char*>(&r->points[i][0]), sizeof(float) * 3);
+            reader.read(reinterpret_cast<char *>(r->points[i].data()), sizeof(float) * 3);
 
-            if (hasNormals){
-                reader.read(reinterpret_cast<char*>(&r->normals[i][0]), sizeof(float) * 3);
+            if (hasNormals) {
+                reader.read(reinterpret_cast<char *>(r->normals[i].data()), sizeof(float) * 3);
             }
 
-            if (hasColors){
-                reader.read(reinterpret_cast<char*>(&color), sizeof(uint8_t) * 3);
+            if (hasColors) {
+                reader.read(reinterpret_cast<char *>(&color), sizeof(uint8_t) * 3);
                 r->colors[i][redIdx] = color[0];
                 r->colors[i][greenIdx] = color[1];
                 r->colors[i][blueIdx] = color[2];
             }
 
-            if (hasViews){
-                reader.read(reinterpret_cast<char*>(&r->views[i]), sizeof(uint8_t));
+            if (hasViews) {
+                reader.read(reinterpret_cast<char *>(&r->views[i]), sizeof(uint8_t));
             }
 
-            if (hasLabels){
-                reader.read(reinterpret_cast<char*>(&r->labels[i]), sizeof(uint8_t));
+            if (hasLabels) {
+                reader.read(reinterpret_cast<char *>(&r->labels[i]), sizeof(uint8_t));
             }
         }
     }
@@ -288,7 +292,7 @@ PointSet* fastPlyReadPointSet(const std::string &filename){
     //         std::cout << std::to_string(r->labels[idx]) << " ";
     //     }
     //     std::cout << std::endl;
-        
+
     //     if (idx > 9) exit(1);
     //     classes[std::size_t(r->labels[idx])]++;
     // }
@@ -325,7 +329,7 @@ PointSet* extractPDALPointView(pdal::PointViewPtr pView)
         std::string dim = pView->dimName(d);
         if (dim == "Label" || dim == "label" ||
             dim == "Classification" || dim == "classification" ||
-            dim == "Class" || dim == "class"){
+            dim == "Class" || dim == "class") {
             labelDimension = dim;
         }
     }
@@ -335,7 +339,7 @@ PointSet* extractPDALPointView(pdal::PointViewPtr pView)
     bool hasLabels = !labelDimension.empty();
 
     pdal::Dimension::Id labelId;
-    if (hasLabels){
+    if (hasLabels) {
         std::cout << "Label dimension: " << labelDimension << std::endl;
         labelId = layout->findDim(labelDimension);
         r->labels.resize(count);
@@ -349,33 +353,34 @@ PointSet* extractPDALPointView(pdal::PointViewPtr pView)
     if (layout->hasDim(pdal::Dimension::Id::Green)){
 
         hasColors = true;
-        for (pdal::PointId idx = 0; idx < count; ++idx){
-            if (pView->getFieldAs<uint16_t>(pdal::Dimension::Id::Green, idx) > 255){
+        for (pdal::PointId idx = 0; idx < count; ++idx) {
+            if (pView->getFieldAs<uint16_t>(pdal::Dimension::Id::Green, idx) > 255) {
                 largeColors = true;
                 break;
             }
         }
-    } 
-    
+    }
+
     for (pdal::PointId idx = 0; idx < count; ++idx) {
         auto p = pView->point(idx);
         r->points[idx][0] = p.getFieldAs<float>(pdal::Dimension::Id::X);
         r->points[idx][1] = p.getFieldAs<float>(pdal::Dimension::Id::Y);
         r->points[idx][2] = p.getFieldAs<float>(pdal::Dimension::Id::Z);
 
-        if (hasColors){
-            if (largeColors){
+        if (hasColors) {
+            if (largeColors) {
                 r->colors[idx][0] = static_cast<uint8_t>((p.getFieldAs<double>(pdal::Dimension::Id::Red) / 65535.0) * 255.0);
                 r->colors[idx][1] = static_cast<uint8_t>((p.getFieldAs<double>(pdal::Dimension::Id::Green) / 65535.0) * 255.0);
                 r->colors[idx][2] = static_cast<uint8_t>((p.getFieldAs<double>(pdal::Dimension::Id::Blue) / 65535.0) * 255.0);
-            }else{
+            }
+            else {
                 r->colors[idx][0] = p.getFieldAs<uint8_t>(pdal::Dimension::Id::Red);
                 r->colors[idx][1] = p.getFieldAs<uint8_t>(pdal::Dimension::Id::Green);
                 r->colors[idx][2] = p.getFieldAs<uint8_t>(pdal::Dimension::Id::Blue);
             }
         }
 
-        if (hasLabels){
+        if (hasLabels) {
             r->labels[idx] = p.getFieldAs<uint8_t>(labelId);
         }
     }
@@ -455,35 +460,35 @@ PointSet* pdalReadPointSet(const std::string &filename){
 #else
     fs::path p(filename);
     throw std::runtime_error("Unsupported file extension " + p.extension().string() + ", build program with PDAL support for additional file types support.");
-#endif
+    #endif
 }
 
-void checkHeader(std::ifstream& reader, const std::string &prop){
+void checkHeader(std::ifstream &reader, const std::string &prop) {
     std::string line;
     std::getline(reader, line);
-    line.erase(std::remove(line.begin(), line.end(), '\r' ), line.end());
+    line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
 
-    if (line.substr(line.length() - prop.length(), prop.length()) != prop){
+    if (line.substr(line.length() - prop.length(), prop.length()) != prop) {
         throw std::runtime_error("Invalid PLY file (expected 'property * " + prop + "', but found '" + line + "')");
     }
 }
 
-bool hasHeader(const std::string &line, const std::string &prop){
+bool hasHeader(const std::string &line, const std::string &prop) {
     //std::cout << line << " -> " << prop << " : " << line.substr(line.length() - prop.length(), prop.length()) << std::endl;
     return line.substr(0, 8) == "property" && line.substr(line.length() - prop.length(), prop.length()) == prop;
 }
 
-void savePointSet(PointSet &pSet, const std::string &filename){
-    fs::path p(filename);
+void savePointSet(PointSet &pSet, const std::string &filename) {
+    const fs::path p(filename);
     if (p.extension().string() == ".ply") fastPlySavePointSet(pSet, filename);
     else pdalSavePointSet(pSet, filename);
 }
 
-void pdalSavePointSet(PointSet &pSet, const std::string &filename){
-#ifdef WITH_PDAL
+void pdalSavePointSet(PointSet &pSet, const std::string &filename) {
+    #ifdef WITH_PDAL
     pdal::StageFactory factory;
-    std::string driver = pdal::StageFactory::inferWriterDriver(filename);
-    if (driver.empty()){
+    const std::string driver = pdal::StageFactory::inferWriterDriver(filename);
+    if (driver.empty()) {
         throw std::runtime_error("Can't infer point cloud writer from " + filename);
     }
 
@@ -509,7 +514,7 @@ void pdalSavePointSet(PointSet &pSet, const std::string &filename){
             pView->setField(pdal::Dimension::Id::Blue, i, pSet.colors[i][2]);
         }
 
-        if (pSet.hasLabels()){
+        if (pSet.hasLabels()) {
             pView->setField(pdal::Dimension::Id::Classification, i, pSet.labels[i]);
         }
     }
@@ -527,13 +532,13 @@ void pdalSavePointSet(PointSet &pSet, const std::string &filename){
     s->execute(table);
 
     std::cout << "Wrote " << filename << std::endl;
-#else
+    #else
     fs::path p(filename);
     throw std::runtime_error("Unsupported file extension " + p.extension().string() + ", build program with PDAL support for additional file types support.");
-#endif
+    #endif
 }
 
-void fastPlySavePointSet(PointSet &pSet, const std::string &filename){
+void fastPlySavePointSet(PointSet &pSet, const std::string &filename) {
     std::ofstream o(filename, std::ios::binary);
 
     o << "ply" << std::endl;
@@ -544,36 +549,36 @@ void fastPlySavePointSet(PointSet &pSet, const std::string &filename){
     o << "property float y" << std::endl;
     o << "property float z" << std::endl;
 
-    bool hasNormals = pSet.hasNormals();
-    bool hasColors = pSet.hasColors();
-    bool hasViews = pSet.hasViews();
-    bool hasLabels = pSet.hasLabels();
+    const bool hasNormals = pSet.hasNormals();
+    const bool hasColors = pSet.hasColors();
+    const bool hasViews = pSet.hasViews();
+    const bool hasLabels = pSet.hasLabels();
 
-    if (hasNormals){
+    if (hasNormals) {
         o << "property float nx" << std::endl;
         o << "property float ny" << std::endl;
         o << "property float nz" << std::endl;
     }
-    if (hasColors){
+    if (hasColors) {
         o << "property uchar red" << std::endl;
         o << "property uchar green" << std::endl;
         o << "property uchar blue" << std::endl;
     }
-    if (hasViews){
+    if (hasViews) {
         o << "property uchar views" << std::endl;
     }
-    if (hasLabels){
+    if (hasLabels) {
         o << "property uchar classification" << std::endl;
     }
 
     o << "end_header" << std::endl;
 
-    for (size_t i = 0; i < pSet.count(); i++){
-        o.write(reinterpret_cast<const char*>(&pSet.points[i][0]), sizeof(float) * 3);
-        if (hasNormals) o.write(reinterpret_cast<const char*>(&pSet.normals[i][0]), sizeof(float) * 3);
-        if (hasColors) o.write(reinterpret_cast<const char*>(&pSet.colors[i][0]), sizeof(uint8_t) * 3);
-        if (hasViews) o.write(reinterpret_cast<const char*>(&pSet.views[i]), sizeof(uint8_t));
-        if (hasLabels) o.write(reinterpret_cast<const char*>(&pSet.labels[i]), sizeof(uint8_t));
+    for (size_t i = 0; i < pSet.count(); i++) {
+        o.write(reinterpret_cast<const char *>(pSet.points[i].data()), sizeof(float) * 3);
+        if (hasNormals) o.write(reinterpret_cast<const char *>(pSet.normals[i].data()), sizeof(float) * 3);
+        if (hasColors) o.write(reinterpret_cast<const char *>(pSet.colors[i].data()), sizeof(uint8_t) * 3);
+        if (hasViews) o.write(reinterpret_cast<const char *>(&pSet.views[i]), sizeof(uint8_t));
+        if (hasLabels) o.write(reinterpret_cast<const char *>(&pSet.labels[i]), sizeof(uint8_t));
     }
 
     o.close();
@@ -583,17 +588,17 @@ void fastPlySavePointSet(PointSet &pSet, const std::string &filename){
 std::unordered_map<int, std::string> getClassMappings(const std::string &filename){
     fs::path p("somepath");
     std::string jsonFile = p.replace_filename(p.filename().replace_extension(".json")).string();
-    
+
     // Need to drop _eval filename suffix?
     if (filename.substr(filename.length() - 5 - 4, 5) == "_eval" &&
-            !fileExists(jsonFile)){
+        !fileExists(jsonFile)) {
         jsonFile = filename.substr(0, filename.length() - 5 - 4) + ".json";
     }
 
-    if (!fileExists(jsonFile)){
+    if (!fileExists(jsonFile)) {
         // Check for a mappings.json file
         std::string mappingJson = p.replace_filename("mappings.json").string();
-        if (fileExists(mappingJson)){
+        if (fileExists(mappingJson)) {
             jsonFile = mappingJson;
         }
     }
@@ -601,16 +606,17 @@ std::unordered_map<int, std::string> getClassMappings(const std::string &filenam
     std::ifstream fin(jsonFile);
     std::unordered_map<int, std::string> res;
 
-    if (fin.good()){
+    if (fin.good()) {
         std::cout << "Reading classification information: " << jsonFile << std::endl;
         json data = json::parse(fin);
-        if (data.contains("classification")){
+        if (data.contains("classification")) {
             auto c = data["classification"];
-            for (json::iterator it = c.begin(); it != c.end(); ++it) {
+            for (auto it = c.begin(); it != c.end(); ++it) {
                 res[std::stoi(it.key())] = it.value().get<std::string>();
                 std::cout << it.key() << ": " << it.value().get<std::string>() << std::endl;
             }
-        }else{
+        }
+        else {
             std::cout << "Error: Invalid JSON (no mapping will be applied)" << std::endl;
         }
     }
@@ -618,9 +624,9 @@ std::unordered_map<int, std::string> getClassMappings(const std::string &filenam
     return res;
 }
 
-bool fileExists(const std::string &path){
+bool fileExists(const std::string &path) {
     std::ifstream fin(path);
-    bool e = fin.good();
+    const bool e = fin.good();
     fin.close();
     return e;
 }

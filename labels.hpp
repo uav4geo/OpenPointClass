@@ -9,20 +9,20 @@
 #define LABEL_UNASSIGNED 255
 #define LABEL_UNCLASSIFIED 0
 
-class Label{
+class Label {
 private:
- std::string name;
- int trainingCode;
- int asprsCode;
- Color color;
+    std::string name;
+    int trainingCode;
+    int asprsCode;
+    Color color;
 public:
-  Label(const std::string &name, int trainingCode, int asprsCode, Color color = Color()) 
-    : name(name), trainingCode(trainingCode), asprsCode(asprsCode), color(color) {};
-  
-  std::string getName() const { return name; } 
-  int getTrainingCode() const { return trainingCode; }
-  int getAsprsCode() const { return asprsCode; }
-  Color getColor() const { return color; }
+    Label(const std::string &name, int trainingCode, int asprsCode, Color color = Color())
+        : name(name), trainingCode(trainingCode), asprsCode(asprsCode), color(color) {};
+
+    std::string getName() const { return name; }
+    int getTrainingCode() const { return trainingCode; }
+    int getAsprsCode() const { return asprsCode; }
+    Color getColor() const { return color; }
 };
 
 std::vector<Label> getLabels();

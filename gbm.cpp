@@ -5,17 +5,16 @@
 #include "classifier.hpp"
 #include "gbm.hpp"
 
-namespace gbm{
+namespace gbm {
 
-
-Boosting* train(const std::vector<std::string> &filenames,
+Boosting *train(const std::vector<std::string> &filenames,
     double *startResolution,
-    int numScales,
-    int numTrees,
-    int treeDepth,
-    double radius,
-    int maxSamples,
-    const std::vector<int> &classes){
+    const int numScales,
+    const int numTrees,
+    const int treeDepth,
+    const double radius,
+    const int maxSamples,
+    const std::vector<int> &classes) {
 
     std::vector<float> gt;
     std::vector< std::vector<double> > featureRows;
@@ -25,18 +24,18 @@ Boosting* train(const std::vector<std::string> &filenames,
     int numClass;
 
     getTrainingData(filenames, startResolution, numScales, radius, maxSamples, classes,
-        [&featureRows, &featuresData, &featuresIdx, &gt](std::vector<Feature *> &features, size_t idx, int g){
-            size_t row = featureRows.size();
+        [&featureRows, &featuresData, &featuresIdx, &gt](const std::vector<Feature *> &features, const size_t idx, const int g) {
+            const size_t row = featureRows.size();
             featureRows.emplace_back();
             featureRows[row].resize(features.size(), 0);
-            for (std::size_t f = 0; f < features.size(); f++){
+            for (std::size_t f = 0; f < features.size(); f++) {
                 featureRows[row][f] = features[f]->getValue(idx);
                 featuresData[f].push_back(featureRows[row][f]);
                 featuresIdx[f].push_back(row);
             }
             gt.push_back(g);
         },
-        [&numFeats, &numClass, &featuresData, &featuresIdx](size_t numFeatures, int numClasses){
+        [&numFeats, &numClass, &featuresData, &featuresIdx](const size_t numFeatures, const int numClasses) {
             numFeats = numFeatures;
             numClass = numClasses;
             featuresData.resize(numFeats);
@@ -52,31 +51,31 @@ Boosting* train(const std::vector<std::string> &filenames,
 
     std::unique_ptr<LightGBM::Dataset> dset;
     LightGBM::DatasetLoader loader(ioconfig, nullptr, numClass, nullptr);
-    dset.reset( loader.ConstructFromSampleData(LightGBM::Common::Vector2Ptr<double>(&featuresData).data(), 
-                                               LightGBM::Common::Vector2Ptr<int>(&featuresIdx).data(), 
-                                               numFeats,
-                                               LightGBM::Common::VectorSize<double>(featuresData).data(),
-                                               numRows,
-                                               numRows,
-                                               numRows) );
-    
+    dset.reset(loader.ConstructFromSampleData(LightGBM::Common::Vector2Ptr<double>(&featuresData).data(),
+        LightGBM::Common::Vector2Ptr<int>(&featuresIdx).data(),
+        numFeats,
+        LightGBM::Common::VectorSize<double>(featuresData).data(),
+        numRows,
+        numRows,
+        numRows));
+
     #pragma omp parallel for schedule(static)
-    for (long long int i = 0; i < numRows; ++i){
+    for (long long int i = 0; i < numRows; ++i) {
         dset->PushOneRow(omp_get_thread_num(), i, featureRows[i]);
     }
 
     dset->FinishLoad();
 
-/*
-    for(int j = 0; j < numFeats; j++){
-        const auto nbins = dset->FeatureBinMapper(j)->num_bin();
-        // std::cout << features[j]->getName() << std::endl;
-        std::cout << "Feat " << j << std::endl;
-        std::cout << "   " << dset->FeatureBinMapper(j)->BinToValue(0) << " ";
-        std::cout << "   " << dset->FeatureBinMapper(j)->BinToValue(nbins-2) << " ";
-        std::cout << std::endl;
-    }
-*/
+    /*
+        for(int j = 0; j < numFeats; j++){
+            const auto nbins = dset->FeatureBinMapper(j)->num_bin();
+            // std::cout << features[j]->getName() << std::endl;
+            std::cout << "Feat " << j << std::endl;
+            std::cout << "   " << dset->FeatureBinMapper(j)->BinToValue(0) << " ";
+            std::cout << "   " << dset->FeatureBinMapper(j)->BinToValue(nbins-2) << " ";
+            std::cout << std::endl;
+        }
+    */
 
     if (!dset->SetFloatField("label", gt.data(), numRows)) {
         throw std::runtime_error("Error setting label");
@@ -94,7 +93,7 @@ Boosting* train(const std::vector<std::string> &filenames,
     boostConfig.learning_rate = 0.2;
 
     std::stringstream ss;
-    ss << *startResolution << " " <<  radius << " " << numScales;
+    ss << *startResolution << " " << radius << " " << numScales;
     boostConfig.data = ss.str();
 
     LightGBM::Config objConfig;
@@ -119,11 +118,11 @@ Boosting* train(const std::vector<std::string> &filenames,
     // Add if you want to add validation data (eval)
     // booster->AddValidDataset(dset.get(), LightGBM::Common::ConstPtrInVectorWrapper<LightGBM::Metric>(trainMetrics));
 
-    for (int i = 0; i < boostConfig.num_iterations; i++){
+    for (int i = 0; i < boostConfig.num_iterations; i++) {
         auto scores = booster->GetEvalAt(0);
-        for(auto &v: scores) std::cout << "Iteration " << (i+1) << " score: " << v << std::endl;
+        for (const auto &v : scores) std::cout << "Iteration " << (i + 1) << " score: " << v << std::endl;
 
-        if (booster->TrainOneIter(nullptr, nullptr)){
+        if (booster->TrainOneIter(nullptr, nullptr)) {
             std::cout << "Breaking.." << std::endl;
             break;
         }
@@ -132,11 +131,11 @@ Boosting* train(const std::vector<std::string> &filenames,
     return booster;
 }
 
-Boosting *loadBooster(const std::string &modelFilename){
+Boosting *loadBooster(const std::string &modelFilename) {
     std::cout << "Loading " << modelFilename << std::endl;
 
     auto *booster = LightGBM::Boosting::CreateBoosting("gbdt", nullptr);
-    if (!LightGBM::Boosting::LoadFileToBoosting(booster, modelFilename.c_str())){
+    if (!LightGBM::Boosting::LoadFileToBoosting(booster, modelFilename.c_str())) {
         throw std::runtime_error("Cannot open " + modelFilename);
     }
     booster->InitPredict(0, 0, false);
@@ -144,12 +143,12 @@ Boosting *loadBooster(const std::string &modelFilename){
     return booster;
 }
 
-void saveBooster(Boosting *booster, const std::string &modelFilename){
+void saveBooster(Boosting *booster, const std::string &modelFilename) {
     booster->SaveModelToFile(0, 0, 0, modelFilename.c_str());
     std::cout << "Saved " << modelFilename << std::endl;
 }
 
-BoosterParams extractBoosterParams(Boosting *booster){
+BoosterParams extractBoosterParams(Boosting *booster) {
     json j = json::parse(booster->GetLoadedParam());
     if (!j.contains("data") || j["data"].get<std::string>().empty()) throw std::runtime_error("Invalid booster model (data params missing?)");
 
@@ -159,28 +158,28 @@ BoosterParams extractBoosterParams(Boosting *booster){
     ss >> p.radius;
     ss >> p.numScales;
     return p;
-    
+
 }
 
-void classify(PointSet &pointSet, 
+void classify(PointSet &pointSet,
     Boosting *booster,
-    const std::vector<Feature *> &features, 
+    const std::vector<Feature *> &features,
     const std::vector<Label> &labels,
-    Regularization regularization,
-    double regRadius,
-    bool useColors,
-    bool unclassifiedOnly,
-    bool evaluate,
-    const std::vector<int> &skip){
+    const Regularization regularization,
+    const double regRadius,
+    const bool useColors,
+    const bool unclassifiedOnly,
+    const bool evaluate,
+    const std::vector<int> &skip) {
 
     LightGBM::PredictionEarlyStopConfig early_stop_config;
     auto earlyStop = LightGBM::CreatePredictionEarlyStopInstance("none", early_stop_config);
 
-    classifyData<double>(pointSet, 
-      [&booster, &earlyStop](double *ft, double *probs){
-          booster->Predict(ft, probs, &earlyStop);
-      },
-      features, labels, regularization, regRadius, useColors, unclassifiedOnly, evaluate, skip);
+    classifyData<double>(pointSet,
+        [&booster, &earlyStop](const double *ft, double *probs) {
+            booster->Predict(ft, probs, &earlyStop);
+        },
+        features, labels, regularization, regRadius, useColors, unclassifiedOnly, evaluate, skip);
 }
 
 }
