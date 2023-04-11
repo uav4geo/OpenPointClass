@@ -226,7 +226,7 @@ void classifyData(PointSet &pointSet,
     }
 
     auto train2asprsCodes = getTrain2AsprsCodes();
-        
+
     std::vector<int> trainCodes(labels.size());
     for (size_t i = 0; i < labels.size(); i++)
     {
@@ -275,12 +275,38 @@ void classifyData(PointSet &pointSet,
 
     if (evaluate) {
 
-        auto [overallAccuracy, labelsAccuracy, avgIou, f1Scores, avgF1] = stats.getStatistics();
+        auto [globalAccuracy, labelsAccuracy, avgAccuracy, f1Scores, avgF1] = stats.getStatistics();
 
         std::cout << "Statistics:" << std::endl;
-        std::cout << "  Overall accuracy: " << std::setprecision(4) << overallAccuracy << std::endl;
-        std::cout << "  Average IOU: " << std::setprecision(4) << avgIou << std::endl;
-        std::cout << "  Average F1: " << std::setprecision(4) << avgF1 << std::endl;
+        std::cout << "  Global accuracy: " << std::fixed << std::setprecision(3) << globalAccuracy * 100 << "%" << std::endl;
+        std::cout << "  Average accuracy: " << std::fixed << std::setprecision(3) << avgAccuracy * 100 << "%" << std::endl;
+        std::cout << "  Average F1: " << std::fixed << std::setprecision(3) << avgF1 << std::endl;
+        std::cout << "  Labels:" << std::endl << std::endl;
+
+        std::cout << "  " << std::setw(25) << "Label " << " | " << std::setw(10) << "Accuracy" << " | " << std::setw(10) << "F1" << std::endl;
+        std::cout << "  " << std::setw(25) << std::string(25, '-') << " | " << std::setw(10) << std::string(10, '-') << " | " << std::setw(10) << std::string(10, '-') << std::endl;
+
+        for (auto n = 0; n < labels.size(); n++)
+        {
+
+            if (isnan(labelsAccuracy[n]) && isnan(f1Scores[n])) continue;
+
+            std::cout << "  " << std::setw(25) << labels[n].getName() << " | ";
+
+            if (!isnan(labelsAccuracy[n]))
+                std::cout << std::setw(9) << std::fixed << std::setprecision(3) << labelsAccuracy[n] * 100 << "% | ";
+            else
+                std::cout << std::setw(10) << "N/A" << " | ";   
+
+
+            if (!isnan(f1Scores[n]))
+                std::cout << std::setw(10) << std::fixed << std::setprecision(3) << f1Scores[n];
+            else
+                std::cout << std::setw(10) << "N/A";
+
+            std::cout << std::endl;
+
+        }
 
     }
 }

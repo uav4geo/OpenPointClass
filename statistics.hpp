@@ -17,9 +17,9 @@
 class Stat
 {
 public:
-    double overallAccuracy;
+    double globalAccuracy;
     std::vector<double> labelsAccuracy;
-    double avgIou;
+    double avgAccuracy;
     std::vector<double> f1Scores;
     double avgF1;
 };
@@ -132,29 +132,33 @@ public:
     {
         Stat result;
 
-        std::vector<double> labelsAccuracy(labels.size());
-        std::vector<double> f1Scores(labels.size());
-        const auto labelsCount = static_cast<double>(labels.size());
+        const auto cnt = labels.size();
+
+        std::vector<double> labelsAccuracy(cnt);
+        std::vector<double> f1Scores(cnt);
+        const auto labelsCount = static_cast<double>(cnt);
 
         int sumTp = 0;
-        double sumIou = 0.0;
+        double sumAccuracy = 0.0;
         double sumF1 = 0.0;
 
-        for (size_t i = 0; i < labels.size(); ++i)
+        for (size_t i = 0; i < cnt; ++i)
         {
             int label = labels[i];
             const Counts &cnts = stats[label];
             sumTp += cnts.tp;
 
-            const double accuracy = static_cast<double>(cnts.tp) / (cnts.tp + cnts.fn + cnts.fp);
+            const auto tp = static_cast<double>(cnts.tp);
+
+            const double accuracy = tp / (cnts.tp + cnts.fn + cnts.fp);
             labelsAccuracy[i] = accuracy;
               
             // Skip if nan
             if (!isnan(accuracy))
-                sumIou += accuracy;
+                sumAccuracy += accuracy;
 
-            const double precision = static_cast<double>(cnts.tp) / (cnts.tp + cnts.fp);
-            const double sensitivity = static_cast<double>(cnts.tp) / (cnts.tp + cnts.fn);
+            const double precision = tp / (cnts.tp + cnts.fp);
+            const double sensitivity = tp / (cnts.tp + cnts.fn);
             const double f1 = 2 * (precision * sensitivity) / (precision + sensitivity);
             f1Scores[i] = f1;
 
@@ -162,15 +166,15 @@ public:
                 sumF1 += f1;
         }
 
-        const double overallAccuracy = static_cast<double>(sumTp) / totalSamples;
-        const double MeanIou = sumIou / labelsCount;
-        const double meanF1Score = sumF1 / labelsCount;
+        const double globalAccuracy = static_cast<double>(sumTp) / totalSamples;
+        const double avgAccuracy = sumAccuracy / labelsCount;
+        const double avgF1Score = sumF1 / labelsCount;
 
-        result.overallAccuracy = overallAccuracy;
+        result.globalAccuracy = globalAccuracy;
         result.labelsAccuracy = labelsAccuracy;
-        result.avgIou = MeanIou;
+        result.avgAccuracy = avgAccuracy;
         result.f1Scores = f1Scores;
-        result.avgF1 = meanF1Score;
+        result.avgF1 = avgF1Score;
 
         return result;
     }
