@@ -151,9 +151,9 @@ public:
 
             const double accuracy = tp / (cnts.tp + cnts.fn + cnts.fp);
             labelsAccuracy[i] = accuracy;
-              
+
             // Skip if nan
-            if (!isnan(accuracy))
+            if (!std::isnan(accuracy))
                 sumAccuracy += accuracy;
 
             const double precision = tp / (cnts.tp + cnts.fp);
@@ -161,7 +161,7 @@ public:
             const double f1 = 2 * (precision * sensitivity) / (precision + sensitivity);
             f1Scores[i] = f1;
 
-            if (!isnan(f1))
+            if (!std::isnan(f1))
                 sumF1 += f1;
         }
 

@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <random>
+#include <cmath>
 
 #include "features.hpp"
 #include "labels.hpp"
@@ -290,17 +291,17 @@ void classifyData(PointSet &pointSet,
         for (auto n = 0; n < labels.size(); n++)
         {
 
-            if (isnan(labelsAccuracy[n]) && isnan(f1Scores[n])) continue;
+            if (std::isnan(labelsAccuracy[n]) && std::isnan(f1Scores[n])) continue;
 
             std::cout << "  " << std::setw(25) << labels[n].getName() << " | ";
 
-            if (!isnan(labelsAccuracy[n]))
+            if (!std::isnan(labelsAccuracy[n]))
                 std::cout << std::setw(9) << std::fixed << std::setprecision(3) << labelsAccuracy[n] * 100 << "% | ";
             else
                 std::cout << std::setw(10) << "N/A" << " | ";
 
 
-            if (!isnan(f1Scores[n]))
+            if (!std::isnan(f1Scores[n]))
                 std::cout << std::setw(10) << std::fixed << std::setprecision(3) << f1Scores[n];
             else
                 std::cout << std::setw(10) << "N/A";
@@ -323,15 +324,15 @@ void classifyData(PointSet &pointSet,
 
             for (auto n = 0; n < labels.size(); n++)
             {
-                
-                if (isnan(labelsAccuracy[n]) && isnan(f1Scores[n])) continue;
+
+                if (std::isnan(labelsAccuracy[n]) && std::isnan(f1Scores[n])) continue;
                 const auto name = labels[n].getName();
-                if (!isnan(labelsAccuracy[n]))
+                if (!std::isnan(labelsAccuracy[n]))
                     j["labels"][name]["accuracy"] = labelsAccuracy[n];
                 else
                     j["labels"][name]["accuracy"] = nullptr;
 
-                if (!isnan(f1Scores[n]))
+                if (!std::isnan(f1Scores[n]))
                     j["labels"][name]["f1"] = f1Scores[n];
                 else
                     j["labels"][name]["f1"] = nullptr;
