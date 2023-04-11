@@ -101,7 +101,6 @@ public:
         for (const auto &[label, ct] : stats)
         {
             const double tp = ct.tp;
-            const double fp = ct.fp;
             const double fn = ct.fn;
 
             const double sensitivity = tp / (tp + fn);
