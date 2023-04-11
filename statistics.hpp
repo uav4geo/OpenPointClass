@@ -135,7 +135,8 @@ public:
 
         std::vector<double> labelsAccuracy(cnt);
         std::vector<double> f1Scores(cnt);
-        const auto labelsCount = static_cast<double>(cnt);
+        auto accuracyCount = 0;
+        auto f1Count = 0;
 
         int sumTp = 0;
         double sumAccuracy = 0.0;
@@ -153,21 +154,25 @@ public:
             labelsAccuracy[i] = accuracy;
 
             // Skip if nan
-            if (!std::isnan(accuracy))
+            if (!std::isnan(accuracy)) {
                 sumAccuracy += accuracy;
+                accuracyCount++;
+            }
 
             const double precision = tp / (cnts.tp + cnts.fp);
             const double sensitivity = tp / (cnts.tp + cnts.fn);
             const double f1 = 2 * (precision * sensitivity) / (precision + sensitivity);
             f1Scores[i] = f1;
 
-            if (!std::isnan(f1))
+            if (!std::isnan(f1)) {
                 sumF1 += f1;
+                f1Count++;
+            }
         }
 
         const double globalAccuracy = static_cast<double>(sumTp) / totalSamples;
-        const double avgAccuracy = sumAccuracy / labelsCount;
-        const double avgF1Score = sumF1 / labelsCount;
+        const double avgAccuracy = sumAccuracy / accuracyCount;
+        const double avgF1Score = sumF1 / f1Count;
 
         result.globalAccuracy = globalAccuracy;
         result.labelsAccuracy = labelsAccuracy;
