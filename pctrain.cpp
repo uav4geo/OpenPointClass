@@ -22,8 +22,8 @@ int main(int argc, char **argv) {
         ("m,max-samples", "Approximate maximum number of samples for each input point cloud", cxxopts::value<int>()->default_value("100000"))
         ("radius", "Radius size to use for neighbor search (meters)", cxxopts::value<double>()->default_value(MKSTR(RADIUS)))
         ("e,eval", "Labeled point cloud to use for model accuracy evaluation", cxxopts::value<std::string>()->default_value(""))
-        ("eval-cloud-file", "Write evaluation results cloud to ply file", cxxopts::value<std::string>()->default_value(""))
-        ("eval-stats-file", "Write evaluation statistics to json file", cxxopts::value<std::string>()->default_value(""))
+        ("eval-result", "Write evaluation results cloud to ply file", cxxopts::value<std::string>()->default_value(""))
+        ("stats-file", "Write evaluation statistics to json file", cxxopts::value<std::string>()->default_value(""))
         ("c,classifier", "Which classifier type to use (rf = Random Forest, gbt = Gradient Boosted Trees)", cxxopts::value<std::string>()->default_value("rf"))
         ("classes", "Train only these classification classes (comma separated IDs)", cxxopts::value<std::vector<int>>())
         ("h,help", "Print usage")
@@ -56,6 +56,10 @@ int main(int argc, char **argv) {
         const auto radius = result["radius"].as<double>();
         const auto maxSamples = result["max-samples"].as<int>();
         const auto classifier = result["classifier"].as<std::string>();
+        const auto evalResult = result["eval-result"].as<std::string>();
+        const auto statsFile = result["stats-file"].as<std::string>();
+        const auto evalFilename = result["eval"].as<std::string>();
+
         std::vector<int> classes = {};
         if (result.count("classes")) classes = result["classes"].as<std::vector<int>>();
 
@@ -86,8 +90,8 @@ int main(int argc, char **argv) {
         }
         #endif
 
-        if (result["eval"].count()) {
-            const std::string evalFilename = result["eval"].as<std::string>();
+        if (!evalFilename.empty()) {
+            
             std::cout << "Evaluating on " << evalFilename << " ..." << std::endl;
 
             const ClassifierType ctype = fingerprint(modelFilename);
@@ -115,18 +119,19 @@ int main(int argc, char **argv) {
             std::cout << "Features: " << evalFeatures.size() << std::endl;
 
             if (ctype == RandomForest) {
-                rf::classify(*evalPointSet, rtrees, evalFeatures, labels, Regularization::None, 2.5, true, false, true);
+                rf::classify(*evalPointSet, rtrees, evalFeatures, labels, Regularization::None, 2.5, 
+                    true, false, true, {}, statsFile);
             }
 
             #ifdef WITH_GBT
             else {
-                gbm::classify(*evalPointSet, booster, evalFeatures, labels, Regularization::None, 2.5, true, false, true);
+                gbm::classify(*evalPointSet, booster, evalFeatures, labels, Regularization::None, 2.5, 
+                    true, false, true, {}, statsFile);
             }
             #endif
 
-            if (result["eval-cloud-file"].count())
-            {   const auto evalCloudFile = result["eval-cloud-file"].as<std::string>();
-                savePointSet(*evalPointSet, evalCloudFile);
+            if (!evalResult.empty()) {
+                savePointSet(*evalPointSet, evalResult);
             }
 
         }

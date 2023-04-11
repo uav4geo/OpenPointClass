@@ -119,7 +119,8 @@ void classifyData(PointSet &pointSet,
     const bool useColors,
     const bool unclassifiedOnly,
     const bool evaluate,
-    const std::vector<int> &skip) {
+    const std::vector<int> &skip,
+    const std::string &statsFile) {
 
     std::cout << "Classifying..." << std::endl;
     pointSet.base->labels.resize(pointSet.base->count());
@@ -296,7 +297,7 @@ void classifyData(PointSet &pointSet,
             if (!isnan(labelsAccuracy[n]))
                 std::cout << std::setw(9) << std::fixed << std::setprecision(3) << labelsAccuracy[n] * 100 << "% | ";
             else
-                std::cout << std::setw(10) << "N/A" << " | ";   
+                std::cout << std::setw(10) << "N/A" << " | ";
 
 
             if (!isnan(f1Scores[n]))
@@ -306,6 +307,44 @@ void classifyData(PointSet &pointSet,
 
             std::cout << std::endl;
 
+        }
+
+        std::cout << std::endl;
+
+        if (!statsFile.empty())
+        {
+            std::ofstream o(statsFile);
+
+            auto j = json {
+                {"globalAccuracy", globalAccuracy},
+                {"avgAccuracy", avgAccuracy},
+                {"avgF1", avgF1}
+            };
+
+            for (auto n = 0; n < labels.size(); n++)
+            {
+                
+                if (isnan(labelsAccuracy[n]) && isnan(f1Scores[n])) continue;
+                const auto name = labels[n].getName();
+                if (!isnan(labelsAccuracy[n]))
+                    j["labels"][name]["accuracy"] = labelsAccuracy[n];
+                else
+                    j["labels"][name]["accuracy"] = nullptr;
+
+                if (!isnan(f1Scores[n]))
+                    j["labels"][name]["f1"] = f1Scores[n];
+                else
+                    j["labels"][name]["f1"] = nullptr;
+            }
+
+            if (o.is_open()) {
+                o << j.dump(4);
+                o.close();
+                std::cout << "Statistics saved to " << statsFile << std::endl;
+            }
+            else {
+                std::cerr << "Unable to create stats file" << std::endl;
+            }
         }
 
     }
