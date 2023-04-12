@@ -27,9 +27,9 @@ void getTrainingData(const std::vector<std::string> &filenames,
     const std::vector<int> &asprsClasses,
     F storeFeatures,
     I init) {
-    const auto labels = getTrainingLabels();
+    auto labels = getTrainingLabels();
 
-    const bool trainSubset = asprsClasses.size() > 0;
+    bool trainSubset = asprsClasses.size() > 0;
     std::array<bool, 255> trainClass;
 
     if (trainSubset) {
@@ -72,7 +72,7 @@ void getTrainingData(const std::vector<std::string> &filenames,
                 size_t idx = pointSet->pointMap[i];
                 if (!sampled[idx]) {
                     idxes.push_back(std::make_pair(idx, g));
-                    count[static_cast<std::size_t>(g)]++;
+                    count[std::size_t(g)]++;
                     sampled[idx] = true;
                 }
             }
@@ -94,9 +94,9 @@ void getTrainingData(const std::vector<std::string> &filenames,
         for (const auto &p : idxes) {
             size_t idx = p.first;
             int g = p.second;
-            if (added[static_cast<std::size_t>(g)] < samplesPerLabel) {
+            if (added[std::size_t(g)] < samplesPerLabel) {
                 storeFeatures(features, idx, g);
-                added[static_cast<std::size_t>(g)]++;
+                added[std::size_t(g)]++;
             }
         }
 
@@ -219,7 +219,6 @@ void classifyData(PointSet &pointSet,
         throw std::runtime_error("Invalid regularization");
     }
 
-    //std::size_t correct = 0;
     if (!useColors && !pointSet.hasLabels()) pointSet.labels.resize(pointSet.count());
     std::vector<bool> skipMap(255, false);
     for (size_t i = 0; i < skip.size(); i++) {
@@ -254,7 +253,7 @@ void classifyData(PointSet &pointSet,
 
         if (update) {
             if (useColors) {
-                const auto color = label.getColor();
+                auto color = label.getColor();
                 pointSet.colors[i][0] = color.r;
                 pointSet.colors[i][1] = color.g;
                 pointSet.colors[i][2] = color.b;
