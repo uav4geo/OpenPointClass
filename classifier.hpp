@@ -238,7 +238,7 @@ void classifyData(PointSet &pointSet,
         auto label = labels[bestClass];
 
         if (evaluate) {
-            stats.updateStatistics(bestClass, pointSet.labels[i]);
+            stats.record(bestClass, pointSet.labels[i]);
         }
 
         bool update = true;
@@ -269,27 +269,9 @@ void classifyData(PointSet &pointSet,
     }
 
     if (evaluate) {
-
-        auto res = stats.getStatistics();
-        res.print();
-
-        if (!statsFile.empty())
-        {
-            std::ofstream o(statsFile);
-
-            json j;
-            res.to_json(j);
-
-            if (o.is_open()) {
-                o << j.dump(4);
-                o.close();
-                std::cout << "Statistics saved to " << statsFile << std::endl;
-            }
-            else {
-                std::cerr << "Unable to create stats file" << std::endl;
-            }
-        }
-
+        stats.finalize();
+        stats.print();
+        if (!statsFile.empty()) stats.writeToFile(statsFile);
     }
 }
 

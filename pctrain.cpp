@@ -22,8 +22,8 @@ int main(int argc, char **argv) {
         ("m,max-samples", "Approximate maximum number of samples for each input point cloud", cxxopts::value<int>()->default_value("100000"))
         ("radius", "Radius size to use for neighbor search (meters)", cxxopts::value<double>()->default_value(MKSTR(RADIUS)))
         ("e,eval", "Labeled point cloud to use for model accuracy evaluation", cxxopts::value<std::string>()->default_value(""))
-        ("eval-result", "Write evaluation results cloud to ply file", cxxopts::value<std::string>()->default_value(""))
-        ("stats-file", "Write evaluation statistics to json file", cxxopts::value<std::string>()->default_value(""))
+        ("eval-result", "Path where to store evaluation results (PLY)", cxxopts::value<std::string>()->default_value(""))
+        ("stats", "Path where to store evaluation statistics (JSON)", cxxopts::value<std::string>()->default_value(""))
         ("c,classifier", "Which classifier type to use (rf = Random Forest, gbt = Gradient Boosted Trees)", cxxopts::value<std::string>()->default_value("rf"))
         ("classes", "Train only these classification classes (comma separated IDs)", cxxopts::value<std::vector<int>>())
         ("h,help", "Print usage")
@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
         const auto maxSamples = result["max-samples"].as<int>();
         const auto classifier = result["classifier"].as<std::string>();
         const auto evalResult = result["eval-result"].as<std::string>();
-        const auto statsFile = result["stats-file"].as<std::string>();
+        const auto statsFile = result["stats"].as<std::string>();
         const auto evalFilename = result["eval"].as<std::string>();
 
         std::vector<int> classes = {};
