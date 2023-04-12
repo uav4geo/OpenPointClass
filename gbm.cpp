@@ -170,7 +170,9 @@ void classify(PointSet &pointSet,
     const bool useColors,
     const bool unclassifiedOnly,
     const bool evaluate,
-    const std::vector<int> &skip) {
+    const std::vector<int> &skip,
+    const std::string &statsFile
+) {
 
     LightGBM::PredictionEarlyStopConfig early_stop_config;
     auto earlyStop = LightGBM::CreatePredictionEarlyStopInstance("none", early_stop_config);
@@ -179,7 +181,7 @@ void classify(PointSet &pointSet,
         [&booster, &earlyStop](const double *ft, double *probs) {
             booster->Predict(ft, probs, &earlyStop);
         },
-        features, labels, regularization, regRadius, useColors, unclassifiedOnly, evaluate, skip);
+        features, labels, regularization, regRadius, useColors, unclassifiedOnly, evaluate, skip, statsFile);
 }
 
 }

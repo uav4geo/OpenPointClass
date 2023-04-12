@@ -17,7 +17,7 @@ private:
     Color color;
 public:
     Label(const std::string &name, int trainingCode, int asprsCode, Color color = Color())
-        : name(name), trainingCode(trainingCode), asprsCode(asprsCode), color(color) {};
+        : name(name), trainingCode(trainingCode), asprsCode(asprsCode), color(color) {}
 
     std::string getName() const { return name; }
     int getTrainingCode() const { return trainingCode; }

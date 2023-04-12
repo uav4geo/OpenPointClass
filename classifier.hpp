@@ -3,11 +3,13 @@
 
 #include <vector>
 #include <random>
+#include <cmath>
 
 #include "features.hpp"
 #include "labels.hpp"
 #include "constants.hpp"
 #include "point_io.hpp"
+#include "statistics.hpp"
 
 enum Regularization { None, LocalSmooth };
 Regularization parseRegularization(const std::string &regularization);
@@ -15,12 +17,13 @@ Regularization parseRegularization(const std::string &regularization);
 enum ClassifierType { RandomForest, GradientBoostedTrees };
 ClassifierType fingerprint(const std::string &modelFile);
 
+
 template <typename F, typename I>
 void getTrainingData(const std::vector<std::string> &filenames,
     double *startResolution,
-    int numScales,
-    double radius,
-    int maxSamples,
+    const int numScales,
+    const double radius,
+    const int maxSamples,
     const std::vector<int> &asprsClasses,
     F storeFeatures,
     I init) {
@@ -112,12 +115,14 @@ void classifyData(PointSet &pointSet,
     F evaluateFunc,
     const std::vector<Feature *> &features,
     const std::vector<Label> &labels,
-    Regularization regularization,
-    double regRadius,
-    bool useColors,
-    bool unclassifiedOnly,
-    bool evaluate,
-    const std::vector<int> &skip) {
+    const Regularization regularization,
+    const double regRadius,
+    const bool useColors,
+    const bool unclassifiedOnly,
+    const bool evaluate,
+    const std::vector<int> &skip,
+    const std::string &statsFile) {
+
     std::cout << "Classifying..." << std::endl;
     pointSet.base->labels.resize(pointSet.base->count());
 
@@ -214,7 +219,6 @@ void classifyData(PointSet &pointSet,
         throw std::runtime_error("Invalid regularization");
     }
 
-    std::size_t correct = 0;
     if (!useColors && !pointSet.hasLabels()) pointSet.labels.resize(pointSet.count());
     std::vector<bool> skipMap(255, false);
     for (size_t i = 0; i < skip.size(); i++) {
@@ -224,6 +228,8 @@ void classifyData(PointSet &pointSet,
 
     auto train2asprsCodes = getTrain2AsprsCodes();
 
+    Statistics stats(labels);
+
     #pragma omp parallel for
     for (long long int i = 0; i < pointSet.count(); i++) {
         const size_t idx = pointSet.pointMap[i];
@@ -232,10 +238,7 @@ void classifyData(PointSet &pointSet,
         auto label = labels[bestClass];
 
         if (evaluate) {
-            if (pointSet.labels[i] == bestClass) {
-                #pragma omp atomic
-                correct++;
-            }
+            stats.record(bestClass, pointSet.labels[i]);
         }
 
         bool update = true;
@@ -266,8 +269,9 @@ void classifyData(PointSet &pointSet,
     }
 
     if (evaluate) {
-        float modelErr = (1.f - static_cast<float>(correct) / static_cast<float>(pointSet.count()));
-        std::cout << "Model error: " << std::setprecision(4) << (modelErr * 100.f) << "%" << std::endl;
+        stats.finalize();
+        stats.print();
+        if (!statsFile.empty()) stats.writeToFile(statsFile);
     }
 }
 
