@@ -7,8 +7,8 @@
 
 // Accuracy = (True Positives + True Negatives) / (True Positives + True Negatives + False Positives + False Negatives)
 // Precision = True Positives / (True Positives + False Positives)
-// Sensitivity = Recall = True Positives / (True Positives + False Negatives)
-// F1 score = 2 * (Precision * Sensitivity) / (Precision + Sensitivity)
+// recall = Recall = True Positives / (True Positives + False Negatives)
+// F1 score = 2 * (Precision * recall) / (Precision + recall)
 // Specificity = True Negatives / (True Negatives + False Positives))
 // Intersection over Union = True Positives / (True Positives + False Positives + False Negatives)
 
@@ -24,13 +24,13 @@ class Statistics{
     struct LabelStat{
         std::string name;
         double accuracy;
-        double sensitivity;
+        double recall;
         double precision;
         double f1;
         Counts counts;
 
-        LabelStat(const std::string &name, const double accuracy, const double sensitivity, const double precision, const double f1, const Counts &counts) : 
-            name(name), accuracy(accuracy), sensitivity(sensitivity), precision(precision), f1(f1), counts(counts) {}
+        LabelStat(const std::string &name, const double accuracy, const double recall, const double precision, const double f1, const Counts &counts) : 
+            name(name), accuracy(accuracy), recall(recall), precision(precision), f1(f1), counts(counts) {}
     };
 
     std::map<int, Counts> stats;
@@ -39,7 +39,7 @@ class Statistics{
 
     double globalAccuracy;
     double avgAccuracy;
-    double avgSensitivity;
+    double avgRecall;
     double avgPrecision;
     double avgF1;
 
@@ -74,7 +74,7 @@ public:
         const auto cnt = labels.size();
 
         auto accuracyCount = 0;
-        auto sensitivityCount = 0;
+        auto recallCount = 0;
         auto precisionCount = 0;
         auto f1Count = 0;
 
@@ -82,7 +82,7 @@ public:
 
         double sumAccuracy = 0.0;
         double sumF1 = 0.0;
-        double sumSensitivity = 0.0;
+        double sumRecall = 0.0;
         double sumPrecision = 0.0;
 
         for (size_t i = 0; i < cnt; ++i){
@@ -106,21 +106,21 @@ public:
                 precisionCount++;
             }
 
-            const double sensitivity = tp / (cnts.tp + cnts.fn);
+            const double recall = tp / (cnts.tp + cnts.fn);
 
-            if (!std::isnan(sensitivity)) {
-                sumSensitivity += sensitivity;
-                sensitivityCount++;
+            if (!std::isnan(recall)) {
+                sumRecall += recall;
+                recallCount++;
             }
 
-            const double f1 = 2 * (precision * sensitivity) / (precision + sensitivity);
+            const double f1 = 2 * (precision * recall) / (precision + recall);
 
             if (!std::isnan(f1)) {
                 sumF1 += f1;
                 f1Count++;
             }
 
-            labelStats.emplace_back(label.getName(), accuracy, sensitivity, precision, f1, cnts);
+            labelStats.emplace_back(label.getName(), accuracy, recall, precision, f1, cnts);
         }
 
         globalAccuracy = static_cast<double>(sumTp) / totalSamples;
@@ -128,20 +128,20 @@ public:
         avgAccuracy = sumAccuracy / accuracyCount;
         avgF1 = sumF1 / f1Count;
         avgPrecision = sumPrecision / precisionCount;
-        avgSensitivity = sumSensitivity / sensitivityCount;
+        avgRecall = sumRecall / recallCount;
     }
 
     void print() const{
         std::cout << "Statistics:" << std::endl;
         std::cout << "  Global accuracy: " << std::fixed << std::setprecision(3) << globalAccuracy * 100 << "%" << std::endl;
 
-        std::cout << "  Average accuracy: " << std::fixed << std::setprecision(3) << avgAccuracy * 100 << "%" << std::endl;
-        std::cout << "  Average sensitivity: " << std::fixed << std::setprecision(3) << avgSensitivity * 100 << "%" << std::endl;
-        std::cout << "  Average precision: " << std::fixed << std::setprecision(3) << avgPrecision * 100 << "%" << std::endl;
-        std::cout << "  Average F1: " << std::fixed << std::setprecision(3) << avgF1 << std::endl;
+        std::cout << "  Accuracy: " << std::fixed << std::setprecision(3) << avgAccuracy * 100 << "%" << std::endl;
+        std::cout << "  Recall: " << std::fixed << std::setprecision(3) << avgRecall * 100 << "%" << std::endl;
+        std::cout << "  Precision: " << std::fixed << std::setprecision(3) << avgPrecision * 100 << "%" << std::endl;
+        std::cout << "  F1: " << std::fixed << std::setprecision(3) << avgF1 << std::endl;
         std::cout << std::endl;
 
-        std::cout << "  " << std::setw(25) << "Label " << " | " << std::setw(10) << "Accuracy" << " | " << std::setw(11) << "Sensitivity" << " | " << std::setw(10) << "Precision" << " | " << std::setw(10) << "F1" << " | "  << std::endl;
+        std::cout << "  " << std::setw(25) << "Label " << " | " << std::setw(10) << "Accuracy" << " | " << std::setw(11) << "recall" << " | " << std::setw(10) << "Precision" << " | " << std::setw(10) << "F1" << " | "  << std::endl;
         std::cout << "  " << std::setw(25) << std::string(25, '-') << " | ";
         std::cout << std::setw(10) << std::string(10, '-') << " | ";
         std::cout << std::setw(11) << std::string(10, '-') << " | ";
@@ -160,8 +160,8 @@ public:
             else
                 std::cout << std::setw(10) << "N/A" << " | ";
 
-            if (!std::isnan(label.sensitivity))
-                std::cout << std::setw(11) << std::fixed << std::setprecision(3) << label.sensitivity << " | ";
+            if (!std::isnan(label.recall))
+                std::cout << std::setw(11) << std::fixed << std::setprecision(3) << label.recall << " | ";
             else
                 std::cout << std::setw(11) << "N/A" << " | ";
 
@@ -193,7 +193,7 @@ public:
         json j = json{
             {"globalAccuracy", globalAccuracy},
             {"avgAccuracy", avgAccuracy},
-            {"avgSensitivity", avgSensitivity},
+            {"avgRecall", avgRecall},
             {"avgPrecision", avgPrecision},
             {"avgF1", avgF1}
         };
@@ -212,10 +212,10 @@ public:
             else
                 j["labels"][name]["precision"] = nullptr;
 
-            if (!std::isnan(label.sensitivity))
-                j["labels"][name]["sensitivity"] = label.sensitivity;
+            if (!std::isnan(label.recall))
+                j["labels"][name]["recall"] = label.recall;
             else
-                j["labels"][name]["sensitivity"] = nullptr;
+                j["labels"][name]["recall"] = nullptr;
 
             if (!std::isnan(label.f1))
                 j["labels"][name]["f1"] = label.f1;
