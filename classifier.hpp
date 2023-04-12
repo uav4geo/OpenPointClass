@@ -182,7 +182,7 @@ void classifyData(PointSet &pointSet,
 
             std::vector<nanoflann::ResultItem<size_t, float>> radiusMatches;
             std::vector<T> mean(values.size(), 0.);
-            auto index = pointSet.base->getIndex<KdTree>();
+            const auto index = pointSet.base->getIndex<KdTree>();
 
             #pragma omp for schedule(dynamic, 1)
             for (long long int i = 0; i < pointSet.base->count(); i++) {
@@ -218,7 +218,7 @@ void classifyData(PointSet &pointSet,
     if (!useColors && !pointSet.hasLabels()) pointSet.labels.resize(pointSet.count());
     std::vector<bool> skipMap(255, false);
     for (size_t i = 0; i < skip.size(); i++) {
-        size_t skipClass = skip[i];
+        const int skipClass = skip[i];
         if (skipClass >= 0 && skipClass <= 255) skipMap[skipClass] = true;
     }
 
@@ -226,9 +226,9 @@ void classifyData(PointSet &pointSet,
 
     #pragma omp parallel for
     for (long long int i = 0; i < pointSet.count(); i++) {
-        size_t idx = pointSet.pointMap[i];
+        const size_t idx = pointSet.pointMap[i];
 
-        int bestClass = pointSet.base->labels[idx];
+        const int bestClass = pointSet.base->labels[idx];
         auto label = labels[bestClass];
 
         if (evaluate) {
@@ -239,7 +239,7 @@ void classifyData(PointSet &pointSet,
         }
 
         bool update = true;
-        bool hasLabels = pointSet.hasLabels();
+        const bool hasLabels = pointSet.hasLabels();
 
         // if unclassifiedOnly, do not update points with an existing classification
         if (unclassifiedOnly && hasLabels
