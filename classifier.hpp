@@ -229,13 +229,7 @@ void classifyData(PointSet &pointSet,
 
     auto train2asprsCodes = getTrain2AsprsCodes();
 
-    std::vector<int> trainCodes(labels.size());
-    for (size_t i = 0; i < labels.size(); i++)
-    {
-        trainCodes[i] = labels[i].getTrainingCode();
-    }
-
-    Statistics stats(trainCodes);
+    Statistics stats(labels);
 
     #pragma omp parallel for
     for (long long int i = 0; i < pointSet.count(); i++) {
@@ -277,66 +271,15 @@ void classifyData(PointSet &pointSet,
 
     if (evaluate) {
 
-        auto [globalAccuracy, labelsAccuracy, avgAccuracy, f1Scores, avgF1] = stats.getStatistics();
-
-        std::cout << "Statistics:" << std::endl;
-        std::cout << "  Global accuracy: " << std::fixed << std::setprecision(3) << globalAccuracy * 100 << "%" << std::endl;
-        std::cout << "  Average accuracy: " << std::fixed << std::setprecision(3) << avgAccuracy * 100 << "%" << std::endl;
-        std::cout << "  Average F1: " << std::fixed << std::setprecision(3) << avgF1 << std::endl;
-        std::cout << "  Labels:" << std::endl << std::endl;
-
-        std::cout << "  " << std::setw(25) << "Label " << " | " << std::setw(10) << "Accuracy" << " | " << std::setw(10) << "F1" << std::endl;
-        std::cout << "  " << std::setw(25) << std::string(25, '-') << " | " << std::setw(10) << std::string(10, '-') << " | " << std::setw(10) << std::string(10, '-') << std::endl;
-
-        for (auto n = 0; n < labels.size(); n++)
-        {
-
-            if (std::isnan(labelsAccuracy[n]) && std::isnan(f1Scores[n])) continue;
-
-            std::cout << "  " << std::setw(25) << labels[n].getName() << " | ";
-
-            if (!std::isnan(labelsAccuracy[n]))
-                std::cout << std::setw(9) << std::fixed << std::setprecision(3) << labelsAccuracy[n] * 100 << "% | ";
-            else
-                std::cout << std::setw(10) << "N/A" << " | ";
-
-
-            if (!std::isnan(f1Scores[n]))
-                std::cout << std::setw(10) << std::fixed << std::setprecision(3) << f1Scores[n];
-            else
-                std::cout << std::setw(10) << "N/A";
-
-            std::cout << std::endl;
-
-        }
-
-        std::cout << std::endl;
+        auto res = stats.getStatistics();
+        res.print();
 
         if (!statsFile.empty())
         {
             std::ofstream o(statsFile);
 
-            auto j = json {
-                {"globalAccuracy", globalAccuracy},
-                {"avgAccuracy", avgAccuracy},
-                {"avgF1", avgF1}
-            };
-
-            for (auto n = 0; n < labels.size(); n++)
-            {
-
-                if (std::isnan(labelsAccuracy[n]) && std::isnan(f1Scores[n])) continue;
-                const auto name = labels[n].getName();
-                if (!std::isnan(labelsAccuracy[n]))
-                    j["labels"][name]["accuracy"] = labelsAccuracy[n];
-                else
-                    j["labels"][name]["accuracy"] = nullptr;
-
-                if (!std::isnan(f1Scores[n]))
-                    j["labels"][name]["f1"] = f1Scores[n];
-                else
-                    j["labels"][name]["f1"] = nullptr;
-            }
+            json j;
+            res.to_json(j);
 
             if (o.is_open()) {
                 o << j.dump(4);
