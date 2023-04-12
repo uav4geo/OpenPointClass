@@ -37,7 +37,7 @@ class Statistics{
     const std::vector<Label> &labels;
     int totalSamples = 0;
 
-    double globalAccuracy;
+    double accuracy;
     double avgAccuracy;
     double avgRecall;
     double avgPrecision;
@@ -52,13 +52,10 @@ public:
     }
 
     inline void record(const int predicted, const int truth){
-        if (predicted == truth)
-        {
+        if (predicted == truth){
             #pragma omp atomic
             stats[predicted].tp++;
-        }
-        else
-        {
+        }else{
             #pragma omp atomic
             stats[predicted].fp++;
 
@@ -123,7 +120,7 @@ public:
             labelStats.emplace_back(label.getName(), accuracy, recall, precision, f1, cnts);
         }
 
-        globalAccuracy = static_cast<double>(sumTp) / totalSamples;
+        accuracy = static_cast<double>(sumTp) / totalSamples;
 
         avgAccuracy = sumAccuracy / accuracyCount;
         avgF1 = sumF1 / f1Count;
@@ -133,51 +130,49 @@ public:
 
     void print() const{
         std::cout << "Statistics:" << std::endl;
-        std::cout << "  Global accuracy: " << std::fixed << std::setprecision(3) << globalAccuracy * 100 << "%" << std::endl;
+        std::cout << "  Accuracy: " << std::fixed << std::setprecision(2) << accuracy * 100 << "%" << std::endl << std::endl;
 
-        std::cout << "  Accuracy: " << std::fixed << std::setprecision(3) << avgAccuracy * 100 << "%" << std::endl;
-        std::cout << "  Recall: " << std::fixed << std::setprecision(3) << avgRecall * 100 << "%" << std::endl;
-        std::cout << "  Precision: " << std::fixed << std::setprecision(3) << avgPrecision * 100 << "%" << std::endl;
-        std::cout << "  F1: " << std::fixed << std::setprecision(3) << avgF1 << std::endl;
-        std::cout << std::endl;
-
-        std::cout << "  " << std::setw(25) << "Label " << " | " << std::setw(10) << "Accuracy" << " | " << std::setw(11) << "recall" << " | " << std::setw(10) << "Precision" << " | " << std::setw(10) << "F1" << " | "  << std::endl;
-        std::cout << "  " << std::setw(25) << std::string(25, '-') << " | ";
+        std::cout << "  " << std::setw(24) << "Label " << " | " << std::setw(10) << "Accuracy" << " | " << std::setw(11) << "Recall" << " | " << std::setw(10) << "Precision" << " | " << std::setw(10) << "F1" << " | "  << std::endl;
+        std::cout << "  " << std::setw(24) << std::string(24, '-') << " | ";
         std::cout << std::setw(10) << std::string(10, '-') << " | ";
-        std::cout << std::setw(11) << std::string(10, '-') << " | ";
+        std::cout << std::setw(10) << std::string(11, '-') << " | ";
         std::cout << std::setw(10) << std::string(10, '-') << " | ";
         std::cout << std::setw(10) << std::string(10, '-') << " | "  << std::endl;
 
-        for (const auto &label : labelStats)
-        {
+        for (const auto &label : labelStats){
 
             if (std::isnan(label.accuracy) && std::isnan(label.f1)) continue;
 
-            std::cout << "  " << std::setw(25) << label.name << " | ";
+            std::cout << "  " << std::setw(24) << label.name << " | ";
 
             if (!std::isnan(label.accuracy))
-                std::cout << std::setw(9) << std::fixed << std::setprecision(3) << label.accuracy * 100 << "% | ";
+                std::cout << std::setw(9) << std::fixed << std::setprecision(2) << label.accuracy * 100 << "% | ";
             else
-                std::cout << std::setw(10) << "N/A" << " | ";
+                std::cout << std::setw(9) << "N/A" << " | ";
 
             if (!std::isnan(label.recall))
-                std::cout << std::setw(11) << std::fixed << std::setprecision(3) << label.recall << " | ";
-            else
-                std::cout << std::setw(11) << "N/A" << " | ";
-
-            if (!std::isnan(label.precision))
-                std::cout << std::setw(10) << std::fixed << std::setprecision(3) << label.precision << " | ";
+                std::cout << std::setw(10) << std::fixed << std::setprecision(2) << label.recall * 100 << "% | ";
             else
                 std::cout << std::setw(10) << "N/A" << " | ";
+
+            if (!std::isnan(label.precision))
+                std::cout << std::setw(9) << std::fixed << std::setprecision(2) << label.precision * 100 << "% | ";
+            else
+                std::cout << std::setw(9) << "N/A" << " | ";
             
             if (!std::isnan(label.f1))
-                std::cout << std::setw(10) << std::fixed << std::setprecision(3) << label.f1 << " | ";
+                std::cout << std::setw(10) << std::fixed << std::setprecision(2) << label.f1 << " | ";
             else
                 std::cout << std::setw(10) << "N/A" << " | ";
 
             std::cout << std::endl;
-
         }
+
+        std::cout << "  " << std::setw(24) << "(Average)" << " | ";
+        std::cout << std::setw(9) << std::fixed << std::setprecision(2) << avgAccuracy * 100 << "% | ";
+        std::cout << std::setw(10) << std::fixed << std::setprecision(2) << avgRecall * 100 << "% | ";
+        std::cout << std::setw(9) << std::fixed << std::setprecision(2) << avgPrecision * 100 << "% | ";
+        std::cout << std::setw(10) << std::fixed << std::setprecision(2) << avgF1 << " | " << std::endl;
 
         std::cout << std::endl;
     }
@@ -191,11 +186,7 @@ public:
         }
 
         json j = json{
-            {"globalAccuracy", globalAccuracy},
-            {"avgAccuracy", avgAccuracy},
-            {"avgRecall", avgRecall},
-            {"avgPrecision", avgPrecision},
-            {"avgF1", avgF1}
+            {"accuracy", accuracy}
         };
 
         for (const auto &label : labelStats){
