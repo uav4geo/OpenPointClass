@@ -5,20 +5,11 @@
 #include <vector>
 #include <map>
 
-// Accuracy = (True Positives + True Negatives) / (True Positives + True Negatives + False Positives + False Negatives)
-// Precision = True Positives / (True Positives + False Positives)
-// recall = Recall = True Positives / (True Positives + False Negatives)
-// F1 score = 2 * (Precision * recall) / (Precision + recall)
-// Specificity = True Negatives / (True Negatives + False Positives))
-// Intersection over Union = True Positives / (True Positives + False Positives + False Negatives)
-
-// true positives, false positives, true negatives, false negatives
-
 class Statistics{
     struct Counts{
-        size_t tp = 0;
-        size_t fp = 0;
-        size_t fn = 0;
+        size_t tp = 0; // True positives
+        size_t fp = 0; // False positives
+        size_t fn = 0; // False negatives
     };
 
     struct LabelStat{
@@ -35,7 +26,7 @@ class Statistics{
 
     std::map<int, Counts> stats;
     const std::vector<Label> &labels;
-    int totalSamples = 0;
+    size_t totalSamples = 0;
 
     double accuracy;
     double avgAccuracy;
@@ -75,7 +66,7 @@ public:
         auto precisionCount = 0;
         auto f1Count = 0;
 
-        int sumTp = 0;
+        size_t sumTp = 0;
 
         double sumAccuracy = 0.0;
         double sumF1 = 0.0;
