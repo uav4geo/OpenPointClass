@@ -10,6 +10,7 @@ RandomForest *train(const std::vector<std::string> &filenames,
     const double radius,
     const int maxSamples,
     const std::vector<int> &classes) {
+
     ForestParams params;
     params.n_trees = numTrees;
     params.max_depth = treeDepth;
@@ -69,12 +70,13 @@ void classify(PointSet &pointSet,
     const bool useColors,
     const bool unclassifiedOnly,
     const bool evaluate,
-    const std::vector<int> &skip) {
+    const std::vector<int> &skip,
+    const std::string &statsFile) {
     classifyData<float>(pointSet,
         [&rtrees](const float *ft, float *probs) {
             rtrees->evaluate(ft, probs);
         },
-        features, labels, regularization, regRadius, useColors, unclassifiedOnly, evaluate, skip);
+        features, labels, regularization, regRadius, useColors, unclassifiedOnly, evaluate, skip, statsFile);
 }
 
 }

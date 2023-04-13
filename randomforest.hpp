@@ -34,11 +34,12 @@ void classify(PointSet &pointSet,
     const std::vector<Feature *> &features,
     const std::vector<Label> &labels,
     Regularization regularization = Regularization::None,
-    double regRadius = 2.5f,
+    double regRadius = 2.5,
     bool useColors = false,
     bool unclassifiedOnly = false,
     bool evaluate = false,
-    const std::vector<int> &skip = {});
+    const std::vector<int> &skip = {},
+    const std::string &statsFile = "");
 
 }
 #endif
