@@ -21,7 +21,6 @@ int main(int argc, char **argv) {
         ("u,unclassified", "Only classify points that are labeled as unclassified and leave the others untouched", cxxopts::value<bool>()->default_value("false"))
         ("s,skip", "Do not apply these classification labels (comma separated) and leave them as-is", cxxopts::value<std::vector<int>>())
         ("e,eval", "If the input point cloud is labeled, enable accuracy evaluation", cxxopts::value<bool>()->default_value("false"))
-        ("eval-result", "Write evaluation results cloud to ply file", cxxopts::value<std::string>()->default_value(""))
         ("stats-file", "Write evaluation statistics to json file", cxxopts::value<std::string>()->default_value(""))
         ("h,help", "Print usage")
         ;
@@ -101,7 +100,6 @@ int main(int argc, char **argv) {
         std::cout << "Features: " << features.size() << std::endl;
 
         const auto eval = result["eval"].as<bool>();
-        const auto evalResult = result["eval-result"].as<std::string>();
         const auto statsFile = result["stats-file"].as<std::string>();
         const auto regRadius = result["reg-radius"].as<double>();
         const auto color = result["color"].as<bool>();
@@ -117,12 +115,9 @@ int main(int argc, char **argv) {
                 regRadius, color, unclassified, eval, skip, statsFile);
         }
         #endif
-
-        if (eval && !evalResult.empty())
-        {
-            savePointSet(*pointSet, evalResult);
-        }
         
+        savePointSet(*pointSet, outputFile);
+                 
     }
     catch (std::exception &e) {
         std::cerr << "Error: " << e.what() << std::endl;
