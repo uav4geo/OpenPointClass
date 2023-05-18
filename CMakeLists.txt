@@ -5,7 +5,7 @@ SET(WITH_GBT OFF CACHE BOOL "Build GBT support")
 SET(WITH_PDAL ON CACHE BOOL "Build PDAL readers support")
 SET(BUILD_PCTRAIN ON CACHE BOOL "Build pctrain")
 SET(BUILD_PCCLASSIFY ON CACHE BOOL "Build pcclassify")
-
+SET(PORTABLE_BUILD OFF CACHE BOOL "Build portable binaries")
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING
@@ -23,11 +23,14 @@ if (NOT WIN32 AND NOT APPLE)
 endif()
 
 if((CMAKE_CXX_COMPILER_ID MATCHES "Clang") OR (CMAKE_CXX_COMPILER_ID MATCHES "GNU"))
-    if( NOT ((${CMAKE_SYSTEM_PROCESSOR} STREQUAL "aarch64") OR (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm64")) )
-        add_compile_options(-march=native)
+    if(NOT PORTABLE_BUILD)
+        if(NOT ((${CMAKE_SYSTEM_PROCESSOR} STREQUAL "aarch64") OR (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm64")))
+            message("Building with native optimizations")
+            add_compile_options(-march=native)
+        endif()
+    else()
+        message("Building portable binaries")
     endif()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Wno-unused-parameter -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-function -Wno-unknown-pragmas -Wno-deprecated-declarations")
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address -fsanitize=thread -fsanitize=undefined -fsanitize=leak -fno-omit-frame-pointer")
 endif()
 
 find_package(OpenMP REQUIRED)
