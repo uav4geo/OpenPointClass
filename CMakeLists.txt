@@ -5,7 +5,7 @@ SET(WITH_GBT OFF CACHE BOOL "Build GBT support")
 SET(WITH_PDAL ON CACHE BOOL "Build PDAL readers support")
 SET(BUILD_PCTRAIN ON CACHE BOOL "Build pctrain")
 SET(BUILD_PCCLASSIFY ON CACHE BOOL "Build pcclassify")
-
+SET(PORTABLE_BUILD OFF CACHE BOOL "Build portable binaries")
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING
@@ -23,8 +23,14 @@ if (NOT WIN32 AND NOT APPLE)
 endif()
 
 if((CMAKE_CXX_COMPILER_ID MATCHES "Clang") OR (CMAKE_CXX_COMPILER_ID MATCHES "GNU"))
-    if( NOT ((${CMAKE_SYSTEM_PROCESSOR} STREQUAL "aarch64") OR (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm64")) )
-        add_compile_options(-march=native)
+    if(NOT ((${CMAKE_SYSTEM_PROCESSOR} STREQUAL "aarch64") OR (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm64")))
+        if(NOT PORTABLE_BUILD)
+            message("Building with native optimizations")
+            add_compile_options(-march=native)
+        else()
+            message("Building portable binaries")
+            add_compile_options(-march=nehalem)
+        endif()
     endif()
 endif()
 
