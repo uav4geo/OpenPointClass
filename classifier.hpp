@@ -217,7 +217,13 @@ void classifyData(PointSet &pointSet,
     }
     else if (regularization == GraphCut)
     {
-        // Here
+        /*
+        1) Calculate bboxes -> divide input domain
+        2) Each item from the input is assigned to a subdivision based on its bounding box overlap with each of the calculated subdivisions.
+        3) For each subdivision, compute the local graph cut
+        4) Classify items
+
+        */
     }
     else {
         throw std::runtime_error("Invalid regularization");
