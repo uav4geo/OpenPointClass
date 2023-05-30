@@ -11,7 +11,7 @@
 #include "point_io.hpp"
 #include "statistics.hpp"
 
-enum Regularization { None, LocalSmooth };
+enum Regularization { None, LocalSmooth, GraphCut };
 Regularization parseRegularization(const std::string &regularization);
 
 enum ClassifierType { RandomForest, GradientBoostedTrees };
@@ -126,7 +126,7 @@ void classifyData(PointSet &pointSet,
     std::cout << "Classifying..." << std::endl;
     pointSet.base->labels.resize(pointSet.base->count());
 
-    if (regularization == Regularization::None) {
+    if (regularization == None) {
         #pragma omp parallel
         {
             std::vector<T> probs(labels.size(), 0.);
@@ -156,7 +156,7 @@ void classifyData(PointSet &pointSet,
         } // end pragma omp
 
     }
-    else if (regularization == Regularization::LocalSmooth) {
+    else if (regularization == LocalSmooth) {
         std::vector<std::vector<T> > values(labels.size(), std::vector<T>(pointSet.base->count(), -1.));
 
         #pragma omp parallel
@@ -214,6 +214,10 @@ void classifyData(PointSet &pointSet,
             }
 
         }
+    }
+    else if (regularization == GraphCut)
+    {
+        // Here
     }
     else {
         throw std::runtime_error("Invalid regularization");
