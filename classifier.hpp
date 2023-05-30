@@ -217,13 +217,87 @@ void classifyData(PointSet &pointSet,
     }
     else if (regularization == GraphCut)
     {
-        /*
-        1) Calculate bboxes -> divide input domain
-        2) Each item from the input is assigned to a subdivision based on its bounding box overlap with each of the calculated subdivisions.
-        3) For each subdivision, compute the local graph cut
-        4) Classify items
 
-        */
+        std::cout << "Using graph cut..." << std::endl;
+
+        // Calculate bounding boxes
+
+        constexpr int min_number_of_subdivisions = 4;
+        const auto bbox = pointSet.getBbox();
+
+        float Dx = bbox.xmax() - bbox.xmin();
+        float Dy = bbox.ymax() - bbox.ymin();
+        float A = Dx * Dy;
+        float a = A / min_number_of_subdivisions;
+        float l = std::sqrt(a);
+        std::size_t nb_x = static_cast<std::size_t>(Dx / l) + 1;
+        std::size_t nb_y = static_cast<std::size_t>(A / nb_x / a) + 1;
+        std::size_t nb = nb_x * nb_y;
+
+        std::vector<Bbox3> bboxes;
+        bboxes.reserve(nb);
+
+        for (std::size_t x = 0; x < nb_x; ++x)
+            for (std::size_t y = 0; y < nb_y; ++y)
+            {
+                bboxes.push_back
+                (Bbox3(bbox.xmin() + Dx * (x / static_cast<float>(nb_x)),
+                    bbox.ymin() + Dy * (y / static_cast<float>(nb_y)),
+                    bbox.zmin(),
+                    (x == nb_x - 1 ? bbox.xmax() : bbox.xmin() + Dx * ((x + 1) / static_cast<float>(nb_x))),
+                    (y == nb_y - 1 ? bbox.ymax() : bbox.ymin() + Dy * ((y + 1) / static_cast<float>(nb_y))),
+                    bbox.zmax()));
+            }
+
+        std::cerr << "Using" << nb_x * nb_y << " divisions with size " << Dx / nb_x << " " << Dy / nb_y << std::endl;
+
+        // Assign points to bounding boxes
+
+        std::vector<std::vector<std::size_t> > indices(nb);
+        std::vector<std::pair<std::size_t, std::size_t> > input_to_indices(pointSet.base->count());
+
+        for (std::size_t i = 0; i < pointSet.base->count(); ++i)
+        {
+            const auto &p = pointSet.base->points[i];
+            std::size_t idx = 0;
+            for (std::size_t j = 0; j < bboxes.size(); ++j)
+            {
+                if (bboxes[j].contains(p))
+                {
+                    idx = j;
+                    break;
+                }
+            }
+            input_to_indices[i] = std::make_pair(i, idx);
+            indices[idx].push_back(i);
+        }
+
+        std::cerr << "Assigning points to bounding boxes done" << std::endl;
+
+        #pragma omp parallel for
+        for (std::size_t sub = 0; sub < indices.size(); ++sub)
+        {
+            if (indices[sub].empty())
+                continue;
+
+            std::vector<std::pair<std::size_t, std::size_t> > edges;
+            std::vector<double> edge_weights;
+            std::vector probability_matrix(labels.size(), std::vector(indices[sub].size(), 0.));
+            std::vector<std::size_t> assigned_label(indices[sub].size());
+
+            for (std::size_t j = 0; j < indices[sub].size(); ++j)
+            {
+                std::size_t s = indices[sub][j];
+
+                std::vector<nanoflann::ResultItem<size_t, float>> radiusMatches;
+
+                std::vector<std::size_t> neighbors;
+
+            }
+
+        }
+
+
     }
     else {
         throw std::runtime_error("Invalid regularization");

@@ -21,6 +21,66 @@ struct XYZ {
     float z;
 };
 
+class Bbox3
+{
+    std::array<float, 6> rep{};
+
+public:
+
+    Bbox3() = default;
+
+    Bbox3(const float x_min, const float y_min, const float z_min,
+        const float x_max, const float y_max, const float z_max)
+    {
+        rep[0] = x_min;
+        rep[1] = y_min;
+        rep[2] = z_min;
+        rep[3] = x_max;
+        rep[4] = y_max;
+        rep[5] = z_max;
+    }
+
+    float xmin() const { return rep[0]; }
+    float ymin() const { return rep[1]; }
+
+    float zmin() const { return rep[2]; }
+    float xmax() const { return rep[3]; }
+
+    float ymax() const { return rep[4]; }
+    float zmax() const { return rep[5]; }
+
+    float min(const int i) const { return rep[i]; }
+    float max(const int i) const { return rep[i + 3]; }
+
+    bool overlaps(const Bbox3 &b) const
+    {
+        return xmin() <= b.xmax() && xmax() >= b.xmin() &&
+            ymin() <= b.ymax() && ymax() >= b.ymin() &&
+            zmin() <= b.zmax() && zmax() >= b.zmin();
+    }
+
+    float operator[](const int i) const { return rep[i]; }
+
+    bool operator==(const Bbox3 &b) const
+    {
+        return rep[0] == b.rep[0] && rep[1] == b.rep[1] && rep[2] == b.rep[2] &&
+            rep[3] == b.rep[3] && rep[4] == b.rep[4] && rep[5] == b.rep[5];
+    }
+
+    bool contains(const std::array<float, 3> &point) const
+    {
+        return rep[0] <= point[0] && rep[3] >= point[0] &&
+            rep[1] <= point[1] && rep[4] >= point[1] &&
+            rep[2] <= point[2] && rep[5] >= point[2];
+    }
+
+    bool operator!=(const Bbox3 &b) const
+    {
+        return !(*this == b);
+    }
+
+};
+
 #define KDTREE_MAX_LEAF 10
 
 #define RELEASE_POINTSET(__POINTER) { if (__POINTER != nullptr) { __POINTER->freeIndex<KdTree>(); delete __POINTER; __POINTER = nullptr; } }
@@ -35,6 +95,33 @@ struct PointSet {
 
     std::vector<size_t> pointMap;
     PointSet *base = nullptr;
+
+    // Get Bbox3 of the point set
+    Bbox3 getBbox() const
+    {
+        float minx = std::numeric_limits<float>::max();
+        float maxx = std::numeric_limits<float>::min();
+
+        float miny = std::numeric_limits<float>::max();
+        float maxy = std::numeric_limits<float>::min();
+
+        float minz = std::numeric_limits<float>::max();
+        float maxz = std::numeric_limits<float>::min();
+
+        for (auto &point : points)
+        {
+            minx = std::min(minx, point[0]);
+            maxx = std::max(maxx, point[0]);
+            miny = std::min(miny, point[1]);
+            maxy = std::max(maxy, point[1]);
+            minz = std::min(minz, point[2]);
+            maxz = std::max(maxz, point[2]);
+        }
+
+        return { minx, miny, minz, maxx, maxy, maxz };
+
+    }
+
 
     void *kdTree = nullptr;
 

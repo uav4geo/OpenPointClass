@@ -3,6 +3,7 @@
 Regularization parseRegularization(const std::string &regularization) {
     if (regularization == "none") return None;
     if (regularization == "local_smooth") return LocalSmooth;
+    if (regularization == "graph_cut") return GraphCut;
     throw std::runtime_error("Invalid regularization value: " + regularization);
 }
 
