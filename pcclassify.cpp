@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
         ("i,input", "Input point cloud", cxxopts::value<std::string>())
         ("o,output", "Output point cloud", cxxopts::value<std::string>())
         ("m,model", "Input classification model", cxxopts::value<std::string>()->default_value("model.bin"))
-        ("r,regularization", "Regularization method (none, local_smooth)", cxxopts::value<std::string>()->default_value("local_smooth"))
+        ("r,regularization", "Regularization method (none, local_smooth, graph_cut)", cxxopts::value<std::string>()->default_value("local_smooth"))
         ("reg-radius", "Regularization radius (meters)", cxxopts::value<double>()->default_value("2.5"))
         ("c,color", "Output a colored point cloud instead of a classified one", cxxopts::value<bool>()->default_value("false"))
         ("u,unclassified", "Only classify points that are labeled as unclassified and leave the others untouched", cxxopts::value<bool>()->default_value("false"))
