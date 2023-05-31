@@ -230,6 +230,7 @@ void classifyData(PointSet &pointSet,
 
         constexpr int minSubdivisions = 4;
         constexpr float strength = 0.2f;
+        constexpr int neighbors = 12;
         const auto bbox = pointSet.getBbox();
 
         float Dx = bbox.xmax() - bbox.xmin();
@@ -293,21 +294,20 @@ void classifyData(PointSet &pointSet,
             std::vector probabilityMatrix(labels.size(), std::vector(indices[sub].size(), 0.));
             std::vector<std::size_t> assignedLabel(indices[sub].size());
 
-            std::vector<nanoflann::ResultItem<size_t, float>> radiusMatches;
             const auto index = pointSet.base->getIndex<KdTree>();
-
 
             for (std::size_t j = 0; j < indices[sub].size(); ++j)
             {
                 std::size_t s = indices[sub][j];
 
-                //std::vector<std::size_t> neighbors;
+                std::size_t nIndices[12];
+                float nDistances[12];
 
-                size_t numMatches = index->radiusSearch(&pointSet.base->points[s][0], regRadius, radiusMatches);
+                size_t numMatches = index->knnSearch(&pointSet.base->points[s][0], neighbors, nIndices, nDistances);
 
                 for (std::size_t i = 0; i < numMatches; ++i) {
 
-                    const auto neighbor = radiusMatches[i].first;
+                    const auto neighbor = nIndices[i];
 
                     if (sub == inputToIndices[neighbor].first
                         && j != inputToIndices[neighbor].second)
