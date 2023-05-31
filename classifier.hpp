@@ -114,7 +114,9 @@ void alphaExpansionGraphcut(
     const std::vector<std::pair<std::size_t, std::size_t>> &inputGraph,
     const std::vector<float> &edgeCostMap,
     const std::vector<std::vector<double>> &vertexLabelCostMap,
-    const std::vector<std::size_t> &vertexLabelMap);
+    const std::vector<std::size_t> &vertexLabelMap,
+    const size_t numLabels,
+    const size_t numVertices);
 
 template <typename T, typename F>
 void classifyData(PointSet &pointSet,
@@ -342,12 +344,12 @@ void classifyData(PointSet &pointSet,
                 assignedLabel[j] = nbClassBest;
             }
 
-            alphaExpansionGraphcut(edges, edgeWeights, probabilityMatrix, assignedLabel);
+            alphaExpansionGraphcut(edges, edgeWeights, probabilityMatrix, assignedLabel, labels.size(), pointSet.base->count());
+
             for (std::size_t i = 0; i < assignedLabel.size(); ++i)
                 pointSet.base->labels[indices[sub][i]] = assignedLabel[i];
 
         }
-
 
     }
     else {
