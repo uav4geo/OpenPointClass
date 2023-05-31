@@ -110,6 +110,12 @@ void getTrainingData(const std::vector<std::string> &filenames,
     }
 }
 
+void alphaExpansionGraphcut(
+    const std::vector<std::pair<std::size_t, std::size_t>> &inputGraph,
+    const std::vector<float> &edgeCostMap,
+    const std::vector<std::vector<double>> &vertexLabelCostMap,
+    const std::vector<std::size_t> &vertexLabelMap);
+
 template <typename T, typename F>
 void classifyData(PointSet &pointSet,
     F evaluateFunc,
@@ -222,39 +228,40 @@ void classifyData(PointSet &pointSet,
 
         // Calculate bounding boxes
 
-        constexpr int min_number_of_subdivisions = 4;
+        constexpr int minSubdivisions = 4;
+        constexpr float strength = 0.2f;
         const auto bbox = pointSet.getBbox();
 
         float Dx = bbox.xmax() - bbox.xmin();
         float Dy = bbox.ymax() - bbox.ymin();
         float A = Dx * Dy;
-        float a = A / min_number_of_subdivisions;
+        float a = A / minSubdivisions;
         float l = std::sqrt(a);
-        std::size_t nb_x = static_cast<std::size_t>(Dx / l) + 1;
-        std::size_t nb_y = static_cast<std::size_t>(A / nb_x / a) + 1;
-        std::size_t nb = nb_x * nb_y;
+        std::size_t nbX = static_cast<std::size_t>(Dx / l) + 1;
+        std::size_t nbY = static_cast<std::size_t>(A / nbX / a) + 1;
+        std::size_t nb = nbX * nbY;
 
         std::vector<Bbox3> bboxes;
         bboxes.reserve(nb);
 
-        for (std::size_t x = 0; x < nb_x; ++x)
-            for (std::size_t y = 0; y < nb_y; ++y)
+        for (std::size_t x = 0; x < nbX; ++x)
+            for (std::size_t y = 0; y < nbY; ++y)
             {
                 bboxes.push_back
-                (Bbox3(bbox.xmin() + Dx * (x / static_cast<float>(nb_x)),
-                    bbox.ymin() + Dy * (y / static_cast<float>(nb_y)),
+                (Bbox3(bbox.xmin() + Dx * (x / static_cast<float>(nbX)),
+                    bbox.ymin() + Dy * (y / static_cast<float>(nbY)),
                     bbox.zmin(),
-                    (x == nb_x - 1 ? bbox.xmax() : bbox.xmin() + Dx * ((x + 1) / static_cast<float>(nb_x))),
-                    (y == nb_y - 1 ? bbox.ymax() : bbox.ymin() + Dy * ((y + 1) / static_cast<float>(nb_y))),
+                    (x == nbX - 1 ? bbox.xmax() : bbox.xmin() + Dx * ((x + 1) / static_cast<float>(nbX))),
+                    (y == nbY - 1 ? bbox.ymax() : bbox.ymin() + Dy * ((y + 1) / static_cast<float>(nbY))),
                     bbox.zmax()));
             }
 
-        std::cerr << "Using" << nb_x * nb_y << " divisions with size " << Dx / nb_x << " " << Dy / nb_y << std::endl;
+        std::cerr << "Using" << nbX * nbY << " divisions with size " << Dx / nbX << " " << Dy / nbY << std::endl;
 
         // Assign points to bounding boxes
 
         std::vector<std::vector<std::size_t> > indices(nb);
-        std::vector<std::pair<std::size_t, std::size_t> > input_to_indices(pointSet.base->count());
+        std::vector<std::pair<std::size_t, std::size_t> > inputToIndices(pointSet.base->count());
 
         for (std::size_t i = 0; i < pointSet.base->count(); ++i)
         {
@@ -268,32 +275,76 @@ void classifyData(PointSet &pointSet,
                     break;
                 }
             }
-            input_to_indices[i] = std::make_pair(i, idx);
+            inputToIndices[i] = std::make_pair(i, idx);
             indices[idx].push_back(i);
         }
 
         std::cerr << "Assigning points to bounding boxes done" << std::endl;
 
-        #pragma omp parallel for
+
+        //#pragma omp parallel for
         for (std::size_t sub = 0; sub < indices.size(); ++sub)
         {
             if (indices[sub].empty())
                 continue;
 
             std::vector<std::pair<std::size_t, std::size_t> > edges;
-            std::vector<double> edge_weights;
-            std::vector probability_matrix(labels.size(), std::vector(indices[sub].size(), 0.));
-            std::vector<std::size_t> assigned_label(indices[sub].size());
+            std::vector<float> edgeWeights;
+            std::vector probabilityMatrix(labels.size(), std::vector(indices[sub].size(), 0.));
+            std::vector<std::size_t> assignedLabel(indices[sub].size());
+
+            std::vector<nanoflann::ResultItem<size_t, float>> radiusMatches;
+            const auto index = pointSet.base->getIndex<KdTree>();
+
 
             for (std::size_t j = 0; j < indices[sub].size(); ++j)
             {
                 std::size_t s = indices[sub][j];
 
-                std::vector<nanoflann::ResultItem<size_t, float>> radiusMatches;
+                //std::vector<std::size_t> neighbors;
 
-                std::vector<std::size_t> neighbors;
+                size_t numMatches = index->radiusSearch(&pointSet.base->points[s][0], regRadius, radiusMatches);
 
+                for (std::size_t i = 0; i < numMatches; ++i) {
+
+                    const auto neighbor = radiusMatches[i].first;
+
+                    if (sub == inputToIndices[neighbor].first
+                        && j != inputToIndices[neighbor].second)
+                    {
+                        edges.push_back(std::make_pair(j, inputToIndices[neighbor].second));
+                        edgeWeights.push_back(strength);
+                    }
+
+                }
+
+                std::vector<T> values(labels.size(), 0.);
+                std::vector<T> ft(features.size());
+
+                for (std::size_t f = 0; f < features.size(); f++) {
+                    ft[f] = features[f]->getValue(s);
+                }
+
+                evaluateFunc(ft.data(), values.data());
+                std::size_t nbClassBest = 0;
+                float valClassBest = 0.f;
+                for (std::size_t k = 0; k < labels.size(); ++k)
+                {
+                    float value = values[k];
+                    probabilityMatrix[k][j] = -std::log(value);
+
+                    if (valClassBest < value)
+                    {
+                        valClassBest = value;
+                        nbClassBest = k;
+                    }
+                }
+                assignedLabel[j] = nbClassBest;
             }
+
+            alphaExpansionGraphcut(edges, edgeWeights, probabilityMatrix, assignedLabel);
+            for (std::size_t i = 0; i < assignedLabel.size(); ++i)
+                pointSet.base->labels[indices[sub][i]] = assignedLabel[i];
 
         }
 

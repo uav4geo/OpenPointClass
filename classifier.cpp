@@ -1,5 +1,7 @@
 #include "classifier.hpp"
 
+#include "graph.hpp"
+
 Regularization parseRegularization(const std::string &regularization) {
     if (regularization == "none") return None;
     if (regularization == "local_smooth") return LocalSmooth;
@@ -21,4 +23,19 @@ ClassifierType fingerprint(const std::string &modelFile) {
         GradientBoostedTrees :
         RandomForest;
 }
+
+
+
+void alphaExpansionGraphcut(
+    const std::vector<std::pair<std::size_t, std::size_t>> &inputGraph,
+    const std::vector<float> &edgeCostMap,
+    const std::vector<std::vector<double>> &vertexLabelCostMap,
+    const std::vector<std::size_t> &vertexLabelMap)
+{
+
+    // Work here
+
+}
+
+
 
