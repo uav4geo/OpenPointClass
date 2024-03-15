@@ -130,6 +130,13 @@ PointSet *readPointSet(const std::string &filename) {
         }
     }
 
+    // Add a default color to all points if the set does not have them
+    if (!r->hasColors()){
+        std::cout << "Warning: point cloud does not have colors, will set color to white" << std::endl;
+        r->colors.resize(r->points.size());
+        std::fill(r->colors.begin(), r->colors.end(), std::array<uint8_t, 3>{255, 255, 255});
+    }
+
     return r;
 }
 
